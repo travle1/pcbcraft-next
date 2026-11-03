@@ -1693,7 +1693,7 @@ fn start_wire_drag(
         if let Some(e) = endpoint {
             match e {
                 Endpoint::Junction(j) => (WireEdit::Junction { id: j.junction, at }, at),
-                Endpoint::Pin(_) => return,
+                _ => return,
             }
         } else {
             (

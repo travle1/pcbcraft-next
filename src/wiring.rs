@@ -652,12 +652,15 @@ fn merge_endpoints(doc: &mut Document, a: Endpoint, b: Endpoint) -> Result<()> {
     if doc.endpoint(&a) != doc.endpoint(&b) {
         return Err("Wire junction positions disagree.".into());
     }
-    let (keep, remove) = match (&a, &b) {
-        (Endpoint::Pin(_), Endpoint::Pin(_)) => {
+    let (keep, remove) = match (
+        matches!(a, Endpoint::Junction(_)),
+        matches!(b, Endpoint::Junction(_)),
+    ) {
+        (false, false) => {
             return Err("Separate coincident component pins before merging wires.".into());
         }
-        (Endpoint::Pin(_), _) => (a, b),
-        (_, Endpoint::Pin(_)) => (b, a),
+        (false, _) => (a, b),
+        (_, false) => (b, a),
         _ => {
             if a < b {
                 (a, b)

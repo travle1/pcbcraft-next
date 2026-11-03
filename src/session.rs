@@ -69,15 +69,18 @@ pub enum Command {
     },
 }
 pub struct Session {
-    doc: Document,
-    saved: Document,
-    undo: Vec<Document>,
-    redo: Vec<Document>,
+    doc: crate::project::Project,
+    saved: crate::project::Project,
+    undo: Vec<crate::project::Project>,
+    redo: Vec<crate::project::Project>,
     revision: u64,
     pub incarnation: ProjectId,
 }
 impl Session {
     pub fn new(doc: Document) -> Result<Self> {
+        Self::from_project(crate::project::Project::from_document(doc)?)
+    }
+    pub fn from_project(doc: crate::project::Project) -> Result<Self> {
         doc.validate()?;
         Ok(Self {
             saved: doc.clone(),
@@ -88,7 +91,11 @@ impl Session {
             incarnation: ProjectId::fresh()?,
         })
     }
+    /// Legacy convenience accessor for the primary definition, never the GUI active sheet.
     pub fn document(&self) -> &Document {
+        &self.doc.main
+    }
+    pub fn project(&self) -> &crate::project::Project {
         &self.doc
     }
     pub fn revision(&self) -> u64 {
@@ -103,25 +110,74 @@ impl Session {
     pub fn can_redo(&self) -> bool {
         !self.redo.is_empty()
     }
+    /// Legacy single-sheet save marker. Project IO must use `mark_project_saved`.
     pub fn mark_saved(&mut self, snapshot: Document) {
+        self.saved.main = snapshot;
+    }
+    pub fn mark_project_saved(&mut self, snapshot: crate::project::Project) {
         self.saved = snapshot;
     }
-    pub fn apply(&mut self, expected: u64, command: Command) -> Result<Option<SymbolId>> {
+    fn check_revision(&self, expected: u64) -> Result<()> {
         if expected != self.revision {
             return Err(Error::StaleRevision {
                 expected,
                 actual: self.revision,
             });
         }
-        let revision = self
-            .revision
-            .checked_add(1)
-            .ok_or(Error::RevisionExhausted)?;
+        Ok(())
+    }
+    fn commit(&mut self, next: crate::project::Project) -> Result<()> {
+        next.validate()?;
+        if next != self.doc {
+            let revision = self
+                .revision
+                .checked_add(1)
+                .ok_or(Error::RevisionExhausted)?;
+            self.undo.push(std::mem::replace(&mut self.doc, next));
+            if self.undo.len() > 32 {
+                self.undo.remove(0);
+            }
+            self.redo.clear();
+            self.revision = revision;
+        }
+        Ok(())
+    }
+    pub fn project_command(
+        &mut self,
+        expected: u64,
+        command: crate::project::Command,
+    ) -> Result<crate::project::Effect> {
+        self.check_revision(expected)?;
+        let mut next = self.doc.clone();
+        let effect = next.edit(command)?;
+        self.commit(next)?;
+        Ok(effect)
+    }
+    /// Legacy primary-sheet edit. New callers should supply an occurrence to `apply_on`.
+    pub fn apply(&mut self, expected: u64, command: Command) -> Result<Option<SymbolId>> {
+        self.apply_on(expected, self.doc.root, command)
+    }
+    pub fn apply_on(
+        &mut self,
+        expected: u64,
+        occurrence: SheetOccurrenceId,
+        command: Command,
+    ) -> Result<Option<SymbolId>> {
+        if expected != self.revision {
+            return Err(Error::StaleRevision {
+                expected,
+                actual: self.revision,
+            });
+        }
         let repair = matches!(
             &command,
             Command::Move { .. } | Command::Rotate { .. } | Command::SetProperties { .. }
         );
-        let mut next = self.doc.clone();
+        let before = self
+            .doc
+            .document(occurrence)
+            .ok_or("Sheet no longer exists.")?;
+        let mut next = before.clone();
         let mut created = None;
         match command {
             Command::AddNote { at, text } => next.annotations.push(Annotation {
@@ -246,7 +302,7 @@ impl Session {
             Command::EditWire { edit } => next = crate::wiring::preview_edit(&next, &edit)?,
             Command::DrawWire { from, to, bends } => {
                 crate::wiring::draw(&mut next, from, to, bends)?;
-                crate::wiring::heal_overlaps(&self.doc, &mut next)?;
+                crate::wiring::heal_overlaps(before, &mut next)?;
             }
             Command::DeleteNet { anchor } => {
                 let net = crate::netlist::groups(&next)
@@ -266,18 +322,16 @@ impl Session {
             }),
         }
         if repair {
-            crate::wiring::repair_moved_endpoints(&self.doc, &mut next)?;
+            crate::wiring::repair_moved_endpoints(before, &mut next)?;
         }
         crate::text::prune(&mut next);
         next.validate()?;
-        if next != self.doc {
-            self.undo.push(std::mem::replace(&mut self.doc, next));
-            if self.undo.len() > 32 {
-                self.undo.remove(0);
-            }
-            self.redo.clear();
-            self.revision = revision;
-        }
+        let definition = next.sheet_id;
+        let mut project = self.doc.clone();
+        *project
+            .definition_mut(definition)
+            .ok_or("Missing sheet definition.")? = next;
+        self.commit(project)?;
         Ok(created)
     }
     pub fn undo(&mut self) -> Result<()> {

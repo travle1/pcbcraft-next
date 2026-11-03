@@ -5,6 +5,7 @@ use std::{
     io::{Read, Write},
     path::Path,
 };
+pub const PROJECT_FORMAT: &str = "pcbcraft-project-draft/6";
 pub const FORMAT: &str = "pcbcraft-schematic-draft/5";
 pub const MAX_BYTES: usize = 4 * 1024 * 1024;
 #[derive(Serialize, Deserialize)]
@@ -14,6 +15,9 @@ struct Envelope {
     document: Document,
 }
 pub fn encode(doc: &Document) -> Result<Vec<u8>> {
+    if !doc.ports.is_empty() || !doc.sheet_symbols.is_empty() {
+        return Err("Hierarchy requires a complete project save.".into());
+    }
     doc.validate()?;
     let bytes = serde_json::to_vec_pretty(&Envelope {
         format: FORMAT.into(),
@@ -31,6 +35,16 @@ pub fn decode(bytes: &[u8]) -> Result<Document> {
     }
     let mut raw: serde_json::Value =
         serde_json::from_slice(bytes).map_err(|e| format!("Invalid draft: {e}"))?;
+    if raw.get("format").and_then(serde_json::Value::as_str) == Some(PROJECT_FORMAT) {
+        let project = decode_project(bytes)?;
+        if project.occurrences.len() != 1
+            || !project.main.ports.is_empty()
+            || !project.main.sheet_symbols.is_empty()
+        {
+            return Err("Open this file as a complete project, not a single sheet.".into());
+        }
+        return Ok(project.main);
+    }
     let format = raw
         .get("format")
         .and_then(serde_json::Value::as_str)
@@ -107,10 +121,17 @@ pub fn decode(bytes: &[u8]) -> Result<Document> {
     {
         return Err("Named paths require draft version 3.".into());
     }
+    if !value.document.ports.is_empty() || !value.document.sheet_symbols.is_empty() {
+        return Err("Hierarchy requires project draft version 6.".into());
+    }
     value.document.validate()?;
     Ok(value.document)
 }
 pub fn read(path: &Path) -> Result<(Document, Vec<u8>)> {
+    let bytes = read_bytes(path)?;
+    Ok((decode(&bytes)?, bytes))
+}
+fn read_bytes(path: &Path) -> Result<Vec<u8>> {
     let file = std::fs::File::open(path).map_err(|e| Error::Io(e.to_string()))?;
     if !file
         .metadata()
@@ -123,10 +144,12 @@ pub fn read(path: &Path) -> Result<(Document, Vec<u8>)> {
     file.take((MAX_BYTES + 1) as u64)
         .read_to_end(&mut bytes)
         .map_err(|e| Error::Io(e.to_string()))?;
-    Ok((decode(&bytes)?, bytes))
+    Ok(bytes)
 }
 pub fn write(path: &Path, doc: &Document, expected: Option<&[u8]>) -> Result<Vec<u8>> {
-    let bytes = encode(doc)?;
+    save_bytes(path, encode(doc)?, expected)
+}
+fn save_bytes(path: &Path, bytes: Vec<u8>, expected: Option<&[u8]>) -> Result<Vec<u8>> {
     if path
         .symlink_metadata()
         .is_ok_and(|m| m.file_type().is_symlink())
@@ -134,7 +157,7 @@ pub fn write(path: &Path, doc: &Document, expected: Option<&[u8]>) -> Result<Vec
         return Err("Save to a regular file, not a symbolic link.".into());
     }
     if let Some(expected) = expected {
-        let (_, current) = read(path)?;
+        let current = read_bytes(path)?;
         if current != expected {
             return Err(Error::FileChanged);
         }
@@ -151,4 +174,48 @@ pub fn write(path: &Path, doc: &Document, expected: Option<&[u8]>) -> Result<Vec
         .map_err(|e| Error::Io(e.to_string()))?;
     file.persist(path).map_err(|e| Error::Io(e.to_string()))?;
     Ok(bytes)
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProjectEnvelope {
+    format: String,
+    project: crate::project::Project,
+}
+pub fn encode_project(project: &crate::project::Project) -> Result<Vec<u8>> {
+    project.validate()?;
+    let bytes = serde_json::to_vec_pretty(&ProjectEnvelope {
+        format: PROJECT_FORMAT.into(),
+        project: project.clone(),
+    })
+    .map_err(|e| Error::Io(e.to_string()))?;
+    if bytes.len() > MAX_BYTES {
+        return Err("Project exceeds the 4 MiB limit.".into());
+    }
+    Ok(bytes)
+}
+pub fn decode_project(bytes: &[u8]) -> Result<crate::project::Project> {
+    if bytes.len() > MAX_BYTES {
+        return Err("Project exceeds the 4 MiB limit.".into());
+    }
+    let raw: serde_json::Value =
+        serde_json::from_slice(bytes).map_err(|e| format!("Invalid project: {e}"))?;
+    if raw.get("format").and_then(serde_json::Value::as_str) != Some(PROJECT_FORMAT) {
+        return crate::project::Project::from_document(decode(bytes)?);
+    }
+    let envelope: ProjectEnvelope =
+        serde_json::from_value(raw).map_err(|e| format!("Invalid project: {e}"))?;
+    envelope.project.validate()?;
+    Ok(envelope.project)
+}
+pub fn read_project(path: &Path) -> Result<(crate::project::Project, Vec<u8>)> {
+    let bytes = read_bytes(path)?;
+    Ok((decode_project(&bytes)?, bytes))
+}
+pub fn write_project(
+    path: &Path,
+    project: &crate::project::Project,
+    expected: Option<&[u8]>,
+) -> Result<Vec<u8>> {
+    save_bytes(path, encode_project(project)?, expected)
 }

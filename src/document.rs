@@ -24,6 +24,9 @@ macro_rules! identity {
 }
 identity!(ProjectId);
 identity!(SheetId);
+identity!(SheetOccurrenceId);
+identity!(SheetSymbolId);
+identity!(PortId);
 identity!(ComponentId);
 identity!(SymbolId);
 identity!(WireId);
@@ -174,6 +177,8 @@ pub struct PinRef {
 pub enum Endpoint {
     Pin(PinRef),
     Junction(JunctionRef),
+    Port(crate::project::PortRef),
+    SheetPin(crate::project::SheetPinRef),
 }
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -249,6 +254,10 @@ pub struct Document {
     pub annotations: Vec<Annotation>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub text_overrides: Vec<crate::text::Override>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ports: Vec<crate::project::Port>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sheet_symbols: Vec<crate::project::SheetSymbol>,
 }
 impl Document {
     pub fn empty(name: &str) -> Result<Self> {
@@ -263,6 +272,8 @@ impl Document {
             junctions: Vec::new(),
             annotations: Vec::new(),
             text_overrides: Vec::new(),
+            ports: Vec::new(),
+            sheet_symbols: Vec::new(),
         };
         doc.validate()?;
         Ok(doc)
@@ -280,6 +291,12 @@ impl Document {
     pub fn endpoint(&self, endpoint: &Endpoint) -> Option<Point> {
         match endpoint {
             Endpoint::Pin(p) => self.pin(p),
+            Endpoint::Port(p) => self.ports.iter().find(|n| n.id == p.port).map(|n| n.at),
+            Endpoint::SheetPin(p) => self
+                .sheet_symbols
+                .iter()
+                .find(|s| s.id == p.sheet_symbol)?
+                .pin(p.port),
             Endpoint::Junction(j) => self
                 .junctions
                 .iter()
@@ -288,6 +305,7 @@ impl Document {
         }
     }
     pub fn validate(&self) -> Result<()> {
+        crate::project::validate_sheet(self)?;
         if self.name.trim().is_empty()
             || self.name.len() > 120
             || self.name.chars().any(char::is_control)

@@ -102,6 +102,19 @@ pub fn terminal_name(doc: &Document, pin: &PinRef) -> String {
 pub fn endpoint_name(doc: &Document, endpoint: &Endpoint) -> String {
     match endpoint {
         Endpoint::Pin(pin) => terminal_name(doc, pin),
+        Endpoint::Port(p) => doc
+            .ports
+            .iter()
+            .find(|n| n.id == p.port)
+            .map_or("Missing port".into(), |n| format!("Port {}", n.name)),
+        Endpoint::SheetPin(p) => doc
+            .sheet_symbols
+            .iter()
+            .find(|s| s.id == p.sheet_symbol)
+            .and_then(|s| s.pins.iter().find(|n| n.id == p.port))
+            .map_or("Missing sheet pin".into(), |n| {
+                format!("Sheet pin {}", n.name)
+            }),
         Endpoint::Junction(j) => doc
             .junctions
             .iter()
