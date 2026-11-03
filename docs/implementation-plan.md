@@ -3,7 +3,8 @@
 Status: deployment corrected November 3, 2026 by explicit user direction.
 PCBcraft is a standalone app; [accepted decision](adr/0001-standalone-application.md).
 A standalone schematic-only slice is implemented; see [status and remaining gates](implementation-status.md).
-This does not complete the full three-view milestone. No agents/queue/publication.
+This does not complete the full three-view milestone. Repository hosting is recorded
+in [development flow](development-flow.md); no agents or queue were launched.
 [Framework](framework.md), [review record](review-record.md).
 
 ## Standalone base workspace route

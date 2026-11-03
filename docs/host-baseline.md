@@ -15,7 +15,9 @@ The separate upstream checkout was cloned for this task at
 `c553365a2197a689e749389a6fbf707a38df9b61`. Origin is
 `https://github.com/tangency-labs/solidcraft.git`. It is a shallow, filtered clone;
 do not mistake its abbreviated local history for the complete upstream history.
-The active original project remains `pcbcraft-next/`, with no remote configured.
+The active original project remains `pcbcraft-next/`. It had no remote at this
+reference-checkout milestone; later standalone hosting is recorded in
+[development flow](development-flow.md).
 The preserved GPL fork and FigCraft designs are unchanged.
 
 GitHub reports #11351 merged at `2026-11-02T23:20:07Z`, merge commit

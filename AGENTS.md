@@ -84,7 +84,10 @@ Run formatting, Cargo checks and relevant behavior tests. Add tests when there
 is a meaningful contract, not merely to give an empty starter a test count.
 Inspect actual rendered output for UI changes.
 
-No remote is configured. Creating a hosted repository, pushing, opening PRs,
-dependency/security configuration changes and messages require explicit task
-authority naming the destination. Local setup does not authorize publication.
-Do not point a new remote at the preserved fork.
+The standalone repository is https://github.com/travle1/pcbcraft-next;
+`origin` points there. It was created private on November 3, 2026 under the user's
+explicit authorization to commit the existing work in sections and push it.
+Do not point this repository at the preserved fork. Future tasks should state their
+commit/push/PR scope; new destinations, visibility changes, upstream contributions,
+dependency/security configuration changes and messages need appropriate explicit
+authority. No agent launcher, PR queue or hosted CI is configured.

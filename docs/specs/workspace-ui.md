@@ -5,6 +5,10 @@ interaction contracts retained. The [first schematic slice](../implementation-st
 implements part of this contract; other views and full qualification remain planned.
 [Framework](../framework.md).
 
+The design links below target the user's sibling local `designs/` folder. Those
+original designs are preserved outside this GitHub repository and are not build
+dependencies. They require the original local workspace for visual reference.
+
 ## Visual authority and reusable foundation
 
 Latest palette direction (November 3): the user prefers the supplied SolidCraft

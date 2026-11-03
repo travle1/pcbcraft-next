@@ -1,9 +1,19 @@
 # Agent development flow
 
-This is local Git only: no remote, hosted CI, agent launcher or automatic PR queue.
-Use a local ledger or existing Codex tasks until a new hosting destination is
-explicitly selected. Do not reuse the old fork's remote or assume upstream bots
-operate here. Start fresh task contexts from this project's approved sources.
+The standalone repository is [travle1/pcbcraft-next](https://github.com/travle1/pcbcraft-next),
+created private on November 3, 2026. `origin` targets that repository and `main`
+contains the initial sectional history. No hosted CI, agent launcher or automatic
+PR queue is configured. Use a local ledger or existing Codex tasks; do not assume
+upstream bots operate here. Do not reuse the preserved fork's remote. Start fresh
+task contexts from this project's approved sources.
+
+The user authorized the initial commits and push. Work was grouped as architecture
+and licensing, headless Electronics core, qualified UI assets/controls, desktop
+workspace, and usage/verification/repository guidance. The core snapshot passed
+22 tests; the exact staged desktop snapshot passed 59 tests and Clippy. Subsequent
+work should be committed in bounded functional sections as it is completed, with
+validation recorded, rather than accumulating another untracked application.
+Build output and local proof captures remain ignored.
 
 ## Starter backlog
 
@@ -34,7 +44,7 @@ before dependents by default and test the combined result. Resolve conflicts
 without discarding another worker's changes.
 
 Each brief must explicitly authorize commits, a named branch push and draft PR
-destination. Default to local edits while the remote is unset. Upstream work
+destination. Use this standalone repository for authorized pushes and PRs. Upstream work
 requires current target-repository rules and separate authority. A local ledger
 is not an installed queue, and a draft PR is not a completed merge.
 
@@ -42,7 +52,7 @@ is not an installed queue, and a draft PR is not a completed merge.
 
 ```text
 Task ID and outcome:
-Repository: local pcbcraft-next (remote UNSET)
+Repository: travle1/pcbcraft-next (origin; private at initial creation)
 Base SHA, branch and isolated checkout:
 Prerequisite IDs/merged SHAs:
 Read: AGENTS.md, framework.md, task-linked specs, sources.md and target rules.
