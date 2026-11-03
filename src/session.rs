@@ -1,0 +1,274 @@
+//! The sole authoring/undo authority, usable without a display or application host.
+use crate::document::*;
+
+#[derive(Clone, Debug)]
+pub enum Command {
+    Place {
+        kind: PartKind,
+        at: Point,
+    },
+    Move {
+        symbol: SymbolId,
+        at: Point,
+    },
+    Rotate {
+        symbol: SymbolId,
+    },
+    Edit {
+        symbol: SymbolId,
+        reference: String,
+        value: String,
+    },
+    SetProperties {
+        symbol: SymbolId,
+        reference: String,
+        value: String,
+        quarter_turns: u8,
+    },
+    Delete {
+        symbol: SymbolId,
+    },
+    RenameNet {
+        anchor: Endpoint,
+        name: String,
+    },
+    Disconnect {
+        wire: WireId,
+    },
+    EditWire {
+        edit: crate::wiring::WireEdit,
+    },
+    DrawWire {
+        from: crate::wiring::Anchor,
+        to: crate::wiring::Anchor,
+        bends: Vec<Point>,
+    },
+    DeleteNet {
+        anchor: Endpoint,
+    },
+    Connect {
+        from: PinRef,
+        to: PinRef,
+    },
+}
+pub struct Session {
+    doc: Document,
+    saved: Document,
+    undo: Vec<Document>,
+    redo: Vec<Document>,
+    revision: u64,
+    pub incarnation: ProjectId,
+}
+impl Session {
+    pub fn new(doc: Document) -> Result<Self> {
+        doc.validate()?;
+        Ok(Self {
+            saved: doc.clone(),
+            doc,
+            undo: Vec::new(),
+            redo: Vec::new(),
+            revision: 0,
+            incarnation: ProjectId::fresh()?,
+        })
+    }
+    pub fn document(&self) -> &Document {
+        &self.doc
+    }
+    pub fn revision(&self) -> u64 {
+        self.revision
+    }
+    pub fn dirty(&self) -> bool {
+        self.doc != self.saved
+    }
+    pub fn can_undo(&self) -> bool {
+        !self.undo.is_empty()
+    }
+    pub fn can_redo(&self) -> bool {
+        !self.redo.is_empty()
+    }
+    pub fn mark_saved(&mut self, snapshot: Document) {
+        self.saved = snapshot;
+    }
+    pub fn apply(&mut self, expected: u64, command: Command) -> Result<Option<SymbolId>> {
+        if expected != self.revision {
+            return Err(Error::StaleRevision {
+                expected,
+                actual: self.revision,
+            });
+        }
+        let revision = self
+            .revision
+            .checked_add(1)
+            .ok_or(Error::RevisionExhausted)?;
+        let repair = matches!(
+            &command,
+            Command::Move { .. } | Command::Rotate { .. } | Command::SetProperties { .. }
+        );
+        let mut next = self.doc.clone();
+        let mut created = None;
+        match command {
+            Command::Place { kind, at } => {
+                if kind.is_block() {
+                    next.builtin_definitions_version = 2;
+                }
+                let id = ComponentId::fresh()?;
+                let sid = SymbolId::fresh()?;
+                let reference = (1..=MAX_ITEMS + 1)
+                    .map(|n| format!("{}{n}", kind.prefix()))
+                    .find(|r| {
+                        !next
+                            .components
+                            .iter()
+                            .any(|c| c.reference.eq_ignore_ascii_case(r))
+                    })
+                    .ok_or("No free reference.")?;
+                next.components.push(Component {
+                    id,
+                    kind,
+                    reference,
+                    value: kind.value().into(),
+                });
+                next.symbols.push(Symbol {
+                    id: sid,
+                    component: id,
+                    at,
+                    quarter_turns: 0,
+                });
+                created = Some(sid);
+            }
+            Command::Move { symbol, at } => {
+                next.symbols
+                    .iter_mut()
+                    .find(|s| s.id == symbol)
+                    .ok_or("Symbol no longer exists.")?
+                    .at = at
+            }
+            Command::Rotate { symbol } => {
+                let s = next
+                    .symbols
+                    .iter_mut()
+                    .find(|s| s.id == symbol)
+                    .ok_or("Symbol no longer exists.")?;
+                s.quarter_turns = (s.quarter_turns + 1) % 4;
+            }
+            Command::Edit {
+                symbol,
+                reference,
+                value,
+            } => {
+                let cid = next
+                    .symbols
+                    .iter()
+                    .find(|s| s.id == symbol)
+                    .ok_or("Symbol no longer exists.")?
+                    .component;
+                let c = next
+                    .components
+                    .iter_mut()
+                    .find(|c| c.id == cid)
+                    .ok_or("Component no longer exists.")?;
+                c.reference = reference.trim().into();
+                c.value = value.trim().into();
+            }
+            Command::SetProperties {
+                symbol,
+                reference,
+                value,
+                quarter_turns,
+            } => {
+                let placement = next
+                    .symbols
+                    .iter_mut()
+                    .find(|s| s.id == symbol)
+                    .ok_or("Symbol no longer exists.")?;
+                placement.quarter_turns = quarter_turns;
+                let component = next
+                    .components
+                    .iter_mut()
+                    .find(|c| c.id == placement.component)
+                    .ok_or("Component no longer exists.")?;
+                component.reference = reference.trim().into();
+                component.value = value.trim().into();
+            }
+            Command::Delete { symbol } => {
+                let cid = next
+                    .symbols
+                    .iter()
+                    .find(|s| s.id == symbol)
+                    .ok_or("Symbol no longer exists.")?
+                    .component;
+                next.symbols.retain(|s| s.id != symbol);
+                next.components.retain(|c| c.id != cid);
+                next.wires
+                    .retain(|w| !w.from.on_symbol(symbol) && !w.to.on_symbol(symbol));
+                crate::wiring::prune_junctions(&mut next);
+                crate::wiring::normalize_names(&mut next);
+            }
+            Command::RenameNet { anchor, name } => {
+                crate::netlist::rename(&mut next, &anchor, &name)?
+            }
+            Command::Disconnect { wire } => {
+                next = crate::netlist::preview_disconnect(&next, wire)?.document
+            }
+            Command::EditWire { edit } => next = crate::wiring::preview_edit(&next, &edit)?,
+            Command::DrawWire { from, to, bends } => {
+                crate::wiring::draw(&mut next, from, to, bends)?;
+                crate::wiring::heal_overlaps(&self.doc, &mut next)?;
+            }
+            Command::DeleteNet { anchor } => {
+                let net = crate::netlist::groups(&next)
+                    .containing(&anchor)
+                    .cloned()
+                    .ok_or("Net no longer exists.")?;
+                next.wires.retain(|w| !net.links.contains(&w.id));
+                crate::wiring::prune_junctions(&mut next);
+            }
+            Command::Connect { from, to } => next.wires.push(Wire {
+                id: WireId::fresh()?,
+                from: from.into(),
+                to: to.into(),
+                label: None,
+                draw_path: false,
+                bends: None,
+            }),
+        }
+        if repair {
+            crate::wiring::repair_moved_endpoints(&self.doc, &mut next)?;
+        }
+        next.validate()?;
+        if next != self.doc {
+            self.undo.push(std::mem::replace(&mut self.doc, next));
+            if self.undo.len() > 32 {
+                self.undo.remove(0);
+            }
+            self.redo.clear();
+            self.revision = revision;
+        }
+        Ok(created)
+    }
+    pub fn undo(&mut self) -> Result<()> {
+        let revision = self
+            .revision
+            .checked_add(1)
+            .ok_or(Error::RevisionExhausted)?;
+        if let Some(doc) = self.undo.pop() {
+            self.redo.push(std::mem::replace(&mut self.doc, doc));
+            self.revision = revision;
+        }
+        Ok(())
+    }
+    pub fn redo(&mut self) -> Result<()> {
+        let revision = self
+            .revision
+            .checked_add(1)
+            .ok_or(Error::RevisionExhausted)?;
+        if let Some(doc) = self.redo.pop() {
+            self.undo.push(std::mem::replace(&mut self.doc, doc));
+            self.revision = revision;
+        }
+        Ok(())
+    }
+    pub fn demo() -> Result<Self> {
+        Self::new(crate::demo::fan_controller()?)
+    }
+}

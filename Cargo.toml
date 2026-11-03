@@ -1,0 +1,42 @@
+[package]
+name = "pcbcraft-foundation"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Independent EDA foundation for the standalone PCBcraft app and shared SolidCore libraries"
+default-run = "pcbcraft"
+
+[[bin]]
+name = "pcbcraft"
+path = "src/main.rs"
+required-features = ["desktop"]
+
+[features]
+default = []
+desktop = ["dep:eframe", "dep:egui_extras", "dep:rfd", "dep:image"]
+
+[dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+getrandom = "=0.3.4"
+tempfile = "=3.27.0"
+eframe = { version = "=0.36.2", default-features = false, features = ["default_fonts", "wgpu", "wayland", "x11", "accesskit"], optional = true }
+egui_extras = { version = "=0.36.2", default-features = false, features = ["svg"], optional = true }
+rfd = { version = "=0.17.2", optional = true }
+image = { version = "=0.25.10", default-features = false, features = ["png"], optional = true }
+
+[profile.dev]
+debug = 1
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"
