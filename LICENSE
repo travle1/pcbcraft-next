@@ -1,0 +1,11 @@
+This project's original contributions are dual-licensed under either:
+
+* the MIT License, in LICENSE-MIT; or
+* the Apache License, Version 2.0, in LICENSE-APACHE.
+
+Choose either license. SPDX expression: MIT OR Apache-2.0.
+
+Third-party components and data retain their own licenses and notices.
+Bundled family SVG artwork and IBM Plex font are documented in
+assets/family/README.md and assets/family/provenance.json, with notices alongside.
+Cargo dependencies retain the licenses declared by their upstream packages.
