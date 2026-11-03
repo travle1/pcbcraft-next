@@ -108,16 +108,17 @@ navigation entry. Implementation-derived guidance that endorsed those controls i
 superseded by the final schematic export and its sheet-navigation interaction recipe.
 
 The Browser now shows Project → Project settings / Sheets → Main → Symbols / Nets.
-Symbols/Nets are sheet index entries opening aligned, searchable result tables in
-the bottom drawer. Browser hierarchy stays visible while results select real symbols
-or nets. Disclosure hit targets have stable IDs and do not alter object selection.
+Symbols/Nets now expand in-place sheet-local lists; item clicks select the object
+without opening the bottom drawer. The Symbol glyph is the Capture ribbon glyph.
+Search remains independently available. Disclosure hit targets have stable IDs
+and do not alter object selection.
 The active sheet and the selected result are separate states. The loose connection
 count and permanent scrolling instructions are removed; a quiet resize grip remains.
 The card sizes to its rows unless manually resized and scrolls when needed.
 
-Only Main exists in the current document. Project settings, flat-sheet creation and
-hierarchical-sub sheet creation remain disabled with truthful tooltips; this pass
-adds no sheet schema. See [sheet workflows](sheet-workflows.md) for the implementation
+At that checkpoint only Main existed. Flat-sheet and hierarchical-sheet creation
+were still disabled; the subsequent sheet implementation below supersedes that
+limitation. Project settings remain unavailable. See [sheet workflows](sheet-workflows.md) for the implementation
 sequence and acceptance criteria. No fictitious child sheets were added to the demo.
 
 Reviewed the user's actual final schematic export and read-only navigation recipes,
@@ -137,7 +138,7 @@ Real sheet actions now use the existing menu/action/field tokens: Manage → She
 browser context menus, creation and destructive-review dialogs, and contextual
 Properties for sheet symbols and ports. The tree follows the user's final
 `01-schematic-overview.png`: Main expanded, inactive children/siblings folded on
-open, stable selection rows, nested children and sheet-local Symbols/Nets links.
+open, stable selection rows, nested children and sheet-local Symbols/Nets categories.
 The browser sizes to visible rows and scrolls within the available viewport.
 
 Native 1600×1000 and 1000×700 captures were reviewed at
@@ -151,3 +152,28 @@ Clippy pass. Local proof files are excluded from version control.
 
 This is a schematic hierarchy slice, not a layout view, a complete FigCraft
 animation implementation or an accessibility/performance certification.
+
+## Demo, identity and panel follow-up
+
+The user rejected the sparse example, overlapping labels, generic app icon and
+Browser-to-drawer shortcuts. The demo is now an original 31-part study based on
+`designs/exports/workspaces-2026-10-30/01-schematic-overview.png` for composition:
+central controller, compact support circuits and surrounding interfaces. The
+reference design file remains unchanged. All geometry/text is editable, with
+explicit wires/junctions, supply aliases and stored text offsets. No screenshot
+or external electrical design is embedded in the canvas.
+
+Measured tests cover reference/value clearance from authored wires and full-size
+text-to-text clearance. Native captures at 1600×1000 and 1000×700 are reviewed;
+small overview detail still requires zoom. This is curated presentation, not a
+general-purpose label arranger or an electrical validation result.
+
+Symbols and Nets are independent collapsible Browser lists, initially folded to
+keep sheets discoverable. Click a list item to select it; only sheet navigation or
+item selection changes the active sheet. The drawer’s top grip resizes vertically,
+clamped to the workspace, without changing camera, document or undo. Its height
+persists across tabs/collapse within the session. Existing panel layering and
+shared theme/control roles remain in use.
+
+An original layered-board/P mark replaces the chip in the title bar and supplies
+the native OS window icon. See [original asset provenance](../assets/original/README.md).
