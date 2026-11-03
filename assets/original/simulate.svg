@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<title>Circuit simulation</title>
+<path d="M9 9V55H57" fill="none" stroke="#8e9faf" stroke-width="3" stroke-linecap="round"/>
+<path d="M12 34C18 6 24 6 30 34S42 62 48 34L54 16" fill="none" stroke="#236ead" stroke-width="4" stroke-linecap="round"/>
+</svg>

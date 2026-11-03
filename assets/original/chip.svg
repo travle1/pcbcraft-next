@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>PCBcraft</title>
+  <path d="M23 8V17M41 8V17M23 47V56M41 47V56M8 23H17M8 41H17M47 23H56M47 41H56" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>
+  <rect x="16" y="16" width="32" height="32" rx="5" fill="#328bd3"/>
+  <path d="M24 26H40M24 32H34M24 38H40" fill="none" stroke="#b9ddf8" stroke-width="3" stroke-linecap="round"/>
+</svg>

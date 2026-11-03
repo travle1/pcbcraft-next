@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>PCB layout</title>
+  <rect x="8" y="9" width="48" height="46" rx="4" fill="#236ead" stroke="#34465b" stroke-width="2.5"/>
+  <path d="M16 23h11v16h21M16 44h7V17h25" fill="none" stroke="#b9ddf8" stroke-width="2.5" stroke-linejoin="round"/>
+  <rect x="31" y="24" width="13" height="13" rx="1" fill="#34465b" stroke="#8e9faf" stroke-width="2"/>
+  <g fill="#e2e8ef" stroke="#34465b" stroke-width="1.5">
+    <circle cx="16" cy="23" r="3"/><circle cx="48" cy="39" r="3"/>
+    <circle cx="16" cy="44" r="3"/><circle cx="48" cy="17" r="3"/>
+  </g>
+</svg>

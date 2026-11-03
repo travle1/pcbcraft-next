@@ -1,0 +1,245 @@
+[
+  {
+    "path": "assets/family/icons/save.svg",
+    "source": "assets/icons/ui/design/svg/flat/save.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "f34baf170d4549cbc26ceb64a319fdde627eb84e5d9dda182c556e090e9911b7",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/undo.svg",
+    "source": "assets/icons/ui/design/svg/flat/undo.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "0442ddbe7d06fa952f3ce06f6248ede5ec3f158a12fbe981784ac01ff2ce568a",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/redo.svg",
+    "source": "assets/icons/ui/design/svg/flat/redo.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "fdfefad477bbface3f0b9b206d11af68b6dd5cd3ed6a3124e207d491fb8e5c5d",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/home.svg",
+    "source": "assets/icons/ui/design/svg/flat/home.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "fa89dd3b94814eddcf6e7c13e47d808cd98438cded0494f428aa9af5c98932d4",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/folder.svg",
+    "source": "assets/icons/ui/design/svg/flat/folder.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "9081ff02322559c4acdc64ebaadccdaf3a4a3198a2c1037a499c684d1e03284d",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/fit.svg",
+    "source": "assets/icons/ui/design/svg/flat/fit.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "f080e1d2d05c3e2b1eb22e988e8591da89c5e36a2e825288e1ead89f66374ab5",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/zoom.svg",
+    "source": "assets/icons/ui/design/svg/flat/zoom.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "6347397cf2502f370cf027afde21cf4de56fe38dc89b1ee4ab59bc08d9c27fec",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/plus.svg",
+    "source": "assets/icons/ui/design/svg/flat/plus.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "1e51e0e5e6bf2365cc1d69b5480a32ffdbf9190beff4a810d657c98578a25aeb",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/close.svg",
+    "source": "assets/icons/ui/design/svg/flat/close.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "3d5e923a71c92d85c8653f99add07ccef64a0dbe14762225e630c07726134a5f",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/grid.svg",
+    "source": "assets/icons/ui/design/svg/flat/grid.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "559f3b2588cd9248844c82f7ae51eec1a1cfe19b1169e8baa12e1f3d9ad5437f",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/pan.svg",
+    "source": "assets/icons/ui/design/svg/flat/pan.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "339dc07b04c1113988f9c919b4b568a343493b397e86be5bedc115c5f7aff207",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/eye.svg",
+    "source": "assets/icons/ui/design/svg/flat/eye.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "6c51315e2a701c1c796c23806302f948cc7c53c15fc85e6df9bf7d9706e0ec52",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/help.svg",
+    "source": "assets/icons/ui/design/svg/flat/help.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "d3a14fb073e6962ac4934abd1228b699a67c56b4f126773be34e797a92927a87",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/settings.svg",
+    "source": "assets/icons/ui/design/svg/flat/settings.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "edb6b20b6cd33ce0ce8be0d949344def4bd7e6364c4bfe199db20d84d821159e",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/spin.svg",
+    "source": "assets/icons/ui/design/svg/flat/spin.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "7b61b9b594717a8e8284248ed58ef7bd602c089ca725fe5c21b70b551522d76c",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/select_components.svg",
+    "source": "assets/icons/ui/design/svg/flat/select_components.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "60488a0837affcee79832bdb7bf6e860e84b10f2",
+    "sha256": "db5b3aa20bb33a79776151609e5f80046e067db9b47b94ee28887ff81c842825",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/IBMPlexSans-Variable.ttf",
+    "source": "assets/fonts/ibm-plex-sans/IBMPlexSans-Variable.ttf",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "c553365a2197a689e749389a6fbf707a38df9b61",
+    "sha256": "3b031aa4216174205bd8471f88a49b91f093169e9e87bd5262242bc5967fe2e3",
+    "license": "SIL OFL 1.1",
+    "author": "IBM Corp."
+  },
+  {
+    "path": "assets/family/icons/workspace-schematic.svg",
+    "source": "assets/icons/ui/design/svg/workspace/ws_drawing.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "c553365a2197a689e749389a6fbf707a38df9b61",
+    "sha256": "5542006a89db5edc66fae860807acbcfdf6f53dfb6dcf993e24d505f8a854edc",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/move.svg",
+    "source": "assets/icons/ui/design/svg/model/move.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "c553365a2197a689e749389a6fbf707a38df9b61",
+    "sha256": "9bd2442fea29e10c458559cdf60922f74da39efbe285afb32e8f721b38393d57",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icon-palette.toml",
+    "source": "assets/icons/ui/design/palette.toml",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "c553365a2197a689e749389a6fbf707a38df9b61",
+    "sha256": "2faa057351c9244e1fe5761e8cd8f4b751aa828d27291e04e3c3d23c01c267e2",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/workspace-render.svg",
+    "source": "assets/icons/ui/design/svg/workspace/ws_render.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "c553365a2197a689e749389a6fbf707a38df9b61",
+    "sha256": "1cfb098fcf28e5c4045883f2ede6de48e4c599552ca892bd67dbf416b551ec37",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/mirror.svg",
+    "source": "assets/icons/ui/design/svg/model/mirror.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "c553365a2197a689e749389a6fbf707a38df9b61",
+    "sha256": "1e9d1e8ff7fe351ff4249887381b61a265a7d1f565f5b42417ca40f7bf50a8e8",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/list.svg",
+    "source": "assets/icons/ui/design/svg/model/list.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "c553365a2197a689e749389a6fbf707a38df9b61",
+    "sha256": "eaf5009fd724130dff9ddac6ddbd65ed02c4af9dd931abd77bdf2562fdb27c53",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/configuration_table.svg",
+    "source": "assets/icons/ui/design/svg/model/configuration_table.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "c553365a2197a689e749389a6fbf707a38df9b61",
+    "sha256": "348d67742590c052dece4ca4b94af229de0adaa4612c10733fea602b08101b34",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/select.svg",
+    "source": "assets/icons/ui/design/svg/model/select.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "c553365a2197a689e749389a6fbf707a38df9b61",
+    "sha256": "c7d6e5d3d762c4118bc4f5a7181a39350831d3048325bd812be905088c50ad51",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/delete.svg",
+    "source": "assets/icons/ui/design/svg/model/delete.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "c553365a2197a689e749389a6fbf707a38df9b61",
+    "sha256": "004b2f2acfe85bef06c6031e561eeffb9eaf8b9a971dc672792612a8c97d3c2d",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/measure.svg",
+    "source": "assets/icons/ui/design/svg/model/measure.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "c553365a2197a689e749389a6fbf707a38df9b61",
+    "sha256": "bd37b1e0b489d6c17c6071f18ab0503e546714f1d9ed1f63836e60ff470ec89f",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
+  }
+]
