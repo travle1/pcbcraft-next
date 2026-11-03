@@ -1,5 +1,17 @@
 # Source register
 
+## README and media refresh (November 3, 2026)
+
+Read SolidCraft's README at the existing `c553365` pin for product/media structure;
+no upstream screenshot, animation or new implementation was imported. The README
+now uses real PCBcraft captures at `5bb0a4d`, with a labeled still-capture GIF tour.
+[Media provenance and reproduction](screenshots/README.md) retain existing asset
+notices. Source inspection of PCBcraft's manifest/session/desktop confirmed that
+the editing core exists but MCP, its live-session bridge and Assistant connection
+are still unimplemented. Documentation distinguishes those contracts from working
+features and corrects the AI spec's obsolete description of manual wire geometry.
+No application code, dependencies, user designs or reference checkout were changed.
+
 ## Sheet implementation (November 3, 2026)
 
 The sheet aggregate, hierarchy/port endpoints, occurrence-qualified connectivity,

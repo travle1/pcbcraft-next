@@ -3,7 +3,9 @@
 Status: first-class product requirement, November 3, 2026. This is an implementation
 contract and next-slice plan, not an available Assistant, MCP server or arranger.
 The current app has none of those three. It has a headless Electronics session,
-single-command validation/undo and an explicit-link connectivity report to build on.
+single-command validation/undo, flat/hierarchical sheets and occurrence-qualified
+connectivity reports to build on. The [README](../../README.md#ai-and-mcp) exposes
+this implementation gap prominently; a headless command core is not an MCP server.
 Read [runtime contracts](host-runtime.md), [domain](domain.md),
 [UI](workspace-ui.md) and [implementation status](../implementation-status.md).
 
@@ -155,11 +157,15 @@ electrical coverage (known drivers, voltage assumptions, missing/NC pins, etc.)
 and presentation quality. Until ERC exists, report **structural connectivity
 checked; electrical checks not implemented**, never a green "circuit valid" badge.
 
-Authored route paths, junction intent, lock/group constraints and layout profiles
-need bounded native schema/version contracts before storage. The current Wire only
-has two endpoints plus a label/path-display flag; projected display routes are not
-an editable routing model. This work must also improve manual wiring. It is 2D
-schematic geometry, independent of PCB copper routing or a mechanical CAD kernel.
+Authored bends, free endpoints and explicit junctions are now persisted and editable;
+manual wire segments/corners/branches can be moved or deleted with undo. The current
+project envelope carries these paths across sheet occurrences. Legacy links may
+still use derived display routes. Locks, functional groups, layout profiles and
+prepared arrangement constraints still need bounded schema/version contracts.
+Build the arranger on the authored geometry instead of a parallel display-only
+model. This is 2D schematic geometry, independent of PCB copper routing or a
+mechanical CAD kernel. See [wire editing](../wire-editing.md) and
+[current project persistence](../sheet-workflows.md#persistence-limits-and-acceptance).
 
 ## Assistant and preview UI
 
