@@ -213,7 +213,7 @@ fn save_detects_external_changes_and_failed_save_preserves_file() -> Result<()> 
 fn fan_demo_has_distinct_supply_rails_and_a_series_led_path() -> Result<()> {
     let s = Session::demo()?;
     let d = s.document();
-    assert_eq!(d.symbols.len(), 16);
+    assert_eq!(d.symbols.len(), 31);
     let pin = |reference: &str, terminal: &str| -> Result<PinRef> {
         let symbol = d
             .symbols
@@ -275,7 +275,7 @@ fn fan_demo_has_distinct_supply_rails_and_a_series_led_path() -> Result<()> {
             .kind
             .pins()
             .len(),
-        8
+        24
     );
     let mut invalid = d.clone();
     let mut bad_pin = invalid.wires[0].from.pin().ok_or("Not a pin")?.clone();
@@ -340,5 +340,41 @@ fn legacy_drafts_reopen_and_definition_upgrade_undo_is_atomic() -> Result<()> {
     )
     .map_err(|e| e.to_string())?;
     assert!(persistence::decode(&spoof).is_err());
+    Ok(())
+}
+
+#[test]
+fn new_catalog_symbols_upgrade_atomically_and_round_trip() -> Result<()> {
+    let mut s = Session::new(Document::empty("Catalog upgrade")?)?;
+    let original = s.document().clone();
+    for kind in [
+        PartKind::Controller24,
+        PartKind::DigitalTemperatureSensor,
+        PartKind::Oscillator,
+        PartKind::Header6,
+    ] {
+        let pins = kind.pins();
+        let names: std::collections::BTreeSet<_> = pins.iter().map(|p| p.id).collect();
+        assert_eq!(pins.len(), names.len());
+        let id = place(&mut s, kind, Point::default())?;
+        assert!(
+            s.document()
+                .pin(&PinRef {
+                    symbol: id,
+                    terminal: pins[0].id.into()
+                })
+                .is_some()
+        );
+    }
+    assert_eq!(s.document().builtin_definitions_version, 3);
+    let mut invalid = s.document().clone();
+    invalid.builtin_definitions_version = 2;
+    assert!(invalid.validate().is_err());
+    let encoded = persistence::encode(s.document())?;
+    assert_eq!(persistence::decode(&encoded)?, *s.document());
+    for _ in 0..4 {
+        s.undo()?;
+    }
+    assert_eq!(*s.document(), original);
     Ok(())
 }

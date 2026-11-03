@@ -65,9 +65,12 @@ floating restores the chosen thumbnail size. Panel placement is session-local.
 
 Browser follows **Project → Sheets → sheet → Symbols / Nets**, with children
 nested beneath parents. Selection highlights/bolds rows without moving them.
-Disclosure arrows expand/collapse; sheet names navigate. Symbols and Nets open
-sheet-scoped Search tables. The browser has a height grip and scrolls when needed.
-Search/ERC/Messages share the bottom drawer; its chevron collapses it. ERC currently
+Disclosure arrows expand/collapse; sheet names navigate. Symbols and Nets expand into their own sheet-local lists; clicking an item selects
+it directly without opening a drawer. Symbols use the Capture ribbon’s Symbol icon.
+The browser has a bottom height grip and scrolls when needed. Search remains a
+separate searchable table. Search/ERC/Messages share the bottom drawer; drag its
+top grip vertically to resize it, and use its chevron to collapse it. The chosen
+height is retained when reopening or changing tabs during the current session. ERC currently
 shows availability, not electrical-check results.
 
 Use **Manage → Sheets → New sheet / Subsheet**, or browser context menus, to create
@@ -86,3 +89,8 @@ are not implemented. Native `.pc` is experimental; autosave and crash recovery
 remain future work. Read [implementation status](implementation-status.md) before
 relying on saved drafts and the [AI authoring plan](specs/ai-authoring.md) for the
 next integration milestone.
+
+At fit-sheet overview scales below 25%, net names, component values and pin details
+are hidden to avoid crowded labels. Zoom in to inspect them; Browser and Properties
+keep the underlying names available. The example’s authored text offsets are saved
+with its editable data. Existing saved projects keep their own composition.

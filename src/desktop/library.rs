@@ -166,21 +166,23 @@ impl App {
                     query.split_whitespace().all(|word| text.contains(word))
                 })
                 .collect();
-            ui.horizontal(|ui| {
-                ui.add(Icon::Folder.image(14.0, ui.ctx()));
-                ui.label(RichText::new("Built-in symbols").small().color(t.ui.muted));
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    ui.label(
-                        RichText::new(format!(
-                            "{} {}",
-                            parts.len(),
-                            if parts.len() == 1 { "part" } else { "parts" }
-                        ))
-                        .small()
-                        .color(t.ui.muted),
-                    );
+            if rect.height() >= 240.0 {
+                ui.horizontal(|ui| {
+                    ui.add(Icon::Folder.image(14.0, ui.ctx()));
+                    ui.label(RichText::new("Built-in symbols").small().color(t.ui.muted));
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.label(
+                            RichText::new(format!(
+                                "{} {}",
+                                parts.len(),
+                                if parts.len() == 1 { "part" } else { "parts" }
+                            ))
+                            .small()
+                            .color(t.ui.muted),
+                        );
+                    });
                 });
-            });
+            }
             ui.horizontal(|ui| {
                 let search_width = width
                     - if self.library_ui.search.is_empty() {
@@ -204,13 +206,7 @@ impl App {
                     self.library_ui.search.clear();
                 }
             });
-            if compact {
-                ui.label(
-                    RichText::new("List view · compact panel")
-                        .small()
-                        .color(t.ui.muted),
-                );
-            } else {
+            if !compact {
                 ui.horizontal(|ui| {
                     theme::quiet_buttons(ui);
                     ui.spacing_mut().item_spacing.x = 2.0;

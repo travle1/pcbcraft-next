@@ -169,6 +169,7 @@ impl App {
             if let Some(anchor) = anchor {
                 app.select_net(anchor);
             }
+            app.panel_ui.nets_open.insert(app.active_sheet());
             app.open_sheet_index(true);
         }
         if app.options.capture_text

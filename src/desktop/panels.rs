@@ -17,6 +17,10 @@ pub(super) struct State {
     pub search_body: Option<Rect>,
     pub browser_body: Option<Rect>,
     pub browser_grip: Option<Rect>,
+    pub drawer_height: Option<f32>,
+    pub drawer_grip: Option<Rect>,
+    pub symbols_open: std::collections::BTreeSet<pcbcraft_foundation::document::SheetOccurrenceId>,
+    pub nets_open: std::collections::BTreeSet<pcbcraft_foundation::document::SheetOccurrenceId>,
 }
 
 #[derive(Clone, Copy)]
@@ -61,7 +65,12 @@ impl Layout {
             Rect::from_min_max(
                 pos2(
                     bounds.left(),
-                    bounds.bottom() - (bounds.height() * 0.34).clamp(236.0, 268.0),
+                    bounds.bottom()
+                        - app
+                            .panel_ui
+                            .drawer_height
+                            .unwrap_or((bounds.height() * 0.34).clamp(236.0, 268.0))
+                            .clamp(160.0, (bounds.height() - 90.0).max(160.0)),
                 ),
                 pos2(bounds.right() - width - gap, bounds.bottom()),
             )
@@ -362,14 +371,29 @@ impl App {
             {
                 return 1;
             }
-            3 + app
-                .session
-                .project()
-                .occurrences
-                .iter()
-                .filter(|o| o.parent == Some(id))
-                .map(|o| sheet(app, o.id))
-                .sum::<usize>()
+            let items = app.session.project().document(id).map_or(0, |doc| {
+                let symbols = if app.panel_ui.symbols_open.contains(&id) {
+                    doc.symbols.len().max(1)
+                } else {
+                    0
+                };
+                let nets = if app.panel_ui.nets_open.contains(&id) {
+                    pcbcraft_foundation::netlist::Netlist::compile(doc)
+                        .map_or(1, |n| n.nets.len().max(1))
+                } else {
+                    0
+                };
+                symbols + nets
+            });
+            3 + items
+                + app
+                    .session
+                    .project()
+                    .occurrences
+                    .iter()
+                    .filter(|o| o.parent == Some(id))
+                    .map(|o| sheet(app, o.id))
+                    .sum::<usize>()
         }
         if self.panel_ui.project_folded {
             1
@@ -490,22 +514,35 @@ impl App {
         if folded {
             return;
         }
-        for (nets, label, icon) in [(false, "Symbols", Icon::Brand), (true, "Nets", Icon::Wire)] {
-            if (Row {
+        for (nets, label, icon) in [(false, "Symbols", Icon::Symbol), (true, "Nets", Icon::Wire)] {
+            let open = if nets {
+                self.panel_ui.nets_open.contains(&id)
+            } else {
+                self.panel_ui.symbols_open.contains(&id)
+            };
+            let (response, fold) = (Row {
                 label,
                 icon,
                 depth: (depth + 1).min(7),
-                selected: active
-                    && self.drawer == Some("Search")
-                    && self.panel_ui.search_nets == nets,
-                fold: None,
+                selected: false,
+                fold: Some(open),
             })
-            .show(ui, row_id.with(label))
-            .0
-            .clicked()
-            {
-                self.activate_sheet(id);
-                self.open_sheet_index(nets);
+            .show(ui, row_id.with(label));
+            if fold || response.clicked() {
+                if nets {
+                    if open {
+                        self.panel_ui.nets_open.remove(&id);
+                    } else {
+                        self.panel_ui.nets_open.insert(id);
+                    }
+                } else if open {
+                    self.panel_ui.symbols_open.remove(&id);
+                } else {
+                    self.panel_ui.symbols_open.insert(id);
+                }
+            }
+            if open {
+                self.browser_sheet_items(ui, id, row_id.with(label), depth + 2, nets);
             }
         }
         let children: Vec<_> = self
@@ -521,6 +558,80 @@ impl App {
         }
     }
 
+    fn browser_sheet_items(
+        &mut self,
+        ui: &mut egui::Ui,
+        sheet: pcbcraft_foundation::document::SheetOccurrenceId,
+        row_id: egui::Id,
+        depth: u8,
+        nets: bool,
+    ) {
+        use controls::NavigationRow as Row;
+        let Some(doc) = self.session.project().document(sheet).cloned() else {
+            return;
+        };
+        let active = sheet == self.active_sheet();
+        if nets {
+            let Ok(snapshot) = pcbcraft_foundation::netlist::Netlist::compile(&doc) else {
+                return;
+            };
+            let mut items = snapshot.nets;
+            items.sort_by_key(|n| n.title(&doc));
+            if items.is_empty() {
+                ui.label(
+                    egui::RichText::new("No connected nets")
+                        .small()
+                        .color(theme::current(ui.ctx()).ui.muted),
+                );
+            }
+            for net in items {
+                let title = net.title(&doc);
+                let (response, _) = Row {
+                    label: &title,
+                    icon: Icon::Wire,
+                    depth: depth.min(7),
+                    selected: active && self.nets.selected.as_ref() == Some(&net.anchor),
+                    fold: None,
+                }
+                .show(ui, row_id.with(format!("{:?}", net.anchor)));
+                if response
+                    .on_hover_text(format!("{} pins · {}", net.terminals.len(), title))
+                    .clicked()
+                {
+                    self.activate_sheet(sheet);
+                    self.select_net(net.anchor);
+                }
+            }
+        } else {
+            if doc.symbols.is_empty() {
+                ui.label(
+                    egui::RichText::new("No symbols placed")
+                        .small()
+                        .color(theme::current(ui.ctx()).ui.muted),
+                );
+            }
+            for symbol in &doc.symbols {
+                let Some(c) = doc.component(symbol.id) else {
+                    continue;
+                };
+                let label = format!("{}  {}", c.reference, c.value);
+                let (response, _) = Row {
+                    label: &label,
+                    icon: Icon::Symbol,
+                    depth: depth.min(7),
+                    selected: active && self.selection.symbols.contains(&symbol.id),
+                    fold: None,
+                }
+                .show(ui, row_id.with(format!("{:?}", symbol.id)));
+                if response.on_hover_text(&label).clicked() {
+                    self.activate_sheet(sheet);
+                    self.select(Some(symbol.id));
+                    self.tool = Tool::Select;
+                }
+            }
+        }
+    }
+
     fn bottom_drawer(&mut self, ctx: &egui::Context) {
         let t = theme::current(ctx);
         let layout = self.layout;
@@ -530,6 +641,30 @@ impl App {
                 return;
             }
             card(ctx, "bottom_drawer", layout.drawer, |ui| {
+                let (grip, resize) =
+                    ui.allocate_exact_size(vec2(ui.available_width(), 8.0), Sense::drag());
+                self.panel_ui.drawer_grip = Some(grip);
+                ui.painter().hline(
+                    grip.center().x - 22.0..=grip.center().x + 22.0,
+                    grip.center().y,
+                    Stroke::new(
+                        2.0,
+                        if resize.hovered() || resize.dragged() {
+                            t.ui.accent
+                        } else {
+                            t.ui.border
+                        },
+                    ),
+                );
+                if resize.dragged()
+                    && let Some(p) = resize.interact_pointer_pos()
+                {
+                    self.panel_ui.drawer_height =
+                        Some((layout.bounds.bottom() - p.y + 14.0).max(160.0));
+                }
+                resize
+                    .on_hover_cursor(egui::CursorIcon::ResizeVertical)
+                    .on_hover_text("Drag to resize drawer");
                 ui.horizontal(|ui| {
                     theme::quiet_buttons(ui);
                     for tab in ["Search", "ERC", "Messages"] {
@@ -548,11 +683,11 @@ impl App {
                 });
                 ui.separator();
                 if active == "Search" {
-                    self.sheet_search(ui, (layout.drawer.height() - 72.0).max(0.0));
+                    self.sheet_search(ui, (layout.drawer.height() - 82.0).max(0.0));
                 } else {
                     egui::ScrollArea::vertical()
                         .id_salt("drawer_body")
-                        .max_height(layout.drawer.height() - 72.0)
+                        .max_height(layout.drawer.height() - 82.0)
                         .auto_shrink([false, false])
                         .show(ui, |ui| {
                             if active == "ERC" {

@@ -1,54 +1,58 @@
-# Original fan-controller illustration
+# Editable fan-controller study
 
-`--demo` / File → Open example now opens 16 editable components arranged into
-power, temperature, manual control, controller, fan interface and status sections.
-This replaces the unlabeled four-part LED loop. That earlier capacitor was across
-the input supply, not the LED, but the layout did not communicate that clearly.
+`cargo run -- --demo` opens an original 31-part example. Its composition follows
+the user's FigCraft schematic overview: a central controller, compact local
+support circuits, and surrounding interfaces. The design reference remains
+unchanged at `../designs/exports/workspaces-2026-10-30/01-schematic-overview.png`.
+The app draws real editable symbols, wires, junctions and styled notes. It does not
+embed the reference image or import its electrical design.
 
-The new example is an original generic-module illustration, not a specific MCU,
-regulator or sensor design and not a fabrication-ready reference. It has no
-manufacturer pinout, footprints, qualified component values, firmware or ERC result.
-Its drawings, connectivity and fixtures were authored here; no external schematic,
-KiCad implementation or preserved GPL-fork material was used.
+This is a generic editing illustration, not a qualified hardware design. Its
+functional 24-pin controller, regulator, oscillator and sensor do not claim any
+manufacturer's pinout. Footprints, firmware, full ERC and electrical qualification
+remain absent.
 
-- J1 supplies +12V. U2 is a generic 12V-to-3.3V regulator module.
-- C1 is across input supply/GND; C2 is across the regulator output/GND; C3 and C4
-  are logic/sensor supply decoupling. No capacitor parallels the status LED.
-- U1 is a generic eight-terminal control module. U3 illustrates analog temperature
-  input; J2 illustrates a bounded external setpoint; J4 and R3 illustrate mode input.
-- J3 uses the common four-wire fan roles: ground, supply, tachometer and PWM.
-  R1 illustrates a tachometer pull-up, and R2 a PWM series resistor.
-- R4 is in series with D1. STATUS does not bypass R4 to reach the LED.
+- J1 supplies +12 V; U2 represents a 3.3 V regulator. C1 is input decoupling;
+  C2/C3 are output decoupling. C4/C6/C7 decouple local logic/sensor supply.
+- U1 is the central 24-pin controller. R10/R11 illustrate supply monitoring;
+  R5/C5 illustrate reset; Y1 is a clock module. J2 is an external setpoint;
+  J4/R3 provide a mode input.
+- U3 represents an I²C temperature sensor with separate SDA/SCL pull-ups R8/R9.
+  J7/C8 provide a display interface. J5 and J6 expose debug and serial signals.
+- J3 illustrates the four-wire fan roles (supply, ground, tach and PWM), with R1
+  as a tach pull-up and R2 as a series PWM resistor. R4/D1 and R7/D2 form series
+  indicator paths. No capacitor parallels an LED.
 
-The public [Noctua PWM white paper](https://cdn.noctua.at/media/Noctua_PWM_specifications_white_paper.pdf)
-and [microcontroller guide](https://www.noctua.at/en/support/faqs/microcontroller-guide-pwm-setup-and-rpm-monitoring)
-were consulted for the fan signal roles and CMOS PWM / open-collector tachometer
-interface distinction. No implementation code or diagram was copied. The generic
-module is not a claim that every fan can connect directly to an arbitrary controller.
-Actual parts require their own data-sheet, electrical and timing qualification.
+The earlier fan-role research used the public
+[Noctua PWM white paper](https://cdn.noctua.at/media/Noctua_PWM_specifications_white_paper.pdf)
+and [microcontroller guide](https://www.noctua.at/en/support/faqs/microcontroller-guide-pwm-setup-and-rpm-monitoring).
+No upstream diagram, implementation or preserved GPL-fork data was imported.
+Actual parts/interfaces require independent electrical and timing qualification.
 
-All connections are explicit terminal links. The revised drawing aligns the
-temperature path, groups the sensor decoupler locally, and draws setpoint, mode,
-status and fan connections continuously. Supply aliases remain for remote power.
-Labels do not implicitly join objects. Native draft version 3 stores named-path
-display separately from remote aliases; version 1/2 drafts remain readable.
-The existing symbol definitions are unchanged.
+## Presentation and compatibility
 
-The renderer chooses bounded orthogonal candidates using pin directions,
-symbol-body and unrelated-pin obstacles, and prefers paths clear of other nets.
-It can still show crossings when its limited candidates cannot avoid them; no
-crossing creates connectivity. Labels appear once per visibly linked island;
-ordinary endpoints/bends get no junction dot, while branches in the same logical
-net do. Blocked display routes show warning stubs rather than drawing through a
-symbol. Paint and picking use the same path. This is a display-routing improvement,
-distinct from the newer [manual wire editor](wire-editing.md), a general automatic
-arranger, or ERC. Manual edits can freeze the affected display route into authored
-bends/junctions; unrelated display routes remain unchanged.
+The twelve original built-in symbol types include four additions in catalog
+version 3: Controller24, DigitalTemperatureSensor, Oscillator and Header6. Existing
+catalog version 1/2 definitions retain their geometry and pin identities. Placing
+a newer type upgrades the document's catalog version in the same undo transaction.
+Older files remain readable; older applications cannot open catalog-3 documents.
+The native project envelope remains version 6.
 
-These presentation changes apply to freshly opened examples; a saved draft keeps
-its authored placement. The route projection follows moves/rotations without
-rewriting the document or changing terminal membership.
+Local routes are authored orthogonal segments with explicit junctions. Remote
+signals/power use explicit alias edges; equal text alone never establishes a net.
+Only intentional branches have junctions. Incidental crossings stay separate.
+Section headings and stored text offsets leave space around wires and parts.
+Net names prefer a sufficiently long horizontal run; GND names sit below it.
+Reference/value positions for vertical components leave more space from rails.
 
-Focused tests check separated supply rails, the series LED/PWM paths, missing-pin
-rejection, normal save/reopen, version 1 reading, atomic properties and undo.
-These are model/topology tests, not ERC or electrical safety qualification.
+Measured render tests check reference/value clearance from authored wires at
+1000×700 and 1600×1000, plus text-to-text clearance at 1600×1000. Notes also clear the authored wires. Fit-sheet is an
+overview: net names, values and pin detail appear from 25% zoom, avoiding crowded
+minimum-size labels at compact widths. These checks
+protect this curated example, not arbitrary user drawings. General automatic
+placement, label avoidance and AI schematic arrangement are separate work.
+
+Opening a new example uses this composition. Existing saved projects keep their
+own placements and text settings. The renderer still supplies bounded display
+routes for un-authored links; authored routes follow the manual wire editor's
+behavior. See [wire editing](wire-editing.md).

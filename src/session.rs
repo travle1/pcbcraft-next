@@ -198,7 +198,9 @@ impl Session {
             } => next = crate::selection::moved(&next, &items, delta, &routes)?,
             Command::Place { kind, at } => {
                 if kind.is_block() {
-                    next.builtin_definitions_version = 2;
+                    next.builtin_definitions_version = next
+                        .builtin_definitions_version
+                        .max(kind.definitions_version());
                 }
                 let id = ComponentId::fresh()?;
                 let sid = SymbolId::fresh()?;

@@ -1,28 +1,48 @@
-//! Original editable illustration, not a qualified hardware/reference design.
-//! Generic modules deliberately make no manufacturer pinout or firmware claims.
-use crate::document::*;
+//! Original editable fan-controller study, not a qualified hardware design.
+//! Functional pin names are illustrative; no manufacturer pinout is implied.
+use crate::{
+    document::*,
+    text::{Override, TextTarget},
+};
 
 pub fn fan_controller() -> Result<Document> {
     let mut d = Document::empty("Fan controller")?;
+    d.builtin_definitions_version = 3;
     use PartKind::*;
-    // Coordinates in grid cells; three clear columns, power above signal flow.
+    // Authored local circuits around a central controller, following the user's
+    // FigCraft composition. Routes and text are native editable document data.
     let parts = [
         ("J1", Connector, "12 V input", -108, -64, 1),
-        ("U1", FanController, "3.3 V controller", 0, 4, 0),
-        ("U2", Regulator, "12 V → 3.3 V module", -52, -65, 0),
-        ("C1", Capacitor, "10 µF", -86, -64, 1),
-        ("C2", Capacitor, "4.7 µF", -20, -64, 1),
-        ("C3", Capacitor, "100 nF", 6, -64, 1),
-        ("U3", TemperatureSensor, "Analog temperature", -80, 0, 0),
-        ("C4", Capacitor, "100 nF", -110, 1, 1),
-        ("J2", Connector, "0–3.3 V setpoint", -80, 40, 2),
-        ("J4", Connector, "Mode jumper", 80, 52, 0),
-        ("R3", Resistor, "10k", 60, 34, 1),
-        ("J3", FanConnector, "12 V · 4-wire fan", 110, 16, 0),
-        ("R1", Resistor, "10k", 74, -14, 1),
-        ("R2", Resistor, "100 Ω", 78, 22, 0),
-        ("R4", Resistor, "1k", 65, -34, 0),
-        ("D1", Led, "Green LED", 94, -34, 0),
+        ("U1", Controller24, "Generic MCU · 3.3 V", 0, 12, 0),
+        ("U2", Regulator, "12 V → 3.3 V", -64, -65, 0),
+        ("C1", Capacitor, "10 µF", -88, -64, 1),
+        ("C2", Capacitor, "4.7 µF", -40, -64, 1),
+        ("C3", Capacitor, "100 nF", -16, -64, 1),
+        ("C7", Capacitor, "100 nF", 8, -42, 1),
+        ("R5", Resistor, "10k", -40, -38, 1),
+        ("C5", Capacitor, "100 nF", -40, -22, 1),
+        ("R10", Resistor, "100k", -104, -38, 1),
+        ("R11", Resistor, "22k", -104, -18, 1),
+        ("J2", Connector, "0–3.3 V setpoint", -100, 0, 2),
+        ("J4", Connector, "Mode select", -80, 16, 2),
+        ("R3", Resistor, "10k", -118, 10, 1),
+        ("Y1", Oscillator, "8 MHz", -74, 42, 0),
+        ("C6", Capacitor, "100 nF", -108, 42, 1),
+        ("J5", Header6, "SWD debug", -84, 78, 0),
+        ("J6", Header6, "UART console", -24, 78, 0),
+        ("J3", FanConnector, "12 V · 4-wire fan", 100, -14, 0),
+        ("R1", Resistor, "10k", 64, -34, 1),
+        ("R2", Resistor, "100 Ω", 64, -8, 0),
+        ("R4", Resistor, "1k", 60, 8, 0),
+        ("D1", Led, "Status LED", 88, 8, 0),
+        ("U3", DigitalTemperatureSensor, "I²C temperature", 96, 42, 0),
+        ("C4", Capacitor, "100 nF", 120, 24, 1),
+        ("R8", Resistor, "4.7k", 56, 32, 1),
+        ("R9", Resistor, "4.7k", 68, 32, 1),
+        ("J7", Header6, "I²C display", 96, 80, 0),
+        ("C8", Capacitor, "10 µF", 66, 80, 1),
+        ("R7", Resistor, "1k", 22, 78, 0),
+        ("D2", Led, "Activity", 46, 78, 0),
     ];
     for (reference, kind, value, x, y, turns) in parts {
         let component = ComponentId::fresh()?;
@@ -39,139 +59,206 @@ pub fn fan_controller() -> Result<Document> {
             quarter_turns: turns,
         });
     }
-    for (label, anchor, terminals) in [
-        (
-            "+12V",
-            ("J1", "1"),
-            vec![("U2", "1"), ("C1", "1"), ("J3", "2")],
-        ),
+    // Aliases are explicit electrical edges, not text-based connectivity.
+    for (name, anchor, terminals) in [
+        ("+12V", ("J1", "1"), vec![("J3", "2"), ("R10", "1")]),
         (
             "+3V3",
             ("U2", "3"),
             vec![
-                ("C2", "1"),
-                ("C3", "1"),
                 ("U1", "1"),
+                ("C7", "1"),
+                ("R5", "1"),
+                ("R3", "1"),
+                ("Y1", "1"),
+                ("C6", "1"),
+                ("J5", "1"),
+                ("J6", "1"),
+                ("R1", "1"),
                 ("U3", "1"),
                 ("C4", "1"),
-                ("R1", "1"),
-                ("R3", "1"),
+                ("R8", "1"),
+                ("R9", "1"),
+                ("J7", "1"),
+                ("C8", "1"),
             ],
         ),
         (
             "GND",
             ("J1", "2"),
             vec![
-                ("U2", "2"),
-                ("C1", "2"),
                 ("C2", "2"),
                 ("C3", "2"),
                 ("U1", "2"),
-                ("U3", "2"),
-                ("C4", "2"),
+                ("U1", "24"),
+                ("C7", "2"),
+                ("C5", "2"),
+                ("R11", "2"),
                 ("J2", "2"),
                 ("J4", "2"),
+                ("Y1", "2"),
+                ("C6", "2"),
+                ("J5", "6"),
+                ("J6", "6"),
                 ("J3", "1"),
                 ("D1", "2"),
+                ("U3", "2"),
+                ("C4", "2"),
+                ("J7", "6"),
+                ("C8", "2"),
+                ("D2", "2"),
             ],
         ),
-        ("TEMP", ("U3", "3"), vec![("U1", "3")]),
-        ("SETPOINT", ("J2", "1"), vec![("U1", "4")]),
-        ("MODE", ("U1", "8"), vec![("J4", "1"), ("R3", "2")]),
-        ("PWM", ("U1", "5"), vec![("R2", "1")]),
-        ("TACH", ("U1", "6"), vec![("J3", "3"), ("R1", "2")]),
-        ("STATUS", ("U1", "7"), vec![("R4", "1")]),
+        ("SWDIO", ("U1", "11"), vec![("J5", "2")]),
+        ("SWCLK", ("U1", "12"), vec![("J5", "4")]),
+        ("NRST", ("U1", "9"), vec![("J5", "3")]),
+        ("UART_TX", ("U1", "13"), vec![("J6", "2")]),
+        ("UART_RX", ("U1", "14"), vec![("J6", "4")]),
+        ("SDA", ("U3", "3"), vec![("J7", "2")]),
+        ("SCL", ("U3", "4"), vec![("J7", "4")]),
+        ("ALERT", ("U3", "5"), vec![("U1", "22")]),
+        ("ACTIVITY", ("U1", "15"), vec![("R7", "1")]),
     ] {
-        for terminal in terminals {
-            link(&mut d, anchor, terminal, Some(label))?;
+        for b in terminals {
+            wire(&mut d, anchor, b, Some(name), None)?;
         }
     }
-    link(&mut d, ("R2", "2"), ("J3", "4"), None)?;
-    link(&mut d, ("R4", "2"), ("D1", "1"), None)?;
-    for (a, b) in [
-        (("J1", "1"), ("U2", "1")),
-        (("J1", "1"), ("C1", "1")),
-        (("J1", "2"), ("U2", "2")),
-        (("J1", "2"), ("C1", "2")),
-        (("U2", "3"), ("C2", "1")),
-        (("U2", "3"), ("C3", "1")),
-        (("U3", "3"), ("U1", "3")),
-        (("U1", "5"), ("R2", "1")),
-        (("U1", "6"), ("J3", "3")),
-    ] {
-        let from = pin(&d, a.0, a.1)?;
-        let to = pin(&d, b.0, b.1)?;
-        if let Some(wire) = d
-            .wires
-            .iter_mut()
-            .find(|w| w.from == Endpoint::from(from.clone()) && w.to == Endpoint::from(to.clone()))
-        {
-            wire.draw_path = true;
-        }
-    }
-    let old_from = pin(&d, "U2", "3")?;
-    let cap = pin(&d, "C4", "1")?;
-    let sensor = pin(&d, "U3", "1")?;
-    if let Some(w) = d
-        .wires
-        .iter_mut()
-        .find(|w| w.from == Endpoint::from(old_from.clone()) && w.to == Endpoint::from(cap.clone()))
-    {
-        w.from = sensor.into();
-        w.draw_path = true;
-    }
-    for (a, b) in [
-        (("U1", "7"), ("R4", "1")),
-        (("J2", "1"), ("U1", "4")),
-        (("U1", "8"), ("J4", "1")),
-    ] {
-        let from = pin(&d, a.0, a.1)?;
-        let to = pin(&d, b.0, b.1)?;
-        if let Some(w) = d
-            .wires
-            .iter_mut()
-            .find(|w| w.from == Endpoint::from(from.clone()) && w.to == Endpoint::from(to.clone()))
-        {
-            w.draw_path = true;
-        }
-    }
-    // Keep pull-ups visibly in their signal paths without crossing another rail.
-    for (old_a, old_b, from_part, from_pin, to_part, to_pin) in [
-        (("U1", "8"), ("R3", "2"), "R3", "2", "J4", "1"),
-        (("U1", "6"), ("R1", "2"), "R1", "2", "J3", "3"),
-    ] {
-        let a = pin(&d, old_a.0, old_a.1)?;
-        let b = pin(&d, old_b.0, old_b.1)?;
-        let from = pin(&d, from_part, from_pin)?;
-        let to = pin(&d, to_part, to_pin)?;
-        if let Some(w) = d
-            .wires
-            .iter_mut()
-            .find(|w| w.from == Endpoint::from(a.clone()) && w.to == Endpoint::from(b.clone()))
-        {
-            w.from = from.into();
-            w.to = to.into();
-            w.label = None;
-        }
-    }
-    for (x, y, text) in [
-        (-118, -90, "POWER  /  12 V input · 3.3 V logic"),
-        (-118, -25, "TEMPERATURE"),
-        (-118, 24, "SETPOINT INPUT"),
-        (-22, -23, "CONTROLLER"),
-        (98, -16, "FAN INTERFACE"),
-        (48, -48, "STATUS INDICATOR"),
+    // Short, deliberately orthogonal local routes with real branch junctions.
+    for (a, b, name, bends) in [
+        (("J1", "1"), ("C1", "1"), Some("+12V"), vec![]),
+        (("C1", "1"), ("U2", "1"), None, vec![]),
+        (("J1", "2"), ("C1", "2"), None, vec![]),
+        (("C1", "2"), ("U2", "2"), None, vec![(-76, -59)]),
+        (("U2", "3"), ("C2", "1"), Some("+3V3"), vec![]),
+        (("C2", "1"), ("C3", "1"), None, vec![]),
+        (("J2", "1"), ("U1", "4"), Some("SETPOINT"), vec![]),
         (
-            -118,
-            88,
-            "Original generic modules · illustrative draft · not electrically validated",
+            ("J4", "1"),
+            ("U1", "8"),
+            Some("MODE"),
+            vec![(-52, 16), (-52, 8)],
         ),
+        (
+            ("Y1", "3"),
+            ("U1", "10"),
+            Some("CLK"),
+            vec![(-44, 42), (-44, 16)],
+        ),
+        (("U1", "6"), ("J3", "3"), Some("TACH"), vec![]),
+        (("U1", "5"), ("R2", "1"), Some("PWM"), vec![]),
+        (("R2", "2"), ("J3", "4"), None, vec![]),
+        (
+            ("U1", "7"),
+            ("R4", "1"),
+            Some("STATUS"),
+            vec![(36, 4), (36, 8)],
+        ),
+        (("R4", "2"), ("D1", "1"), None, vec![]),
+        (
+            ("U1", "16"),
+            ("U3", "3"),
+            Some("SDA"),
+            vec![(44, 28), (44, 38)],
+        ),
+        (
+            ("U1", "17"),
+            ("U3", "4"),
+            Some("SCL"),
+            vec![(36, 32), (36, 46)],
+        ),
+        (("R7", "2"), ("D2", "1"), None, vec![]),
     ] {
+        wire(&mut d, a, b, name, Some(&bends))?;
+    }
+    branch(
+        &mut d,
+        ("R5", "2"),
+        ("C5", "1"),
+        ("U1", "9"),
+        (-40, -32),
+        &[(-28, -32), (-28, -12)],
+        "NRST",
+    )?;
+    branch(
+        &mut d,
+        ("R10", "2"),
+        ("R11", "1"),
+        ("U1", "3"),
+        (-104, -28),
+        &[(-52, -28), (-52, -8)],
+        "VIN_SENSE",
+    )?;
+    // Split each signal at the physical tap, preserving a single shared vertex.
+    tap(
+        &mut d,
+        ("U1", "6"),
+        ("J3", "3"),
+        ("R1", "2"),
+        (64, -12),
+        &[],
+    )?;
+    tap(
+        &mut d,
+        ("J4", "1"),
+        ("U1", "8"),
+        ("R3", "2"),
+        (-64, 16),
+        &[(-118, 24), (-64, 24)],
+    )?;
+    tap(
+        &mut d,
+        ("U1", "16"),
+        ("U3", "3"),
+        ("R8", "2"),
+        (56, 38),
+        &[],
+    )?;
+    tap(
+        &mut d,
+        ("U1", "17"),
+        ("U3", "4"),
+        ("R9", "2"),
+        (68, 46),
+        &[],
+    )?;
+    // Each heading is local to its circuit; it does not expand fit to distant margins.
+    for (x, y, label) in [
+        (-110, -76, "Power supply"),
+        (-110, -50, "Input monitor"),
+        (-48, -55, "Reset & decoupling"),
+        (-90, -10, "Manual control"),
+        (-88, 29, "Clock source"),
+        (52, -51, "Fan interface"),
+        (50, 20, "Temperature sensor"),
+        (-110, 63, "SWD debug"),
+        (-46, 63, "UART console"),
+        (16, 63, "Activity"),
+        (70, 67, "Display connector"),
+    ] {
+        let id = AnnotationId::fresh()?;
         d.annotations.push(Annotation {
-            id: AnnotationId::fresh()?,
+            id,
             at: point(x, y),
-            text: text.into(),
+            text: label.into(),
         });
+        let target = TextTarget::Note(id);
+        let mut appearance = target.defaults();
+        appearance.height_nm = 4_000_000;
+        d.text_overrides.push(Override { target, appearance });
+    }
+    let id = pin(&d, "R2", "1")?.symbol;
+    for (target, y) in [(TextTarget::Reference(id), 9), (TextTarget::Value(id), 4)] {
+        let mut appearance = target.defaults();
+        appearance.height_nm = 3_000_000;
+        appearance.offset = point(0, y);
+        d.text_overrides.push(Override { target, appearance });
+    }
+    for reference in ["R5", "C5"] {
+        let target = TextTarget::Value(pin(&d, reference, "1")?.symbol);
+        let mut appearance = target.defaults();
+        appearance.height_nm = 3_000_000;
+        appearance.offset = point(-12, 0);
+        d.text_overrides.push(Override { target, appearance });
     }
     d.validate()?;
     Ok(d)
@@ -193,16 +280,123 @@ fn pin(d: &Document, reference: &str, terminal: &str) -> Result<PinRef> {
         terminal: terminal.into(),
     })
 }
-fn link(d: &mut Document, a: (&str, &str), b: (&str, &str), label: Option<&str>) -> Result<()> {
-    let from = pin(d, a.0, a.1)?;
-    let to = pin(d, b.0, b.1)?;
+fn wire(
+    d: &mut Document,
+    a: (&str, &str),
+    b: (&str, &str),
+    label: Option<&str>,
+    bends: Option<&[(i64, i64)]>,
+) -> Result<()> {
+    let from = pin(d, a.0, a.1)?.into();
+    let to = pin(d, b.0, b.1)?.into();
     d.wires.push(Wire {
         id: WireId::fresh()?,
-        from: from.into(),
-        to: to.into(),
+        from,
+        to,
         label: label.map(str::to_owned),
-        draw_path: false,
-        bends: None,
+        draw_path: bends.is_some(),
+        bends: bends.map(|p| p.iter().map(|&(x, y)| point(x, y)).collect()),
+    });
+    Ok(())
+}
+fn junction(d: &mut Document, at: (i64, i64)) -> Result<Endpoint> {
+    let id = JunctionId::fresh()?;
+    d.junctions.push(Junction {
+        id,
+        at: point(at.0, at.1),
+    });
+    Ok(Endpoint::Junction(JunctionRef { junction: id }))
+}
+fn branch(
+    d: &mut Document,
+    a: (&str, &str),
+    b: (&str, &str),
+    c: (&str, &str),
+    at: (i64, i64),
+    bends: &[(i64, i64)],
+    name: &str,
+) -> Result<()> {
+    let tap = junction(d, at)?;
+    for (part, bends, label) in [
+        (a, Vec::new(), None),
+        (b, Vec::new(), None),
+        (
+            c,
+            bends.iter().map(|&(x, y)| point(x, y)).collect(),
+            Some(name.into()),
+        ),
+    ] {
+        let to = pin(d, part.0, part.1)?.into();
+        d.wires.push(Wire {
+            id: WireId::fresh()?,
+            from: tap.clone(),
+            to,
+            label,
+            draw_path: true,
+            bends: Some(bends),
+        });
+    }
+    Ok(())
+}
+fn tap(
+    d: &mut Document,
+    a: (&str, &str),
+    b: (&str, &str),
+    part: (&str, &str),
+    at: (i64, i64),
+    branch_bends: &[(i64, i64)],
+) -> Result<()> {
+    let from: Endpoint = pin(d, a.0, a.1)?.into();
+    let to: Endpoint = pin(d, b.0, b.1)?.into();
+    let index = d
+        .wires
+        .iter()
+        .position(|w| w.from == from && w.to == to && w.draw_path)
+        .ok_or("Demo tap route missing")?;
+    let original = d.wires.remove(index);
+    let tap = junction(d, at)?;
+    let target = point(at.0, at.1);
+    let start = d.endpoint(&from).ok_or("Missing tap start")?;
+    let end = d.endpoint(&to).ok_or("Missing tap end")?;
+    let mut path = vec![start];
+    path.extend(original.bends.unwrap_or_default());
+    path.push(end);
+    let segment = path
+        .windows(2)
+        .position(|p| {
+            (p[0].x == target.x
+                && p[1].x == target.x
+                && (p[0].y.min(p[1].y)..=p[0].y.max(p[1].y)).contains(&target.y))
+                || (p[0].y == target.y
+                    && p[1].y == target.y
+                    && (p[0].x.min(p[1].x)..=p[0].x.max(p[1].x)).contains(&target.x))
+        })
+        .ok_or("Tap must lie on route")?;
+    d.wires.push(Wire {
+        id: original.id,
+        from,
+        to: tap.clone(),
+        label: original.label,
+        draw_path: true,
+        bends: Some(path[1..=segment].to_vec()),
+    });
+    d.wires.push(Wire {
+        id: WireId::fresh()?,
+        from: tap.clone(),
+        to,
+        label: None,
+        draw_path: true,
+        bends: Some(path[segment + 1..path.len() - 1].to_vec()),
+    });
+    let from = pin(d, part.0, part.1)?.into();
+    let bends = branch_bends.iter().map(|&(x, y)| point(x, y)).collect();
+    d.wires.push(Wire {
+        id: WireId::fresh()?,
+        from,
+        to: tap,
+        label: None,
+        draw_path: true,
+        bends: Some(bends),
     });
     Ok(())
 }

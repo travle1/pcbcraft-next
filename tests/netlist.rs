@@ -180,9 +180,20 @@ fn removing_cycle_link_does_not_split_and_v2_read_preserves_aliases() -> Result<
         Netlist::compile(&preview.document)?.nets[0].terminals.len(),
         4
     );
-    let demo = Session::demo()?;
-    // Reconstruct the legacy alias-only representation; the current demo uses v3 named paths.
-    let mut legacy = demo.document().clone();
+    // A genuine v2 fixture: the new demo uses newer symbols, junctions and text styles.
+    s.apply(
+        s.revision(),
+        Command::RenameNet {
+            anchor: pins[0].clone().into(),
+            name: "SIGNAL".into(),
+        },
+    )?;
+    let mut legacy = s.document().clone();
+    legacy.annotations.push(Annotation {
+        id: AnnotationId::fresh()?,
+        at: Point::default(),
+        text: "Legacy note".into(),
+    });
     for w in &mut legacy.wires {
         w.draw_path = false;
     }

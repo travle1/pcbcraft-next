@@ -27,7 +27,7 @@ Annotate and Sync, with group dropdowns. Unimplemented actions and ribbon custom
 Libraries, Manage and View select their own command groups; tab selection never
 opens a panel or edits a document. The canvas uses finer strokes/labels and bounded
 fit magnification. Fit reserves the actual panel widths, including compact windows;
-values and pin details hide below 25% zoom while references/connectivity remain. Symbols, Pins, Wires, Labels and Text can be filtered; other selection types are
+values, net names and pin details hide below 25% zoom while references/connectivity remain. Symbols, Pins, Wires, Labels and Text can be filtered; other selection types are
 planned. View controls grid/snap and pin/wire visibility.
 
 The parts browser replaces the old centered symbol dialog. It has searchable
@@ -54,8 +54,10 @@ reference/value/rotation apply atomically, with revision/incarnation checks and 
 Browser rows keep fixed insets/height; selection changes highlight and font weight.
 Canvas selection uses symbol/reference ink rather than a filled bounding rectangle.
 
-Browser uses the FigCraft project/sheet tree; Symbols/Nets entries open scoped
-Search result tables. The tree scrolls when needed and retains a bottom height grip;
+Browser uses the FigCraft project/sheet tree; Symbols/Nets expand in-place lists,
+with direct selection and the ribbon’s Symbol icon. Search tables remain separate.
+The bottom drawer has a vertical resize grip with session-local retained height.
+The tree scrolls when needed and retains a bottom height grip;
 the grip cannot consume the last rows. Nets are derived from actual terminal
 links and cached by incarnation/revision, with caches reset on occurrence switches. Click a row or wire to highlight the net,
 edit its name, inspect terminals and review connection removal. A split preview
@@ -82,8 +84,8 @@ and right-click actions. Select mode drags segments, corners and free junctions;
 previews commit once on release. Manual routes do not automatically avoid bodies
 or unrelated nets. General label placement and buses remain planned.
 See [wire editing](wire-editing.md). The compiler covers explicit local links and occurrence-qualified port bridges. Global labels, buses and full hierarchical ERC remain future work.
-The [original fan demo](fan-controller-demo.md) uses stored section annotations
-and display aliases for explicit links. Names do not create connectivity;
+The [original 31-part fan demo](fan-controller-demo.md) uses stored section annotations,
+a 24-pin generic controller, authored orthogonal routes and display aliases for explicit links. Names do not create connectivity;
 validation rejects conflicting or disconnected alias groups. Incidental
 crossings do not establish connectivity. Explicit endpoint drops and edited
 collinear overlaps join compatible runs and heal redundant geometry; conflicting
@@ -98,7 +100,8 @@ the future geometry boundary remains SolidCore-first, with no Truck fallback.
 Assistant/MCP/CLI edit transports, atomic multi-command proposals, retry idempotency
 and general schematic arrangement are not implemented yet. Bounded manual wire
 authoring and repositioning are now available. The demo
-has curated coordinates with bounded display routing and supply aliases. First-class AI authoring is now
+has curated coordinates/routes and supply aliases. Catalog version 3 adds four
+original symbol types while preserving all version 1/2 geometry. First-class AI authoring is now
 an explicit early milestone in [its spec](specs/ai-authoring.md), not inferred from
 the existence of a headless command enum.
 

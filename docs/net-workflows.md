@@ -5,11 +5,10 @@ layout, interchange and simulation work. PCBcraft remains a standalone app.
 
 ## Available now
 
-- **Browser → Sheets → sheet → Symbols / Nets** opens a sheet-scoped result table
-  in the bottom Search drawer without changing the document or current object pick.
-  The project tree remains visible; disclosure controls never select objects.
-  Both tree and results scroll when needed; the browser keeps its bottom resize grip.
-  There are no top-level Symbols/Nets browser tabs or unrelated connection total.
+- **Browser → Sheets → sheet → Symbols / Nets** expands sheet-local lists.
+  Click a symbol or net to select it in that sheet without opening a drawer.
+  Branch disclosure does not change selection. Search is a separate filtered table
+  in the bottom drawer; drag the drawer's top grip to resize it vertically.
 - Click a net row or a visible wire/alias stub to highlight its connected pins
   and links. The Wires selection filter controls canvas net picking. A net result selects the full explicit group; box selection separately supports
   symbols, wires and notes as described in [selection and text](selection-and-text.md).

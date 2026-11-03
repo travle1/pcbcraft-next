@@ -66,9 +66,13 @@ pub enum PartKind {
     FanConnector,
     Regulator,
     TemperatureSensor,
+    Controller24,
+    DigitalTemperatureSensor,
+    Oscillator,
+    Header6,
 }
 impl PartKind {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 12] = [
         Self::Resistor,
         Self::Capacitor,
         Self::Led,
@@ -77,6 +81,10 @@ impl PartKind {
         Self::FanConnector,
         Self::Regulator,
         Self::TemperatureSensor,
+        Self::Controller24,
+        Self::DigitalTemperatureSensor,
+        Self::Oscillator,
+        Self::Header6,
     ];
     pub fn name(self) -> &'static str {
         match self {
@@ -88,6 +96,10 @@ impl PartKind {
             Self::FanConnector => "4-wire fan connector",
             Self::Regulator => "Regulator module",
             Self::TemperatureSensor => "Analog temperature sensor",
+            Self::Controller24 => "24-pin controller",
+            Self::DigitalTemperatureSensor => "Digital temperature sensor",
+            Self::Oscillator => "Clock oscillator",
+            Self::Header6 => "6-pin header",
         }
     }
     pub fn prefix(self) -> &'static str {
@@ -96,7 +108,9 @@ impl PartKind {
             Self::Capacitor => "C",
             Self::Led => "D",
             Self::Connector => "J",
-            Self::FanConnector => "J",
+            Self::FanConnector | Self::Header6 => "J",
+            Self::Oscillator => "Y",
+            Self::Controller24 | Self::DigitalTemperatureSensor => "U",
             Self::FanController | Self::Regulator | Self::TemperatureSensor => "U",
         }
     }
@@ -110,15 +124,39 @@ impl PartKind {
             Self::FanConnector => "12 V PWM fan",
             Self::Regulator => "12 V to 3.3 V",
             Self::TemperatureSensor => "Analog temperature",
+            Self::Controller24 => "Generic MCU · 3.3 V",
+            Self::DigitalTemperatureSensor => "I²C temperature",
+            Self::Oscillator => "8 MHz",
+            Self::Header6 => "2 × 3 header",
         }
     }
     pub fn pins(self) -> &'static [PinDefinition] {
         crate::definitions::pins(self)
     }
+    pub fn definitions_version(self) -> u32 {
+        match self {
+            Self::Controller24
+            | Self::DigitalTemperatureSensor
+            | Self::Oscillator
+            | Self::Header6 => 3,
+            Self::FanController
+            | Self::FanConnector
+            | Self::Regulator
+            | Self::TemperatureSensor => 2,
+            _ => 1,
+        }
+    }
     pub fn is_block(self) -> bool {
         matches!(
             self,
-            Self::FanController | Self::FanConnector | Self::Regulator | Self::TemperatureSensor
+            Self::FanController
+                | Self::FanConnector
+                | Self::Regulator
+                | Self::TemperatureSensor
+                | Self::Controller24
+                | Self::DigitalTemperatureSensor
+                | Self::Oscillator
+                | Self::Header6
         )
     }
 }
@@ -312,7 +350,7 @@ impl Document {
         {
             return Err("Project name must contain 1–120 printable bytes.".into());
         }
-        if ![1, 2].contains(&self.builtin_definitions_version) {
+        if ![1, 2, 3].contains(&self.builtin_definitions_version) {
             return Err("Unsupported built-in definition version.".into());
         }
         if self.symbols.len() > MAX_ITEMS
@@ -325,8 +363,12 @@ impl Document {
         let mut components = BTreeSet::new();
         let mut refs = BTreeSet::new();
         for c in &self.components {
-            if self.builtin_definitions_version == 1 && c.kind.is_block() {
-                return Err("This symbol requires built-in definitions version 2.".into());
+            if self.builtin_definitions_version < c.kind.definitions_version() {
+                return Err(format!(
+                    "This symbol requires built-in definitions version {}.",
+                    c.kind.definitions_version()
+                )
+                .into());
             }
             if !components.insert(c.id) || !refs.insert(c.reference.to_ascii_uppercase()) {
                 return Err("Duplicate component identity or reference.".into());

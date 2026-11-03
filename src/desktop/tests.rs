@@ -1214,45 +1214,51 @@ fn ribbon_tabs_switch_command_sets_without_opening_panels() -> Result<()> {
 }
 
 #[test]
-fn browser_indexes_preserve_hierarchy_and_result_selection_geometry() -> Result<()> {
+fn browser_lists_expand_select_and_keep_row_geometry_without_opening_drawer() -> Result<()> {
     let (mut app, ctx) = library_fixture()?;
     app.library = false;
+    app.panel_ui.symbols_open.insert(app.active_sheet());
+    for _ in 0..3 {
+        workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    }
     let before = app.document().clone();
     let picked = app.selection.clone();
     let output = workspace_frame(&mut app, &ctx, vec![]);
     let at = panel_text(&output, app.layout.browser, "Symbols")?
         .0
         .center();
-    for label in ["Project settings", "Sheets", "Main", "Symbols", "Nets"] {
-        assert!(
-            panel_text(&output, app.layout.browser, label).is_ok(),
-            "{label}"
-        );
-    }
-    assert!(panel_text(&output, app.layout.browser, "31 connections").is_err());
+    let (row, font) = panel_text(&output, app.layout.browser, "J1  12 V input")?;
     output.drop_without_applying_deltas();
+    workspace_click(&mut app, &ctx, row.center());
+    let output = workspace_frame(&mut app, &ctx, vec![]);
+    let (after, bold) = panel_text(&output, app.layout.browser, "J1  12 V input")?;
+    output.drop_without_applying_deltas();
+    assert_eq!(row.min, after.min);
+    assert_eq!(row.height(), after.height());
+    assert_ne!(font, bold);
+    assert_ne!(app.selection, picked);
     workspace_click(&mut app, &ctx, at);
-    assert_eq!(app.drawer, Some("Search"));
-    assert!(!app.panel_ui.search_nets);
-    assert_eq!(
-        app.selection, picked,
-        "An index opens results without changing the object pick"
-    );
     for _ in 0..3 {
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
     }
     let output = workspace_frame(&mut app, &ctx, vec![]);
-    let (row, font) = panel_text(&output, app.layout.drawer, "J1")?;
-    let (sheet, _) = panel_text(&output, app.layout.browser, "Main")?;
+    let nets = panel_text(&output, app.layout.browser, "Nets")?.0.center();
+    let hidden = panel_text(&output, app.layout.browser, "J1  12 V input").is_err();
     output.drop_without_applying_deltas();
-    workspace_click(&mut app, &ctx, row.center());
+    assert!(hidden);
+    workspace_click(&mut app, &ctx, nets);
+    for _ in 0..3 {
+        workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    }
     let output = workspace_frame(&mut app, &ctx, vec![]);
-    let (after, bold) = panel_text(&output, app.layout.drawer, "J1")?;
-    assert_eq!(row.min, after.min);
-    assert_eq!(row.height(), after.height());
-    assert_ne!(font, bold);
-    assert_eq!(panel_text(&output, app.layout.browser, "Main")?.0, sheet);
+    let rail = panel_text(&output, app.layout.browser, "+12V")?.0.center();
     output.drop_without_applying_deltas();
+    workspace_click(&mut app, &ctx, rail);
+    assert_eq!(
+        app.nets.selected_net().and_then(|n| n.name.as_deref()),
+        Some("+12V")
+    );
+    assert!(app.drawer.is_none());
     assert_eq!(app.document(), &before);
     Ok(())
 }
@@ -1343,6 +1349,10 @@ fn properties_can_float_dock_close_and_reopen_without_editing() -> Result<()> {
 fn browser_scroll_reaches_last_row_and_height_is_user_resizable() -> Result<()> {
     let (mut app, ctx) = library_fixture()?;
     app.library = false;
+    app.panel_ui.symbols_open.insert(app.active_sheet());
+    for _ in 0..3 {
+        workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    }
     app.panel_ui.browser_height = Some(210.0);
     for _ in 0..3 {
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
@@ -1718,6 +1728,7 @@ fn browser_disclosures_do_not_navigate_or_edit_and_sheet_actions_are_honest() ->
 fn sheet_results_scroll_to_last_symbol_and_browser_remains_visible() -> Result<()> {
     let (mut app, ctx) = library_fixture()?;
     app.library = false;
+    app.panel_ui.symbols_open.remove(&app.active_sheet());
     app.open_sheet_index(false);
     for _ in 0..4 {
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
@@ -1741,7 +1752,7 @@ fn sheet_results_scroll_to_last_symbol_and_browser_remains_visible() -> Result<(
         .drop_without_applying_deltas();
     }
     let output = workspace_frame(&mut app, &ctx, vec![]);
-    let last = panel_text(&output, body, "D1")?.0.center();
+    let last = panel_text(&output, body, "D2")?.0.center();
     for label in ["Main", "Symbols", "Nets"] {
         assert!(
             panel_text(&output, app.layout.browser, label).is_ok(),
@@ -1754,8 +1765,157 @@ fn sheet_results_scroll_to_last_symbol_and_browser_remains_visible() -> Result<(
         app.selected_symbol()
             .and_then(|id| app.document().component(id))
             .map(|c| c.reference.as_str()),
-        Some("D1")
+        Some("D2")
     );
     assert_eq!(app.document(), &before);
+    Ok(())
+}
+
+#[test]
+fn demo_designators_do_not_intersect_authored_wires() -> Result<()> {
+    use pcbcraft_foundation::text::TextTarget;
+    let (mut app, ctx) = library_fixture()?;
+    app.library = false;
+    for size in [egui::vec2(1000.0, 700.0), egui::vec2(1600.0, 1000.0)] {
+        app.canvas.fit = true;
+        for _ in 0..3 {
+            ctx.run_ui(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, size)),
+                    ..Default::default()
+                },
+                |ui| app.show(ui),
+            )
+            .drop_without_applying_deltas();
+        }
+        let mut collisions = Vec::new();
+        let doc = app.document();
+        for (target, rect) in &app.canvas.text_hits {
+            if !matches!(
+                target,
+                TextTarget::Reference(_) | TextTarget::Value(_) | TextTarget::Note(_)
+            ) {
+                continue;
+            }
+            for wire in doc.wires.iter().filter(|w| w.draw_path) {
+                let a = doc.endpoint(&wire.from).ok_or("endpoint")?;
+                let b = doc.endpoint(&wire.to).ok_or("endpoint")?;
+                let path: Vec<_> = std::iter::once(a)
+                    .chain(wire.bends.iter().flatten().copied())
+                    .chain(std::iter::once(b))
+                    .map(|p| {
+                        app.canvas.screen(
+                            p,
+                            egui::Rect::from_min_max(
+                                app.layout.bounds.min + egui::vec2(272.0, 40.0),
+                                app.layout.bounds.max - egui::vec2(276.0, 73.0),
+                            ),
+                        )
+                    })
+                    .collect();
+                for pair in path.windows(2) {
+                    if rect
+                        .shrink(0.5)
+                        .intersects(egui::Rect::from_two_pos(pair[0], pair[1]).expand(0.3))
+                    {
+                        collisions.push(format!(
+                            "{:?} {} at {:?}",
+                            target,
+                            target.content(doc).unwrap_or_default(),
+                            rect
+                        ));
+                    }
+                }
+            }
+        }
+        assert!(collisions.is_empty(), "{}", collisions.join("\n"));
+    }
+    Ok(())
+}
+
+#[test]
+fn drawer_resizes_vertically_retains_height_and_does_not_edit_or_reframe() -> Result<()> {
+    let (mut app, ctx) = library_fixture()?;
+    app.library = false;
+    app.drawer = Some("Search");
+    for _ in 0..3 {
+        workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    }
+    let before = app.document().clone();
+    let camera = (app.canvas.zoom, app.canvas.offset);
+    let old_height = app.layout.drawer.height();
+    let grip = app
+        .panel_ui
+        .drawer_grip
+        .ok_or("Missing drawer handle")?
+        .center();
+    let target = grip - egui::vec2(0.0, 110.0);
+    workspace_frame(
+        &mut app,
+        &ctx,
+        vec![
+            egui::Event::PointerMoved(grip),
+            egui::Event::PointerButton {
+                pos: grip,
+                button: egui::PointerButton::Primary,
+                pressed: true,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ],
+    )
+    .drop_without_applying_deltas();
+    workspace_frame(&mut app, &ctx, vec![egui::Event::PointerMoved(target)])
+        .drop_without_applying_deltas();
+    release_library_drag(&mut app, &ctx, target);
+    for _ in 0..3 {
+        workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    }
+    assert!(app.layout.drawer.height() > old_height + 65.0);
+    assert!(app.layout.bounds.contains_rect(app.layout.drawer));
+    assert_eq!(camera, (app.canvas.zoom, app.canvas.offset));
+    let height = app.layout.drawer.height();
+    app.drawer = None;
+    workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    app.drawer = Some("Messages");
+    workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    assert_eq!(height, app.layout.drawer.height());
+    app.panel_ui.drawer_height = Some(100_000.0);
+    workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    assert!(app.layout.bounds.contains_rect(app.layout.drawer));
+    assert_eq!(before, *app.document());
+    Ok(())
+}
+
+#[test]
+fn demo_full_size_text_has_clearance_from_other_labels() -> Result<()> {
+    let (mut app, ctx) = library_fixture()?;
+    app.library = false;
+    app.canvas.fit = true;
+    for _ in 0..4 {
+        ctx.run_ui(
+            egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1600.0, 1000.0),
+                )),
+                ..Default::default()
+            },
+            |ui| app.show(ui),
+        )
+        .drop_without_applying_deltas();
+    }
+    let mut collisions = Vec::new();
+    for (i, (target, r)) in app.canvas.text_hits.iter().enumerate() {
+        for (other, s) in app.canvas.text_hits.iter().skip(i + 1) {
+            if r.shrink(0.7).intersects(s.shrink(0.7)) {
+                collisions.push(format!(
+                    "{} / {}",
+                    target.content(app.document()).unwrap_or_default(),
+                    other.content(app.document()).unwrap_or_default()
+                ));
+            }
+        }
+    }
+    assert!(collisions.is_empty(), "{}", collisions.join("\n"));
     Ok(())
 }

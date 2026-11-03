@@ -55,7 +55,7 @@ See the [AI authoring spec and acceptance tasks](docs/specs/ai-authoring.md#next
 
 ## What works today
 
-- **Schematic editing:** place, move, rotate and inspect eight built-in symbol
+- **Schematic editing:** place, move, rotate and inspect twelve built-in symbol
   types; select groups; edit styled notes, references, values and web links.
 - **Editable wiring:** start from pins, wires or empty space; add bends and
   branches; drag segments/corners; delete connections and heal compatible overlaps.

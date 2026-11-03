@@ -209,8 +209,43 @@ fn v4_rejects_invalid_geometry_and_fake_legacy_envelopes() -> Result<()> {
     invalid.wires[0].bends = Some(vec![p(1, 1)]);
     assert!(persistence::encode(&invalid).is_err());
     // v3 pin-only drawings retain their content while legacy notes gain identity.
-    let demo = Session::demo()?;
-    let mut expected = demo.document().clone();
+    let mut expected = Document::empty("Original v3 fixture")?;
+    for (reference, x) in [("R1", 0), ("R2", 20)] {
+        let component = ComponentId::fresh()?;
+        expected.components.push(Component {
+            id: component,
+            kind: PartKind::Resistor,
+            reference: reference.into(),
+            value: "1k".into(),
+        });
+        expected.symbols.push(Symbol {
+            id: SymbolId::fresh()?,
+            component,
+            at: p(x, 0),
+            quarter_turns: 0,
+        });
+    }
+    expected.wires.push(Wire {
+        id: WireId::fresh()?,
+        from: PinRef {
+            symbol: expected.symbols[0].id,
+            terminal: "2".into(),
+        }
+        .into(),
+        to: PinRef {
+            symbol: expected.symbols[1].id,
+            terminal: "1".into(),
+        }
+        .into(),
+        label: Some("LEGACY".into()),
+        draw_path: true,
+        bends: None,
+    });
+    expected.annotations.push(Annotation {
+        id: AnnotationId::fresh()?,
+        at: p(0, -10),
+        text: "Legacy note".into(),
+    });
     let mut raw = serde_json::to_value(&expected).map_err(|e| e.to_string())?;
     for note in raw["annotations"].as_array_mut().ok_or("No notes")? {
         note.as_object_mut().ok_or("Bad note")?.remove("id");

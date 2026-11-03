@@ -15,7 +15,8 @@ save authorities at runtime. Layout and cross-view rendering remain future work.
   definition. Shared drawing edits affect every occurrence; the physical parts
   remain distinct. Cycles are rejected without changing the project.
 - Click a browser sheet name to navigate; its chevron only expands/collapses.
-  Symbols and Nets open the active sheet's result table. Root-level sheets are
+  Symbols and Nets expand sheet-local lists; selecting an item navigates to its
+  occurrence and selects it directly. Root-level sheets are
   siblings; children nest beneath their parent. Camera and component selection
   are retained per occurrence during the current session. The breadcrumb and
   sheet count track the active occurrence.

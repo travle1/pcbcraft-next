@@ -460,6 +460,11 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                                 hit_wire = Some((wire.id, Vec::new()));
                             }
                         }
+                        // At fit-overview scale, keep connectivity strokes without
+                        // a cloud of minimum-size aliases. Names remain in Net Properties.
+                        if app.canvas.zoom < 0.25 {
+                            continue;
+                        }
                         let (anchor, align) = if dir.x < 0.0 {
                             (b - egui::vec2(2.0, 3.0), Align2::RIGHT_BOTTOM)
                         } else if dir.x > 0.0 {
@@ -580,8 +585,16 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                         hit_wire = Some((wire.id, points.clone()));
                     }
                 }
-                if let Some(label) = net.and_then(|n| n.name.as_ref())
+                if app.canvas.zoom >= 0.25
+                    && let Some(label) = net.and_then(|n| n.name.as_ref())
                     && let Some(drawn_anchor) = drawn_groups.get(&wire.from)
+                    && let Some(segment) = points
+                        .windows(2)
+                        .filter(|p| {
+                            (p[0].y - p[1].y).abs() < 0.01
+                                && p[0].distance(p[1]) > label.len() as f32 * 5.0 + 8.0
+                        })
+                        .max_by(|x, y| x[0].distance(x[1]).total_cmp(&y[0].distance(y[1])))
                     && path_labels.insert(drawn_anchor.clone())
                 {
                     super::text_editor::paint(
@@ -590,13 +603,13 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                         &painter,
                         super::text_editor::Run {
                             target: TextTarget::Net(wire.id),
-                            at: points
-                                .windows(2)
-                                .filter(|p| (p[0].y - p[1].y).abs() < 0.01)
-                                .max_by(|x, y| x[0].distance(x[1]).total_cmp(&y[0].distance(y[1])))
-                                .map_or(a, |p| p[0].lerp(p[1], 0.5))
-                                - egui::vec2(0.0, 5.0),
-                            align: Align2::CENTER_BOTTOM,
+                            at: segment[0].lerp(segment[1], 0.5)
+                                + egui::vec2(0.0, if label == "GND" { 5.0 } else { -5.0 }),
+                            align: if label == "GND" {
+                                Align2::CENTER_TOP
+                            } else {
+                                Align2::CENTER_BOTTOM
+                            },
                             content: label,
                             size: (15.0 * app.canvas.zoom).clamp(6.0, 18.0),
                             color: if highlighted {
@@ -723,7 +736,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                             let size = symbol_size(c.kind, shown.quarter_turns);
                             egui::vec2(-size.x * 0.35, -size.y * 0.5 - 12.0)
                         } else if vertical {
-                            egui::vec2(34.0, -8.0)
+                            egui::vec2(34.0, 6.0)
                         } else {
                             egui::vec2(-28.0, -34.0)
                         }) * app.canvas.zoom,
@@ -750,7 +763,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                                 let size = symbol_size(c.kind, shown.quarter_turns);
                                 egui::vec2(-size.x * 0.35, size.y * 0.5 + 12.0)
                             } else if vertical {
-                                egui::vec2(34.0, 8.0)
+                                egui::vec2(34.0, 16.0)
                             } else {
                                 egui::vec2(-28.0, 30.0)
                             }) * app.canvas.zoom,
@@ -1326,6 +1339,9 @@ pub(super) fn path_distance(p: Pos2, path: &[Pos2]) -> f32 {
 
 fn block_half_size(kind: PartKind) -> (f32, f32) {
     match kind {
+        PartKind::Controller24 => (16.0 * 10.16, 40.0 * 10.16),
+        PartKind::DigitalTemperatureSensor => (7.0 * 10.16, 16.0 * 10.16),
+        PartKind::Header6 => (5.0 * 10.16, 7.0 * 10.16),
         PartKind::FanController => (15.0 * 10.16, 16.0 * 10.16),
         PartKind::FanConnector => (7.0 * 10.16, 9.0 * 10.16),
         _ => (7.0 * 10.16, 8.0 * 10.16),
@@ -1335,7 +1351,9 @@ pub(super) fn symbol_size(kind: PartKind, turns: u8) -> Vec2 {
     let size = if kind.is_block() {
         let (_, h) = block_half_size(kind);
         egui::vec2(
-            if kind == PartKind::FanController {
+            if kind == PartKind::Controller24 {
+                447.04
+            } else if kind == PartKind::FanController {
                 406.4
             } else {
                 243.84
@@ -1450,7 +1468,11 @@ pub fn paint_symbol(
         PartKind::FanController
         | PartKind::FanConnector
         | PartKind::Regulator
-        | PartKind::TemperatureSensor => {}
+        | PartKind::TemperatureSensor
+        | PartKind::Controller24
+        | PartKind::DigitalTemperatureSensor
+        | PartKind::Oscillator
+        | PartKind::Header6 => {}
     }
 }
 
