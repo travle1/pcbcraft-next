@@ -64,7 +64,7 @@ impl Icon {
                 "place-symbol",
                 include_str!("../../assets/original/place-symbol.svg"),
             ),
-            Self::Brand => ("brand", include_str!("../../assets/original/chip.svg")),
+            Self::Brand => ("brand", include_str!("../../assets/original/pcbcraft.svg")),
             Self::Wire => ("wire", include_str!("../../assets/original/wire.svg")),
             Self::Workspace => svg!("workspace-schematic"),
             Self::Layout => (

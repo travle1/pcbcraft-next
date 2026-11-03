@@ -10,6 +10,7 @@ relicense inherited code or certify historical clean-room provenance.
 | --- | --- |
 | SolidCraft-family SVGs, palette data and IBM Plex Sans | [Resource register](assets/family/provenance.json), [licenses and notices](assets/family/README.md); family resources MIT OR Apache-2.0, font SIL OFL 1.1 |
 | Narrow workspace-picker and panel/control adaptations | [Workspace provenance](docs/workspace-picker-provenance.md), [controls provenance](docs/panel-controls-provenance.md), retained [SolidCraft NOTICE](assets/family/SOLIDCRAFT-NOTICE) |
+| Original application mark and EDA glyphs | [Original asset provenance](assets/original/README.md), root MIT OR Apache-2.0 licenses |
 | Original EDA symbols, example circuit and desktop composition | Project source and root license; the example is not an electrical reference design |
 | README screenshots/GIF | [Capture provenance](docs/screenshots/README.md); real PCBcraft UI containing the existing licensed resources |
 | Architectural and documentation references | [Source register](docs/sources.md); links distinguish reference reading from imported material |

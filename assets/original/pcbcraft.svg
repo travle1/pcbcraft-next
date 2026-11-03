@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Original PCBcraft mark: a routed P on a layered board. MIT OR Apache-2.0. -->
+  <path d="M8 15 32 4 56 15v34L32 60 8 49Z" fill="#236ead"/>
+  <path d="M8 15 32 26 56 15 32 4Z" fill="#328bd3"/>
+  <path d="M32 26 56 15v34L32 60Z" fill="#34465b"/>
+  <path d="m10 43 22 10 22-10v6L32 59 10 49Z" fill="#328bd3"/>
+  <path d="M20 43V21l13-6 13 6v12l-13 6-9-4" fill="none" stroke="#b9ddf8" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="m32 26 8-4M33 39v8" fill="none" stroke="#b9ddf8" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="20" cy="44" r="4" fill="#e2e8ef"/>
+  <circle cx="33" cy="48" r="3" fill="#b9ddf8"/>
+</svg>

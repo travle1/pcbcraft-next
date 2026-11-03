@@ -33,7 +33,7 @@ labels, values and selected geometry. A value label does not reuse a warning rol
 The ribbon has grouped tools with icons above labels, following the reference
 interaction structure. Panel radius is 6 points, body type 12, heading 14, with
 compact control spacing. Shared workspace/move artwork retains multiple semantic
-colors; navigation remains monochrome. Original PCBcraft chip/symbol/wire glyphs
+colors; navigation remains monochrome. Original PCBcraft app/symbol/wire glyphs
 cover EDA concepts without displaying mechanical cubes as electrical components.
 
 The user's subsequent close-up SolidCraft ribbon reference governs its proportions:

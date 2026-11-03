@@ -60,7 +60,12 @@ fn main() -> eframe::Result {
             })
             .with_min_inner_size([1000.0, 700.0])
             .with_decorations(false)
-            .with_icon(eframe::egui::IconData::default()),
+            .with_icon(
+                eframe::icon_data::from_png_bytes(include_bytes!(
+                    "../assets/original/pcbcraft.png"
+                ))
+                .map_err(|e| eframe::Error::AppCreation(Box::new(e)))?,
+            ),
         ..Default::default()
     };
     eframe::run_native(
