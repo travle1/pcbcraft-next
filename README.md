@@ -68,10 +68,14 @@ grip to float or snap left/right; its **…** menu also sets position or collaps
 **More properties** opens the FigCraft-style General / Pin functions / Library view.
 Done applies reference, value and rotation together as one undoable edit; Cancel
 leaves the document unchanged. Browser selection highlights/bolds without moving rows.
-Browser now offers **Symbols / Nets**, a persistent scrollbar and a bottom resize
-grip. Click a net or wire to highlight its connections and edit its name in
-Properties. Each connection has a review-before-remove control; Undo restores the
-whole change. **Nets → Netlist… → Copy JSON** generates a connectivity report.
+Browser follows **Project → Sheets → Main → Symbols / Nets**. Disclosure arrows
+only expand/collapse branches; the sheet remains active independently of object selection.
+Click Symbols or Nets under Main to open that sheet's searchable result table in
+the bottom Search drawer. The browser has a resize grip and scrolls when needed.
+Click a net result or wire to highlight its connections and edit its name in Properties. Each connection has a review-before-remove control; Undo restores the
+whole change. **Search → Nets → Netlist… → Copy JSON** generates a connectivity report.
+Flat sheets and hierarchical subsheets cannot be added yet. Their creation actions
+are disabled in the Project/Sheets/Main context menus; see [sheet workflows](docs/sheet-workflows.md).
 External netlist import is not implemented. See [net and layout workflows](docs/net-workflows.md).
 Search/ERC/Messages share the bottom drawer; its chevron collapses it. Search
 finds placed symbols, while **S** opens ribbon command search (arrows, Enter, Tab,

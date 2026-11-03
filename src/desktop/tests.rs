@@ -1232,39 +1232,66 @@ fn ribbon_tabs_switch_command_sets_without_opening_panels() -> Result<()> {
 }
 
 #[test]
-fn browser_selection_preserves_row_positions_and_bolds_only_selected_row() -> Result<()> {
+fn browser_indexes_preserve_hierarchy_and_result_selection_geometry() -> Result<()> {
     let (mut app, ctx) = library_fixture()?;
     app.library = false;
-    let text = "J1   12 V input";
-    let locate = |output: &egui::FullOutput| -> Result<(egui::Pos2, egui::FontFamily)> {
-        output
-            .shapes
-            .iter()
-            .find_map(|s| match &s.shape {
-                egui::Shape::Text(t) if t.galley.job.text == text => Some((
-                    t.pos,
-                    t.galley.job.sections[0].format.font_id.family.clone(),
-                )),
-                _ => None,
-            })
-            .ok_or_else(|| "Missing browser row".into())
-    };
     let before = app.session.document().clone();
+    let picked = app.selection.clone();
     let output = workspace_frame(&mut app, &ctx, vec![]);
-    let (p, font) = locate(&output)?;
+    let at = panel_text(&output, app.layout.browser, "Symbols")?
+        .0
+        .center();
+    for label in ["Project settings", "Sheets", "Main", "Symbols", "Nets"] {
+        assert!(
+            panel_text(&output, app.layout.browser, label).is_ok(),
+            "{label}"
+        );
+    }
+    assert!(panel_text(&output, app.layout.browser, "31 connections").is_err());
     output.drop_without_applying_deltas();
-    workspace_click(&mut app, &ctx, p + egui::vec2(30.0, 6.0));
+    workspace_click(&mut app, &ctx, at);
+    assert_eq!(app.drawer, Some("Search"));
+    assert!(!app.panel_ui.search_nets);
+    assert_eq!(
+        app.selection, picked,
+        "An index opens results without changing the object pick"
+    );
+    for _ in 0..3 {
+        workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    }
     let output = workspace_frame(&mut app, &ctx, vec![]);
-    let (selected, bold) = locate(&output)?;
+    let (row, font) = panel_text(&output, app.layout.drawer, "J1")?;
+    let (sheet, _) = panel_text(&output, app.layout.browser, "Main")?;
     output.drop_without_applying_deltas();
-    assert_eq!(p, selected);
+    workspace_click(&mut app, &ctx, row.center());
+    let output = workspace_frame(&mut app, &ctx, vec![]);
+    let (after, bold) = panel_text(&output, app.layout.drawer, "J1")?;
+    assert_eq!(row.min, after.min);
+    assert_eq!(row.height(), after.height());
     assert_ne!(font, bold);
-    assert_eq!(app.session.document(), &before);
-    app.select(before.symbols.get(1).map(|s| s.id));
-    let output = workspace_frame(&mut app, &ctx, vec![]);
-    assert_eq!(locate(&output)?, (p, font));
+    assert_eq!(panel_text(&output, app.layout.browser, "Main")?.0, sheet);
     output.drop_without_applying_deltas();
+    assert_eq!(app.session.document(), &before);
     Ok(())
+}
+
+fn panel_text(
+    output: &egui::FullOutput,
+    panel: egui::Rect,
+    label: &str,
+) -> Result<(egui::Rect, egui::FontFamily)> {
+    output
+        .shapes
+        .iter()
+        .find_map(|shape| match &shape.shape {
+            egui::Shape::Text(t) if t.galley.job.text == label => {
+                let rect = t.galley.rect.translate(t.pos.to_vec2());
+                (panel.contains_rect(rect) && shape.clip_rect.contains_rect(rect))
+                    .then(|| (rect, t.galley.job.sections[0].format.font_id.family.clone()))
+            }
+            _ => None,
+        })
+        .ok_or_else(|| format!("Missing visible panel text {label}").into())
 }
 
 #[test]
@@ -1334,6 +1361,7 @@ fn properties_can_float_dock_close_and_reopen_without_editing() -> Result<()> {
 fn browser_scroll_reaches_last_row_and_height_is_user_resizable() -> Result<()> {
     let (mut app, ctx) = library_fixture()?;
     app.library = false;
+    app.panel_ui.browser_height = Some(210.0);
     for _ in 0..3 {
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
     }
@@ -1356,8 +1384,7 @@ fn browser_scroll_reaches_last_row_and_height_is_user_resizable() -> Result<()> 
         .drop_without_applying_deltas();
     }
     let output = workspace_frame(&mut app, &ctx, vec![]);
-    let last = ribbon_text(&output, "D1   Green LED")?;
-    let visible = last.1.contains_rect(last.0);
+    let visible = panel_text(&output, app.layout.browser, "Nets").is_ok();
     output.drop_without_applying_deltas();
     assert!(visible, "Last row must be fully reachable");
     let old = app.layout.browser;
@@ -1396,7 +1423,8 @@ fn browser_scroll_reaches_last_row_and_height_is_user_resizable() -> Result<()> 
 fn net_browser_selects_and_names_real_connectivity_with_undo() -> Result<()> {
     let (mut app, ctx) = library_fixture()?;
     app.library = false;
-    app.panel_ui.browser_nets = true;
+    app.open_sheet_index(true);
+    app.panel_ui.search = "+3V3".into();
     for _ in 0..3 {
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
     }
@@ -1409,9 +1437,13 @@ fn net_browser_selects_and_names_real_connectivity_with_undo() -> Result<()> {
         .cloned()
         .ok_or("Missing supply net")?;
     let output = workspace_frame(&mut app, &ctx, vec![]);
-    let row = ribbon_text(&output, &format!("+3V3  ·  {} pins", net.terminals.len()))?
-        .0
-        .center();
+    let row = panel_text(
+        &output,
+        app.panel_ui.search_body.ok_or("No result body")?,
+        "+3V3",
+    )?
+    .0
+    .center();
     output.drop_without_applying_deltas();
     workspace_click(&mut app, &ctx, row);
     assert_eq!(app.nets.selected.as_ref(), Some(&net.anchor));
@@ -1433,7 +1465,7 @@ fn net_browser_selects_and_names_real_connectivity_with_undo() -> Result<()> {
     app.history(false);
     assert_eq!(app.session.document(), &before);
     assert!(app.nets.selected.is_none());
-    app.panel_ui.browser_nets = true;
+    app.open_sheet_index(true);
     let output = workspace_frame(&mut app, &ctx, vec![]);
     let p = ribbon_text(&output, "Netlist…")?.0.center();
     output.drop_without_applying_deltas();
@@ -1528,7 +1560,7 @@ fn file_menu_and_filter_labels_fit_at_compact_and_scaled_sizes() -> Result<()> {
     for (width, scale) in [(1000.0, 1.0), (1600.0, 1.3)] {
         let (mut app, ctx) = library_fixture()?;
         app.library = false;
-        app.panel_ui.browser_nets = true;
+        app.open_sheet_index(true);
         let mut presentation = theme::current(&ctx);
         presentation.metrics.body *= scale;
         presentation.metrics.small *= scale;
@@ -1564,7 +1596,8 @@ fn file_menu_and_filter_labels_fit_at_compact_and_scaled_sizes() -> Result<()> {
                 "Filter label {label} must be fully visible at {width}/{scale}"
             );
         }
-        for label in ["+ Wire", "Netlist…"] {
+        {
+            let label = "Netlist…";
             let (r, clip) = ribbon_text(&output, label)?;
             assert!(
                 clip.contains_rect(r),
@@ -1633,5 +1666,110 @@ fn file_menu_and_filter_labels_fit_at_compact_and_scaled_sizes() -> Result<()> {
             "Shared menu still dispatches New"
         );
     }
+    Ok(())
+}
+
+#[test]
+fn browser_disclosures_do_not_navigate_or_edit_and_sheet_actions_are_honest() -> Result<()> {
+    let (mut app, ctx) = library_fixture()?;
+    app.library = false;
+    let before = app.session.document().clone();
+    let selection = app.selection.clone();
+    let revision = app.session.revision();
+    for _ in 0..3 {
+        workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    }
+    let output = workspace_frame(&mut app, &ctx, vec![]);
+    let main = panel_text(&output, app.layout.browser, "Main")?.0;
+    output.drop_without_applying_deltas();
+    let fold = egui::pos2(main.left() - 34.0, main.center().y);
+    workspace_click(&mut app, &ctx, fold);
+    assert!(app.panel_ui.main_folded);
+    let output = workspace_frame(&mut app, &ctx, vec![]);
+    assert!(panel_text(&output, app.layout.browser, "Symbols").is_err());
+    assert!(panel_text(&output, app.layout.browser, "Main").is_ok());
+    output.drop_without_applying_deltas();
+    assert_eq!(app.selection, selection);
+    assert!(app.drawer.is_none());
+    workspace_click(&mut app, &ctx, fold);
+    assert!(!app.panel_ui.main_folded);
+    let output = workspace_frame(&mut app, &ctx, vec![]);
+    let sheet = panel_text(&output, app.layout.browser, "Sheets")?
+        .0
+        .center();
+    output.drop_without_applying_deltas();
+    for pressed in [true, false] {
+        workspace_frame(
+            &mut app,
+            &ctx,
+            vec![
+                egui::Event::PointerMoved(sheet),
+                egui::Event::PointerButton {
+                    pos: sheet,
+                    button: egui::PointerButton::Secondary,
+                    pressed,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ],
+        )
+        .drop_without_applying_deltas();
+    }
+    for _ in 0..3 {
+        workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    }
+    let output = workspace_frame(&mut app, &ctx, vec![]);
+    let new = ribbon_text(&output, "New sheet…")?.0.center();
+    assert!(ribbon_text(&output, "New subsheet…").is_ok());
+    output.drop_without_applying_deltas();
+    workspace_click(&mut app, &ctx, new);
+    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.session.revision(), revision);
+    assert_eq!(app.selection, selection);
+    Ok(())
+}
+
+#[test]
+fn sheet_results_scroll_to_last_symbol_and_browser_remains_visible() -> Result<()> {
+    let (mut app, ctx) = library_fixture()?;
+    app.library = false;
+    app.open_sheet_index(false);
+    for _ in 0..4 {
+        workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    }
+    let before = app.session.document().clone();
+    let body = app.panel_ui.search_body.ok_or("No search body")?;
+    for _ in 0..8 {
+        workspace_frame(
+            &mut app,
+            &ctx,
+            vec![
+                egui::Event::PointerMoved(body.center()),
+                egui::Event::MouseWheel {
+                    unit: egui::MouseWheelUnit::Point,
+                    delta: egui::vec2(0.0, -1200.0),
+                    phase: egui::TouchPhase::Move,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ],
+        )
+        .drop_without_applying_deltas();
+    }
+    let output = workspace_frame(&mut app, &ctx, vec![]);
+    let last = panel_text(&output, body, "D1")?.0.center();
+    for label in ["Main", "Symbols", "Nets"] {
+        assert!(
+            panel_text(&output, app.layout.browser, label).is_ok(),
+            "Tree row clipped: {label}"
+        );
+    }
+    output.drop_without_applying_deltas();
+    workspace_click(&mut app, &ctx, last);
+    assert_eq!(
+        app.selected_symbol()
+            .and_then(|id| app.session.document().component(id))
+            .map(|c| c.reference.as_str()),
+        Some("D1")
+    );
+    assert_eq!(app.session.document(), &before);
     Ok(())
 }

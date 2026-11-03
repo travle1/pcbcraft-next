@@ -1,5 +1,17 @@
 # Source register
 
+## Browser hierarchy correction (November 3, 2026)
+
+Read actual pixels of the user's final `01-schematic-overview.png`, plus their
+read-only `designs/clean_browser.py` and `designs/sheet_navigation.py` interaction
+recipes: project/sheets tree and sheet-local Symbols/Nets links to the Search drawer.
+These original design recipes were inspected, not executed. Designs remain unchanged.
+SolidCraft `ui_kit/tree.rs` and relevant `browser.rs` declarations at c553365 supplied
+stable-row/disclosure/selection behavior. The small navigation/result-row code and
+sheet SVG are original PCBcraft composition using existing licensed controls/tokens;
+no mechanical Browser model or upstream engine was imported. This corrects the earlier
+implementation-derived tab/list guidance. See [browser review](ui-audit.md#browser-hierarchy-correction).
+
 ## UI consistency audit (November 3, 2026)
 
 Actual SolidCraft menu/container/actions/checks and icon sources at c553365 were

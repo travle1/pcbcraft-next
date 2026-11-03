@@ -67,65 +67,53 @@ impl App {
         self.properties = true;
         self.panel_ui.properties_collapsed = false;
     }
-    pub(super) fn net_browser(&mut self, ui: &mut egui::Ui) {
+    pub(super) fn open_net_report(&mut self) {
+        match netlist::report(
+            self.session.document(),
+            self.session.incarnation,
+            self.session.revision(),
+        ) {
+            Ok(report) => self.nets.report = Some(report),
+            Err(e) => self.nets.error = Some(e.to_string()),
+        }
+    }
+    pub(super) fn net_results(&mut self, ui: &mut egui::Ui, query: &str) {
         let t = theme::current(ui.ctx());
-        ui.label(
-            RichText::new(format!("{} connected nets", self.nets.snapshot.nets.len()))
-                .small()
-                .color(t.ui.muted),
+        controls::result_row(
+            ui,
+            ui.id().with("head"),
+            &[("Net", 0.55), ("Pins", 0.15), ("Sheet", 0.30)],
+            false,
+            true,
         );
-        ui.horizontal(|ui| {
-            if controls::action(ui, "+ Wire", controls::ActionTone::Secondary, true).clicked() {
-                self.tool = Tool::Wire;
-                self.canvas.wire_start = None;
-            }
-            if controls::action(ui, "Netlist…", controls::ActionTone::Secondary, true).clicked() {
-                match netlist::report(
-                    self.session.document(),
-                    self.session.incarnation,
-                    self.session.revision(),
-                ) {
-                    Ok(report) => self.nets.report = Some(report),
-                    Err(e) => self.nets.error = Some(e.to_string()),
-                }
-            }
-        });
         let mut nets = self.nets.snapshot.nets.clone();
         nets.sort_by_key(|n| n.title(self.session.document()));
+        let mut count = 0;
         for net in nets {
-            let label = format!(
-                "{}  ·  {} pins",
-                net.title(self.session.document()),
-                net.terminals.len()
-            );
-            if controls::tree_row_icon(
+            let title = net.title(self.session.document());
+            if !title.to_lowercase().contains(query) {
+                continue;
+            }
+            count += 1;
+            if controls::result_row(
                 ui,
-                &label,
+                ui.id().with(format!("{:?}", net.anchor)),
+                &[
+                    (&title, 0.55),
+                    (&net.terminals.len().to_string(), 0.15),
+                    ("Main", 0.30),
+                ],
                 self.nets.selected.as_ref() == Some(&net.anchor),
-                Icon::Wire,
+                false,
             )
             .clicked()
             {
                 self.select_net(net.anchor);
             }
         }
-        if self.nets.snapshot.nets.is_empty() {
-            ui.label("Press W to draw a wire anywhere on the sheet.");
+        if count == 0 {
+            ui.label(RichText::new("No matching nets").color(t.ui.muted));
         }
-        ui.add_space(8.0);
-        ui.label(
-            RichText::new(format!(
-                "{} unconnected pins",
-                self.nets.snapshot.unconnected.len()
-            ))
-            .small()
-            .color(t.ui.muted),
-        );
-        ui.label(
-            RichText::new("Crossings and matching names do not join pins.")
-                .small()
-                .color(t.ui.muted),
-        );
         if let Some(error) = &self.nets.error {
             ui.colored_label(t.ui.warning, error);
         }

@@ -160,3 +160,13 @@ not open alternatives. No successful PCBcraft launch or library extraction is cl
 
 See the [upstream reuse request register](upstream-reuse-requests.md) before
 proposing library extraction. It plans bounded requests and sends nothing.
+
+
+## Sheet workflow follow-up
+
+The browser hierarchy is now corrected to the user's FigCraft navigation, but the
+current model still holds one Main sheet. [Flat/hierarchical sheet work](sheet-workflows.md)
+is the next bounded schematic capability: settle definition/occurrence ownership,
+then flat creation/navigation/scoped edits and native migration, followed by child
+instances/ports and hierarchical connectivity. Disabled menu entries are not feature
+completion. Each stage needs whole-project undo/save/reopen and isolation fixtures.

@@ -34,6 +34,6 @@ app composition is original PCBcraft code following the user's references;
 no full SolidCraft shell or UI crate was imported.
 
 The EDA glyphs in `../original/` (including chip, symbol, wire, workspace layout,
-power, port, bus, net label, rules, ERC, sync and Simulate) were authored for PCBcraft
+power, port, bus, net label, rules, ERC, sync, Simulate and schematic sheet) were authored for PCBcraft
 and use the root MIT OR Apache-2.0 license. They are not imported SolidCraft artwork.
 [Theme mapping and future preset contract](../../docs/theme-foundation.md).

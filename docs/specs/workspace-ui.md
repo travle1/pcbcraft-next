@@ -82,13 +82,21 @@ and manufacturing are not prerequisites for this workspace milestone.
 
 ### Browser, nets and coordinated layout views
 
-The current Browser reserves separate header, list, footer and resize-grip space.
-Use a persistent scrollbar and allow height adjustment within workspace bounds;
-the last row must be reachable even at compact window sizes. Symbols/Nets changes
-only the list. Net selection highlights explicit connected terminals/links and
-opens its movable Properties inspector; editing and reviewed removal use the
-Electronics session. Both Browser and overflowing Properties retain visible
-scroll affordances. [Current net interactions](../net-workflows.md).
+The Browser is a project/sheet navigation tree, following the user's final export:
+Project → Project settings / Sheets → Main → Symbols / Nets. Symbols and Nets are
+sheet-scoped index entries, not top-level mode buttons or expanded flat lists of
+parts. Clicking them opens the Search drawer with scope Main and the matching
+result category. Disclosure arrows only expand/collapse; current sheet, selected
+objects and search scope are distinct states. Use stable row IDs and insets.
+
+The implemented single-sheet tree has no fabricated children. Project settings,
+New sheet and New subsheet remain unavailable, with a reason; real flat/hierarchical
+creation is the next model/lifecycle slice in [sheet workflows](../sheet-workflows.md).
+The browser sizes to its current rows unless manually resized, scrolls when needed,
+and retains a quiet bottom grip. No loose connection total or permanent scrolling
+instructions belong below its tree. Counts and connection details belong in scoped
+results/Properties/reports. Search results use aligned columns and retain net
+selection, naming and report access. [Current net interactions](../net-workflows.md).
 
 Planned layout interaction starts in the same project window. Workspace selection
 switches the main viewport; an optional schematic/layout split later gives two

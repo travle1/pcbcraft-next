@@ -98,3 +98,34 @@ Native captures inspected at 1600×1000 and 1000×700:
 existing right-click menus, while a compact inspector test checks visible Apply
 and stale/reopened draft rejection. The full suite passes 69 tests (28 headless)
 and warning-free Clippy. See [selection and text](selection-and-text.md) for scope.
+
+
+## Browser hierarchy correction
+
+The prior Symbols/Nets toggle and flat part list did not follow the user's FigCraft
+navigation. The wire-edge total below that list was neither a net count nor a useful
+navigation entry. Implementation-derived guidance that endorsed those controls is
+superseded by the final schematic export and its sheet-navigation interaction recipe.
+
+The Browser now shows Project → Project settings / Sheets → Main → Symbols / Nets.
+Symbols/Nets are sheet index entries opening aligned, searchable result tables in
+the bottom drawer. Browser hierarchy stays visible while results select real symbols
+or nets. Disclosure hit targets have stable IDs and do not alter object selection.
+The active sheet and the selected result are separate states. The loose connection
+count and permanent scrolling instructions are removed; a quiet resize grip remains.
+The card sizes to its rows unless manually resized and scrolls when needed.
+
+Only Main exists in the current document. Project settings, flat-sheet creation and
+hierarchical-sub sheet creation remain disabled with truthful tooltips; this pass
+adds no sheet schema. See [sheet workflows](sheet-workflows.md) for the implementation
+sequence and acceptance criteria. No fictitious child sheets were added to the demo.
+
+Reviewed the user's actual final schematic export and read-only navigation recipes,
+plus SolidCraft `ui_kit/tree.rs` at c553365 for independent disclosure/selection and
+stable row behavior. Navigation/result rows and the sheet glyph are original PCBcraft
+code using the existing family theme/controls, without an app/engine dependency.
+Native captures: `work/proof/browser-hierarchy.png`, `browser-net-results-compact.png`
+and `browser-empty-compact.png`. Compact review caught clipped tree/result rows;
+spacing and drawer height were corrected and recaptured. UI tests cover hierarchy,
+fixed result positions on selection, collapse without navigation, disabled creation,
+scrolling to the final item, real net edits/report access and compact/scaled bounds.

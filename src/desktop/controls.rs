@@ -417,51 +417,194 @@ pub(super) fn section(ui: &mut egui::Ui, label: &str) {
     );
 }
 
-/// Selection changes ink/weight only. The row and icon never change their insets.
-pub(super) fn tree_row(ui: &mut egui::Ui, label: &str, selected: bool) -> egui::Response {
-    tree_row_icon(ui, label, selected, super::icons::Icon::Symbol)
+/// Original PCBcraft navigation row, informed by the family's separate fold/selection targets.
+/// Stable IDs and insets keep disclosure and selection independent.
+pub(super) struct NavigationRow<'a> {
+    pub label: &'a str,
+    pub icon: Icon,
+    pub depth: u8,
+    pub selected: bool,
+    pub fold: Option<bool>,
 }
-pub(super) fn tree_row_icon(
+impl NavigationRow<'_> {
+    pub fn show(&self, ui: &mut egui::Ui, id: egui::Id) -> (egui::Response, bool) {
+        let t = theme::current(ui.ctx());
+        let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 26.0), Sense::hover());
+        let x = rect.left() + f32::from(self.depth) * 16.0;
+        let fold_rect = Rect::from_min_max(
+            egui::pos2(x, rect.top()),
+            egui::pos2(x + 18.0, rect.bottom()),
+        );
+        let body = Rect::from_min_max(egui::pos2(x + 18.0, rect.top()), rect.max);
+        let response = ui.interact(body, id.with("body"), Sense::click());
+        if self.selected || response.hovered() || response.has_focus() {
+            ui.painter().rect_filled(
+                body,
+                4,
+                if self.selected {
+                    t.ui.selection
+                } else {
+                    t.ui.hover
+                },
+            );
+        }
+        let mut toggle = false;
+        if let Some(open) = self.fold {
+            let fold = ui.interact(fold_rect, id.with("fold"), Sense::click());
+            fold.widget_info(|| {
+                egui::WidgetInfo::labeled(
+                    egui::WidgetType::Button,
+                    ui.is_enabled(),
+                    format!(
+                        "{} {}",
+                        if open { "Collapse" } else { "Expand" },
+                        self.label
+                    ),
+                )
+            });
+            toggle = fold.clicked();
+            let c = fold_rect.center();
+            let points = if open {
+                [
+                    c + vec2(-3.5, -2.0),
+                    c + vec2(0.0, 1.5),
+                    c + vec2(3.5, -2.0),
+                ]
+            } else {
+                [
+                    c + vec2(-2.0, -3.5),
+                    c + vec2(1.5, 0.0),
+                    c + vec2(-2.0, 3.5),
+                ]
+            };
+            ui.painter().add(egui::Shape::line(
+                points.to_vec(),
+                Stroke::new(
+                    1.3,
+                    if fold.hovered() || fold.has_focus() {
+                        t.ui.text
+                    } else {
+                        t.ui.muted
+                    },
+                ),
+            ));
+            fold.on_hover_text(if open {
+                "Collapse branch"
+            } else {
+                "Expand branch"
+            });
+        }
+        self.icon.image(15.0, ui.ctx()).paint_at(
+            ui,
+            Rect::from_center_size(body.left_center() + vec2(11.0, 0.0), vec2(15.0, 15.0)),
+        );
+        let color = if ui.is_enabled() {
+            t.ui.text
+        } else {
+            t.ui.muted
+        };
+        let font = if self.selected {
+            theme::semibold(t.metrics.body)
+        } else {
+            egui::FontId::proportional(t.metrics.body)
+        };
+        let mut job = egui::text::LayoutJob::simple(
+            self.label.into(),
+            font,
+            color,
+            (body.width() - 31.0).max(1.0),
+        );
+        job.wrap.max_rows = 1;
+        let text = ui.painter().layout_job(job);
+        ui.painter().galley(
+            body.left_center() + vec2(25.0, -text.size().y * 0.5),
+            text,
+            color,
+        );
+        response.widget_info(|| {
+            egui::WidgetInfo::selected(
+                egui::WidgetType::SelectableLabel,
+                ui.is_enabled(),
+                self.selected,
+                self.label,
+            )
+        });
+        (response.on_hover_text(self.label), toggle)
+    }
+}
+
+/// Fixed columns; changing selection never changes row geometry or label positions.
+pub(super) fn result_row(
     ui: &mut egui::Ui,
-    label: &str,
+    id: egui::Id,
+    columns: &[(&str, f32)],
     selected: bool,
-    icon: super::icons::Icon,
+    heading: bool,
 ) -> egui::Response {
     let t = theme::current(ui.ctx());
-    let (rect, response) = ui.allocate_exact_size(vec2(ui.available_width(), 27.0), Sense::click());
-    if selected || response.hovered() || response.has_focus() {
-        ui.painter()
-            .rect_filled(rect, 4, if selected { t.ui.selection } else { t.ui.hover });
-    }
-    icon.image(15.0, ui.ctx()).paint_at(
-        ui,
-        Rect::from_center_size(rect.left_center() + vec2(13.0, 0.0), vec2(15.0, 15.0)),
+    let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 27.0), Sense::hover());
+    let response = ui.interact(
+        rect,
+        id,
+        if heading {
+            Sense::hover()
+        } else {
+            Sense::click()
+        },
     );
+    if heading || selected || response.hovered() || response.has_focus() {
+        ui.painter().rect_filled(
+            rect,
+            4,
+            if selected {
+                t.ui.selection
+            } else if heading {
+                t.ui.field
+            } else {
+                t.ui.hover
+            },
+        );
+    }
+    let color = if heading { t.ui.muted } else { t.ui.text };
     let font = if selected {
         theme::semibold(t.metrics.body)
     } else {
-        egui::FontId::proportional(t.metrics.body)
+        egui::FontId::proportional(if heading {
+            t.metrics.small
+        } else {
+            t.metrics.body
+        })
     };
-    let mut job = egui::text::LayoutJob::simple(
-        label.to_owned(),
-        font,
-        t.ui.text,
-        (rect.width() - 34.0).max(1.0),
-    );
-    job.wrap.max_rows = 1;
-    let text = ui.painter().layout_job(job);
-    ui.painter().galley(
-        rect.left_center() + vec2(28.0, -text.size().y * 0.5),
-        text,
-        t.ui.text,
-    );
+    let mut x = rect.left();
+    for (label, fraction) in columns {
+        let width = rect.width() * fraction;
+        let mut job = egui::text::LayoutJob::simple(
+            (*label).into(),
+            font.clone(),
+            color,
+            (width - 16.0).max(1.0),
+        );
+        job.wrap.max_rows = 1;
+        let text = ui.painter().layout_job(job);
+        ui.painter().galley(
+            egui::pos2(x + 8.0, rect.center().y - text.size().y * 0.5),
+            text,
+            color,
+        );
+        x += width;
+    }
+    let description = columns
+        .iter()
+        .map(|(s, _)| *s)
+        .collect::<Vec<_>>()
+        .join(" · ");
     response.widget_info(|| {
         egui::WidgetInfo::selected(
             egui::WidgetType::SelectableLabel,
             ui.is_enabled(),
             selected,
-            label,
+            &description,
         )
     });
-    response.on_hover_text(label)
+    response.on_hover_text(description)
 }

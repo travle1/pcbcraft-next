@@ -10,7 +10,11 @@ pub(super) struct State {
     pub filters_collapsed: bool,
     pub search: String,
     pub browser_height: Option<f32>,
-    pub browser_nets: bool,
+    pub search_nets: bool,
+    pub project_folded: bool,
+    pub sheets_folded: bool,
+    pub main_folded: bool,
+    pub search_body: Option<Rect>,
     pub browser_body: Option<Rect>,
     pub browser_grip: Option<Rect>,
 }
@@ -57,7 +61,7 @@ impl Layout {
             Rect::from_min_max(
                 pos2(
                     bounds.left(),
-                    bounds.bottom() - (bounds.height() * 0.34).clamp(174.0, 236.0),
+                    bounds.bottom() - (bounds.height() * 0.34).clamp(236.0, 268.0),
                 ),
                 pos2(bounds.right() - width - gap, bounds.bottom()),
             )
@@ -77,7 +81,20 @@ impl Layout {
         {
             50.0
         } else {
-            browser_budget.min(app.panel_ui.browser_height.unwrap_or(520.0))
+            let rows = 1 + if app.panel_ui.project_folded {
+                0
+            } else {
+                2 + if app.panel_ui.sheets_folded {
+                    0
+                } else {
+                    1 + if app.panel_ui.main_folded { 0 } else { 2 }
+                }
+            };
+            browser_budget.min(
+                app.panel_ui
+                    .browser_height
+                    .unwrap_or(70.0 + rows as f32 * 28.0),
+            )
         };
         let browser = if app.browser {
             Rect::from_min_size(bounds.min, vec2(width, browser_height))
@@ -266,6 +283,7 @@ impl App {
         let layout = self.layout;
         if self.browser {
             card(ctx, "browser", layout.browser, |ui| {
+                ui.spacing_mut().item_spacing.y = 2.0;
                 let collapsed = layout.browser.height() < 60.0;
                 if header(ui, "Browser", collapsed).clicked() {
                     self.panel_ui.browser_collapsed = !collapsed;
@@ -276,30 +294,19 @@ impl App {
                 }
                 if !collapsed {
                     ui.separator();
-                    ui.horizontal(|ui| {
-                        theme::quiet_buttons(ui);
-                        ui.selectable_value(&mut self.panel_ui.browser_nets, false, "Symbols");
-                        ui.selectable_value(&mut self.panel_ui.browser_nets, true, "Nets");
-                    });
-                    let available = (ui.available_height() - 52.0).max(0.0);
+                    let available = (ui.available_height() - 12.0).max(0.0);
                     ui.spacing_mut().scroll = egui::style::ScrollStyle::solid();
                     let output = egui::ScrollArea::vertical()
-                        .id_salt(("project_tree", self.panel_ui.browser_nets))
+                        .id_salt("project_tree")
                         .min_scrolled_height(0.0)
                         .max_height(available)
                         .scroll_bar_visibility(
-                            egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
+                            egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded,
                         )
                         .auto_shrink([false, false])
-                        .show(ui, |ui| {
-                            if self.panel_ui.browser_nets {
-                                self.net_browser(ui);
-                            } else {
-                                self.browser_contents(ui);
-                            }
-                        });
+                        .show(ui, |ui| self.browser_contents(ui));
                     self.panel_ui.browser_body = Some(output.inner_rect);
-                    controls::catalog_footer(ui, "Scroll list · drag below to resize");
+                    ui.add_space(4.0);
                     let (grip, resize) =
                         ui.allocate_exact_size(vec2(ui.available_width(), 8.0), Sense::drag());
                     self.panel_ui.browser_grip = Some(grip);
@@ -313,7 +320,7 @@ impl App {
                         && let Some(p) = resize.interact_pointer_pos()
                     {
                         self.panel_ui.browser_height =
-                            Some((p.y - layout.browser.top() + 5.0).max(210.0));
+                            Some((p.y - layout.browser.top() + 5.0).max(130.0));
                     }
                     resize
                         .on_hover_cursor(egui::CursorIcon::ResizeVertical)
@@ -351,69 +358,122 @@ impl App {
         self.parts_library(ctx);
     }
 
-    fn browser_contents(&mut self, ui: &mut egui::Ui) {
-        let t = theme::current(ui.ctx());
-        let doc = self.session.document().clone();
-        ui.horizontal(|ui| {
-            ui.add(Icon::Folder.image(18.0, ui.ctx()));
-            ui.label(RichText::new(&doc.name).font(theme::semibold(t.metrics.body)));
-        });
-        ui.add_space(6.0);
-        if ui
-            .add_sized(
-                [ui.available_width(), 28.0],
-                egui::Button::new("Main    ·    1 sheet")
-                    .selected(self.selected_symbol().is_none()),
-            )
-            .clicked()
-        {
-            self.select(None);
-        }
-
-        ui.add_space(4.0);
-        ui.horizontal(|ui| {
-            ui.label(RichText::new("Symbols").color(t.ui.muted));
-            ui.label(
-                RichText::new(doc.symbols.len().to_string())
-                    .small()
-                    .color(t.ui.muted),
+    pub(super) fn open_sheet_index(&mut self, nets: bool) {
+        self.panel_ui.search_nets = nets;
+        self.panel_ui.search.clear();
+        self.drawer = Some("Search");
+    }
+    fn sheet_creation_menu(ui: &mut egui::Ui) {
+        controls::menu_content(ui);
+        controls::MenuItem::new("New sheet…", Icon::Sheet)
+            .enabled(false)
+            .show(ui)
+            .on_disabled_hover_text(
+                "Flat sheets are not implemented yet; this build stores one sheet.",
             );
+        controls::MenuItem::new("New subsheet…", Icon::Sheet)
+            .enabled(false)
+            .show(ui)
+            .on_disabled_hover_text(
+                "Hierarchical sheets, sheet instances and ports are not implemented yet.",
+            );
+    }
+    fn browser_contents(&mut self, ui: &mut egui::Ui) {
+        use controls::NavigationRow as Row;
+        let doc = self.session.document();
+        let root_id = ui.id().with(("project", format!("{:?}", doc.id)));
+        let name = doc.name.clone();
+        let sheet_id = ui.id().with(("sheet", format!("{:?}", doc.sheet_id)));
+        let (project, fold) = Row {
+            label: &name,
+            icon: Icon::Folder,
+            depth: 0,
+            selected: false,
+            fold: Some(!self.panel_ui.project_folded),
+        }
+        .show(ui, root_id);
+        if fold || project.double_clicked() {
+            self.panel_ui.project_folded = !self.panel_ui.project_folded;
+        }
+        egui::Popup::context_menu(&project)
+            .frame(controls::menu_frame(ui.ctx()))
+            .show(Self::sheet_creation_menu);
+        if self.panel_ui.project_folded {
+            return;
+        }
+        ui.add_enabled_ui(false, |ui| {
+            Row {
+                label: "Project settings",
+                icon: Icon::Rules,
+                depth: 1,
+                selected: false,
+                fold: None,
+            }
+            .show(ui, root_id.with("settings"))
+            .0
+            .on_disabled_hover_text("Project settings are not implemented in this draft.");
         });
-        for s in &doc.symbols {
-            if let Some(c) = doc.component(s.id) {
-                let selected = self.selection.symbols.contains(&s.id);
-                if ui
-                    .add_enabled_ui(!self.busy(), |ui| {
-                        controls::tree_row(ui, &format!("{}   {}", c.reference, c.value), selected)
-                    })
-                    .inner
-                    .clicked()
-                {
-                    self.select(Some(s.id));
-                    self.tool = Tool::Select;
-                }
+        let (sheets, fold) = Row {
+            label: "Sheets",
+            icon: Icon::Folder,
+            depth: 1,
+            selected: false,
+            fold: Some(!self.panel_ui.sheets_folded),
+        }
+        .show(ui, root_id.with("sheets"));
+        if fold || sheets.double_clicked() {
+            self.panel_ui.sheets_folded = !self.panel_ui.sheets_folded;
+        }
+        egui::Popup::context_menu(&sheets)
+            .frame(controls::menu_frame(ui.ctx()))
+            .show(Self::sheet_creation_menu);
+        if self.panel_ui.sheets_folded {
+            return;
+        }
+        let (main, fold) = Row {
+            label: "Main",
+            icon: Icon::Sheet,
+            depth: 2,
+            selected: true,
+            fold: Some(!self.panel_ui.main_folded),
+        }
+        .show(ui, sheet_id);
+        if fold {
+            self.panel_ui.main_folded = !self.panel_ui.main_folded;
+        }
+        // The only current sheet is already active; navigating it does not clear an object pick.
+        egui::Popup::context_menu(&main)
+            .frame(controls::menu_frame(ui.ctx()))
+            .show(Self::sheet_creation_menu);
+        if self.panel_ui.main_folded {
+            return;
+        }
+        for (nets, label, icon) in [(false, "Symbols", Icon::Brand), (true, "Nets", Icon::Wire)] {
+            let selected = self.drawer == Some("Search") && self.panel_ui.search_nets == nets;
+            if (Row {
+                label,
+                icon,
+                depth: 3,
+                selected,
+                fold: None,
+            })
+            .show(ui, sheet_id.with(label))
+            .0
+            .clicked()
+            {
+                self.open_sheet_index(nets);
             }
         }
-        if doc.symbols.is_empty() {
-            ui.label(
-                RichText::new("Place your first symbol from the Parts library.").color(t.ui.muted),
-            );
-        }
-        ui.add_space(4.0);
-        ui.horizontal(|ui| {
-            ui.add(Icon::Wire.image(15.0, ui.ctx()));
-            ui.label(
-                RichText::new(format!("{} connections", doc.wires.len()))
-                    .small()
-                    .color(t.ui.muted),
-            );
-        });
     }
 
     fn bottom_drawer(&mut self, ctx: &egui::Context) {
         let t = theme::current(ctx);
         let layout = self.layout;
         if let Some(active) = self.drawer {
+            if !layout.drawer.is_finite() {
+                ctx.request_repaint();
+                return;
+            }
             card(ctx, "bottom_drawer", layout.drawer, |ui| {
                 ui.horizontal(|ui| {
                     theme::quiet_buttons(ui);
@@ -432,24 +492,32 @@ impl App {
                     });
                 });
                 ui.separator();
-                egui::ScrollArea::vertical().id_salt("drawer_body").max_height(layout.drawer.height() - 72.0)
-                    .auto_shrink([false, false]).show(ui, |ui| {
-                    match active {
-                        "Search" => self.sheet_search(ui),
-                        "ERC" => {
-                            ui.add_space(6.0);
-                            ui.horizontal(|ui| { ui.add(Icon::Erc.image(20.0, ui.ctx())); ui.label(RichText::new("Electrical rules check").font(theme::semibold(t.metrics.body))); });
-                            ui.add_space(8.0);
-                            ui.label(RichText::new("Not available in this build").color(t.ui.warning));
-                            ui.label(RichText::new("No electrical validation has run. Wires join explicit pins and junctions; crossings do not connect.").color(t.ui.muted));
-                        }
-                        _ => {
-                            controls::section(ui, &format!("PROJECT MESSAGES  {}", self.notices.len()));
-                            ui.add_space(6.0);
-                            for message in self.notices.iter().rev() { ui.label(message); ui.add_space(4.0); }
-                        }
-                    }
-                });
+                if active == "Search" {
+                    self.sheet_search(ui, (layout.drawer.height() - 72.0).max(0.0));
+                } else {
+                    egui::ScrollArea::vertical()
+                        .id_salt("drawer_body")
+                        .max_height(layout.drawer.height() - 72.0)
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| {
+                            if active == "ERC" {
+                                controls::section(ui, "ELECTRICAL RULES CHECK");
+                                ui.colored_label(t.ui.warning, "Not available in this build");
+                                ui.label(
+                                    "No electrical validation has run. Crossings do not connect.",
+                                );
+                            } else {
+                                controls::section(
+                                    ui,
+                                    &format!("PROJECT MESSAGES  {}", self.notices.len()),
+                                );
+                                for message in self.notices.iter().rev() {
+                                    ui.label(message);
+                                    ui.add_space(4.0);
+                                }
+                            }
+                        });
+                }
             });
         } else {
             let rect = Rect::from_min_size(
@@ -480,49 +548,80 @@ impl App {
         }
     }
 
-    fn sheet_search(&mut self, ui: &mut egui::Ui) {
+    fn sheet_search(&mut self, ui: &mut egui::Ui, height: f32) {
         let t = theme::current(ui.ctx());
         ui.horizontal(|ui| {
             ui.add_sized(
-                [ui.available_width() - 110.0, 26.0],
-                egui::TextEdit::singleline(&mut self.panel_ui.search)
-                    .hint_text("Search schematic…"),
+                [(ui.available_width() - 120.0).max(80.0), 28.0],
+                controls::text_input(
+                    egui::TextEdit::singleline(&mut self.panel_ui.search)
+                        .hint_text("Search schematic…"),
+                ),
             );
-            ui.label(RichText::new("Current sheet").small().color(t.ui.muted));
+            ui.label(RichText::new("Sheet: Main").small().color(t.ui.muted));
         });
-        ui.add_space(4.0);
         ui.horizontal(|ui| {
-            ui.label(RichText::new("Symbols").color(t.ui.text));
-            ui.separator();
-            ui.label(RichText::new("Reference / value").small().color(t.ui.muted));
+            theme::quiet_buttons(ui);
+            ui.selectable_value(&mut self.panel_ui.search_nets, false, "Symbols");
+            ui.selectable_value(&mut self.panel_ui.search_nets, true, "Nets");
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if self.panel_ui.search_nets
+                    && controls::action(ui, "Netlist…", controls::ActionTone::Secondary, true)
+                        .clicked()
+                {
+                    self.open_net_report();
+                }
+            });
         });
         let query = self.panel_ui.search.trim().to_lowercase();
         let doc = self.session.document().clone();
-        let mut count = 0;
-        for symbol in &doc.symbols {
-            if let Some(c) = doc.component(symbol.id) {
-                let label = format!("{}    {}    ·    Main", c.reference, c.value);
-                if !label.to_lowercase().contains(&query) {
-                    continue;
+        let output = egui::ScrollArea::vertical()
+            .id_salt(("sheet_results", self.panel_ui.search_nets))
+            .min_scrolled_height(0.0)
+            .max_height((height - 68.0).max(24.0))
+            .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded)
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                if self.panel_ui.search_nets {
+                    self.net_results(ui, &query);
+                    return;
                 }
-                count += 1;
-                if ui
-                    .add_sized(
-                        [ui.available_width(), 24.0],
-                        egui::Button::new(label)
-                            .frame(false)
-                            .selected(self.selected_symbol() == Some(symbol.id)),
-                    )
-                    .clicked()
-                {
-                    self.select(Some(symbol.id));
-                    self.tool = Tool::Select;
+                controls::result_row(
+                    ui,
+                    ui.id().with("head"),
+                    &[("Reference", 0.19), ("Value", 0.56), ("Sheet", 0.25)],
+                    false,
+                    true,
+                );
+                let mut count = 0;
+                for symbol in &doc.symbols {
+                    if let Some(c) = doc.component(symbol.id) {
+                        if !format!("{} {}", c.reference, c.value)
+                            .to_lowercase()
+                            .contains(&query)
+                        {
+                            continue;
+                        }
+                        count += 1;
+                        if controls::result_row(
+                            ui,
+                            ui.id().with(format!("{:?}", symbol.id)),
+                            &[(&c.reference, 0.19), (&c.value, 0.56), ("Main", 0.25)],
+                            self.selection.symbols.contains(&symbol.id),
+                            false,
+                        )
+                        .clicked()
+                        {
+                            self.select(Some(symbol.id));
+                            self.tool = Tool::Select;
+                        }
+                    }
                 }
-            }
-        }
-        if count == 0 {
-            ui.label(RichText::new("No matching symbols").color(t.ui.muted));
-        }
+                if count == 0 {
+                    ui.label(RichText::new("No matching symbols").color(t.ui.muted));
+                }
+            });
+        self.panel_ui.search_body = Some(output.inner_rect);
     }
 }
 

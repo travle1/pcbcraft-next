@@ -5,12 +5,14 @@ layout, interchange and simulation work. PCBcraft remains a standalone app.
 
 ## Available now
 
-- **Browser → Symbols / Nets** switches lists without changing the document.
-  The list has a persistent scrollbar, a reserved footer and a bottom resize
-  grip. Height stays within the workspace; content beyond it remains scrollable.
+- **Browser → Sheets → Main → Symbols / Nets** opens a sheet-scoped result table
+  in the bottom Search drawer without changing the document or current object pick.
+  The project tree remains visible; disclosure controls never select objects.
+  Both tree and results scroll when needed; the browser keeps its bottom resize grip.
+  There are no top-level Symbols/Nets browser tabs or unrelated connection total.
 - Click a net row or a visible wire/alias stub to highlight its connected pins
-  and links. The Wires selection filter controls canvas net picking. Component
-  selection and net selection are exclusive in this bounded single-selection UI.
+  and links. The Wires selection filter controls canvas net picking. A net result selects the full explicit group; box selection separately supports
+  symbols, wires and notes as described in [selection and text](selection-and-text.md).
 - Net Properties lists the terminals and connections. Apply name renames the
   connected group; a blank name clears it. Naming a normal wire keeps its path
   visible. Existing remote aliases retain their presentation.
@@ -24,7 +26,7 @@ layout, interchange and simulation work. PCBcraft remains a standalone app.
   to a pin/wire, or Enter/double-click for a free end. Space flips the next bend;
   Backspace removes the last corner; Esc/right-click cancels uncommitted work.
   Branch creation splits the target wire and commits all changes together.
-- Click a wire then **Delete** removes that wire. Browser net selection then
+- Click a wire then **Delete** removes that wire. Search net selection then
   Delete, the Properties **Delete net** button, or **Delete whole net** in the
   context menu removes the connected graph while keeping components. These direct
   edits are immediately undoable; the existing per-connection review remains.
@@ -38,7 +40,7 @@ layout, interchange and simulation work. PCBcraft remains a standalone app.
 - Joining differently named groups rejects rather than choosing a name silently.
   Clear or reconcile names first. Buses and general label placement remain planned.
   [Wire controls, persistence and current limits](wire-editing.md).
-- **Nets → Netlist… → Copy JSON** produces a connectivity snapshot with the project,
+- **Search → Nets → Netlist… → Copy JSON** produces a connectivity snapshot with the project,
   session incarnation, revision, component identities/references, net names,
   terminal membership, link IDs and unconnected pins. This is a report, not an
   importable native project or a KiCad/SPICE file. Native `.pc` still saves the

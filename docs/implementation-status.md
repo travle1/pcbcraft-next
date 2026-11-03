@@ -54,8 +54,9 @@ reference/value/rotation apply atomically, with revision/incarnation checks and 
 Browser rows keep fixed insets/height; selection changes highlight and font weight.
 Canvas selection uses symbol/reference ink rather than a filled bounding rectangle.
 
-Browser's Symbols/Nets lists have persistent scrolling and a bottom height grip;
-the footer cannot consume the last rows. Nets are derived from actual terminal
+Browser uses the FigCraft project/sheet tree; Symbols/Nets entries open scoped
+Search result tables. The tree scrolls when needed and retains a bottom height grip;
+the grip cannot consume the last rows. Nets are derived from actual terminal
 links and cached by incarnation/revision. Click a row or wire to highlight the net,
 edit its name, inspect terminals and review connection removal. A split preview
 explains name retention/clearing before one undoable transaction. Net Properties
@@ -148,3 +149,10 @@ geometry/render capabilities for layout/3D. Settle shared interfaces before
 dispatching agents. The initial standalone work is recorded in sectional commits
 in the private [travle1/pcbcraft-next](https://github.com/travle1/pcbcraft-next)
 repository. No agent queue, hosted CI or PR has been created.
+
+
+The browser hierarchy correction supersedes the earlier Symbols/Nets tabbed list.
+The loose wire-edge count and permanent scroll instruction footer are removed.
+Only the existing Main sheet is real: **New sheet / New subsheet** are disabled
+with explanations. No multi-sheet schema or hierarchical connectivity is claimed.
+See [sheet workflow prerequisites](sheet-workflows.md).

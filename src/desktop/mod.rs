@@ -166,7 +166,7 @@ impl App {
             if let Some(anchor) = anchor {
                 app.select_net(anchor);
             }
-            app.panel_ui.browser_nets = true;
+            app.open_sheet_index(true);
         }
         if app.options.capture_text
             && app.options.capture.is_some()
