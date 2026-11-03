@@ -8,9 +8,10 @@
 <p align="center">
   <a href="#run-it">Run it</a> ·
   <a href="#ai-and-mcp">AI &amp; MCP</a> ·
+  <a href="ROADMAP.md">Roadmap</a> ·
   <a href="docs/desktop-guide.md">Editor guide</a> ·
   <a href="docs/framework.md">Architecture</a> ·
-  <a href="docs/implementation-status.md">Implementation status</a>
+  <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
 PCBcraft is a standalone Rust desktop application in the SolidCraft family,
@@ -86,6 +87,18 @@ Unavailable workspace/tools are marked accordingly. `.pc` is provisional;
 autosave and crash recovery are not implemented. See the detailed
 [status and limits](docs/implementation-status.md) before relying on saved drafts.
 
+## Roadmap
+
+The next priority is AI-assisted schematic capture alongside editing reliability:
+atomic proposals, live MCP, visible review and readable arrangement. Libraries,
+ERC, the first board/DRC/cross-probing workflow, SolidCore-backed 3D, KiCad
+interchange and manufacturing build on that foundation. UI quality and recovery
+are part of each milestone.
+
+The [product roadmap](ROADMAP.md) gives the working baseline, priorities and
+acceptance gates without promising dates. Detailed tasks remain in the
+[implementation plan](docs/implementation-plan.md).
+
 ## Run it
 
 From a checkout, with **Rust 1.95+** and a desktop graphics environment:
@@ -147,6 +160,18 @@ cargo test --offline --locked --no-default-features
 
 Tests cover editing, identity/connectivity, history, persistence and egui
 interaction. The no-default-features run checks the core without desktop dependencies.
+
+## Contributing and community
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, focused PRs, validation and source
+rules. [Issues](https://github.com/travle1/pcbcraft-next/issues) are the place for
+reproducible bugs, questions and workflow proposals; [Support](SUPPORT.md) explains
+what to include. The maintainer contact is [@travle1](https://github.com/travle1).
+
+Participation follows the [Code of Conduct](CODE_OF_CONDUCT.md). Sensitive reports
+use its private-follow-up process or the [security policy](SECURITY.md).
+[Attribution](ATTRIBUTION.md) covers source/asset notices and truthful human/AI
+commit credit, including tool/model co-authors and review-only assistance.
 
 ## License
 

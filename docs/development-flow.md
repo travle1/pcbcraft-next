@@ -1,8 +1,9 @@
 # Agent development flow
 
 The standalone repository is [travle1/pcbcraft-next](https://github.com/travle1/pcbcraft-next),
-created private on November 3, 2026. `origin` targets that repository and `main`
-contains the initial sectional history. No hosted CI, agent launcher or automatic
+created private on November 3, 2026; a read-only GitHub check later that day reports
+it public, with `main` as the default branch and Issues enabled. `origin` targets
+that repository; local feature-branch work is not automatically published. No hosted CI, agent launcher or automatic
 PR queue is configured. Use a local ledger or existing Codex tasks; do not assume
 upstream bots operate here. Do not reuse the preserved fork's remote. Start fresh
 task contexts from this project's approved sources.
@@ -15,15 +16,29 @@ work should be committed in bounded functional sections as it is completed, with
 validation recorded, rather than accumulating another untracked application.
 Build output and local proof captures remain ignored.
 
+The [product roadmap](../ROADMAP.md) summarizes priorities, while
+[CONTRIBUTING.md](../CONTRIBUTING.md) is the entry point for contributors.
+[Code of Conduct](../CODE_OF_CONDUCT.md), [Support](../SUPPORT.md) and
+[Security](../SECURITY.md) explain participation and reporting through `@travle1`.
+
+## Commit attribution
+
+Follow [ATTRIBUTION.md](../ATTRIBUTION.md#commit-credit). Keep the existing human Git
+identity and add Co-authored-by trailers for actual AI authors/editors; record
+review-only help with AI-reviewed-by. Use verified tool/model information, with
+generic tool names when the model is unknown. Preserve actual participants when
+squashing and never infer a past contributor from a planned task. These are manual
+conventions; no hook or bot has been installed. License/source provenance is separate.
+
 ## Starter backlog
 
 Use the canonical [implementation plan](implementation-plan.md) for task IDs,
-dependency DAG, allowed areas and gates. W0 now establishes PCBcraft's standalone
-build/library boundary; the earlier full SolidCraft startup is reference evidence
-only and does not complete W0. F1 defines Electronics contracts. W1 builds our
-window/three views; D0/F0/J0 provide session edits, native persistence/offline
-definitions and jobs. H0 proves the complete edit/undo/save/reopen path inside
-PCBcraft. No SolidCraft app/CLI prerequisite or agent launch is implied.
+dependency DAG, allowed areas and gates. Standalone launch, schematic editing,
+whole-project save and flat/hierarchical sheets now work. The full W1/H0 three-view
+workflow, broader library contracts and jobs remain open. The next AI slice is AI0
+atomic proposals, followed by the live MCP/Assistant tasks. The earlier SolidCraft
+startup remains reference evidence only; no SolidCraft app/CLI prerequisite or
+agent launch is implied.
 
 Current [implementation status](implementation-status.md) records the first runnable
 schematic subset and remaining gates. Validate it with the commands in README
@@ -52,7 +67,7 @@ is not an installed queue, and a draft PR is not a completed merge.
 
 ```text
 Task ID and outcome:
-Repository: travle1/pcbcraft-next (origin; private at initial creation)
+Repository: travle1/pcbcraft-next (origin)
 Base SHA, branch and isolated checkout:
 Prerequisite IDs/merged SHAs:
 Read: AGENTS.md, framework.md, task-linked specs, sources.md and target rules.
@@ -78,6 +93,7 @@ Authority: local edits only unless exact commit/push/draft-PR destinations and
 permissions are provided. No merge, upstream publication, dependency/config change
 or unrelated message by implication.
 Checks and evidence:
+Attribution: actual authoring/review tool and model; mark unknown versions honestly.
 Reviewer/integration owner:
 Handoff: changes, checks/limits, exact head, PR state if authorized, blockers.
 ```

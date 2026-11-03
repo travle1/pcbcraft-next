@@ -1,5 +1,43 @@
 # Source register
 
+## Roadmap, community and credit conventions (November 3, 2026)
+
+Reviewed the [Tangency Labs repository index](https://github.com/orgs/tangency-labs/repositories?type=all)
+and representative approved project documentation:
+
+- [SolidCraft README](https://github.com/tangency-labs/solidcraft/blob/main/README.md),
+  [roadmap](https://github.com/tangency-labs/solidcraft/blob/main/ROADMAP.md),
+  [contributing](https://github.com/tangency-labs/solidcraft/blob/main/CONTRIBUTING.md)
+  and [security](https://github.com/tangency-labs/solidcraft/blob/main/SECURITY.md):
+  product overview, a short roadmap with detailed engineering links, setup/review
+  guidance and a separate sensitive-report route.
+- [FieldCraft README](https://github.com/tangency-labs/fieldcraft/blob/develop/README.md),
+  [roadmap](https://github.com/tangency-labs/fieldcraft/blob/develop/ROADMAP.md),
+  [contributing](https://github.com/tangency-labs/fieldcraft/blob/develop/CONTRIBUTING.md)
+  and [conduct policy](https://github.com/tangency-labs/fieldcraft/blob/develop/CODE_OF_CONDUCT.md):
+  evidence-backed feature status, workflow milestones, scoped contributions and
+  concise conduct/reporting expectations. Its claim/triage automation is not installed here.
+- [SolidCore README](https://github.com/tangency-labs/solidcore/blob/main/README.md):
+  explicit scope, experimental status, validation evidence and bounded work claims.
+
+These informed structure only. The new roadmap, contribution/conduct/security/support
+docs and issue/PR templates are original PCBcraft text. Upstream release promises,
+milestone counts, source rules, bots and reporting contacts were not imported.
+No EDA implementation, old-fork source/fixtures or KiCad implementation was inspected.
+
+A read-only [repository metadata check](https://api.github.com/repos/travle1/pcbcraft-next)
+reports `main`, public visibility, Issues enabled and Discussions disabled. The user
+selected their GitHub account for contact; docs use the verified owner `travle1`
+and distinguish public contact requests from confidential reports. Private vulnerability
+reporting availability was not established; no repository settings were changed.
+
+For [commit credit](../ATTRIBUTION.md#commit-credit), reviewed official
+[GitHub trailer/account guidance](https://docs.github.com/en/pull-requests/how-tos/commit-changes/creating-a-commit-with-multiple-authors)
+and [RFC 2606](https://www.rfc-editor.org/rfc/rfc2606.html#section-2).
+The user requested tool/model attribution; the project-local `.invalid` identifiers
+explicitly do not represent provider/GitHub accounts. Only actual participants are
+credited, with generic tool names when model identity is unknown. No history was rewritten.
+
 ## README and media refresh (November 3, 2026)
 
 Read SolidCraft's README at the existing `c553365` pin for product/media structure;

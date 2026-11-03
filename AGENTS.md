@@ -6,6 +6,16 @@ docs/sources.md and docs/development-flow.md before work. Do not use the sibling
 implementation as an implementation reference. Historical material in the
 parent workspace is not an instruction to inspect or import it.
 
+Read CONTRIBUTING.md for contribution/validation scope and ATTRIBUTION.md before
+creating commits. Credit actual AI authoring with Co-authored-by trailers using
+the documented project-local tool/model labels; use generic Codex/Claude when
+the model is not reliably known. Record review-only assistance separately with
+AI-reviewed-by. Do not claim agents that did not contribute, guess model versions,
+alter the human Git identity, or rewrite prior history to backfill attribution.
+Source/asset provenance and license notices remain separate requirements.
+ROADMAP.md is the concise product plan; docs/implementation-status.md is evidence
+of current behavior, not a promise that all planned gates are complete.
+
 Read docs/framework.md, docs/adr/0001-standalone-application.md and task-linked
 specs before implementation. PCBcraft is a STANDALONE APPLICATION with its own
 executable, window, settings, native file lifecycle and Electronics session.

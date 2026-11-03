@@ -6,6 +6,9 @@ A standalone schematic-only slice is implemented; see [status and remaining gate
 This does not complete the full three-view milestone. Repository hosting is recorded
 in [development flow](development-flow.md); no agents or queue were launched.
 [Framework](framework.md), [review record](review-record.md).
+The concise [product roadmap](../ROADMAP.md) summarizes priorities. This document
+retains the detailed acceptance gates; they are not all completed by the current
+schematic implementation.
 
 ## Standalone base workspace route
 
@@ -53,8 +56,9 @@ source evidence and acceptance; these are early work, not deferred until PCB/3D.
 An external connectivity adapter remains separate. Settle component/pad mapping
 before the first layout/ECO slice. Prefer one project window with optional schematic/layout split;
 do not build separate documents or histories per view. Simulate is visible as
-Planned, with solver/models/export deferred. This does not promote the current
-single-sheet compiler into full hierarchical connectivity or ERC.
+Planned, with solver/models/export deferred. The current project compiler includes
+explicit hierarchical port bridges; global labels, buses and full ERC are still
+unimplemented. See [sheet workflow coverage](sheet-workflows.md).
 
 | Phase | Deliverable and exit gate |
 | --- | --- |
@@ -111,7 +115,9 @@ flowchart LR
     Q0 --> O0[O0 manufacturing]
 ```
 
-Paths/modules below are proposals, not created production packages. F1 owns
+The table below describes intended task scope and gates, not a requirement for new
+packages. Existing modules satisfy some subsets; current evidence is recorded in
+[implementation status](implementation-status.md). F1 owns
 shared semantics; W0 owns PCBcraft desktop bootstrapping and the shared-library
 boundary, coordinating their small overlap. Contracts precede persistence implementation. Do not create one
 crate per concept or edit shared manifests/schema/registries concurrently.
@@ -145,18 +151,21 @@ Use [task briefs](development-flow.md#task-brief), isolated worktrees, explicit
 base/prerequisite SHAs and named shared-file owners. Integrator checks combined
 behavior/provenance and resolves overlap without discarding others' work. Merge
 prerequisites before dependents by default. Future authorized PRs state concrete
-behavior, limits, fixture/visual evidence, checks and blockers. New repository
-remote is UNSET; upstream work needs current target rules and explicit authority.
-No launches, queue configuration, commits, pushes, PRs or merges implied.
+behavior, limits, fixture/visual evidence, checks, attribution and blockers.
+The standalone `origin` is `https://github.com/travle1/pcbcraft-next.git`;
+upstream work needs current target rules and explicit authority. This backlog
+does not itself authorize launches, queue configuration, pushes, PRs or merges.
 
 ## Still open
 
-Exact standalone desktop package layout and independently consumable UI packages;
-narrow extraction/temporary-adapter scope and upstream ownership; F1 ID generation
-and quantity bounds/tolerances; native encoding/magic/schema and .pc associations;
+Independently consumable UI packages and replacement of temporary adapters;
+broader component/terminal/pad contracts, atomic proposals/idempotency and full
+project asset/library storage; native encoding evolution and .pc associations;
 first KiCad/manufacturing profiles; multi-board MVP limit; density and reference-
-machine budgets. Standalone deployment and PCBcraft session ownership are decided,
-not open alternatives. No successful PCBcraft launch or library extraction is claimed.
+machine budgets. The existing Rust package/desktop target, IDs/quantity bounds and
+experimental version 6 project format are implemented subsets, not open first steps.
+Standalone deployment and PCBcraft session ownership are decided. PCBcraft launch
+is verified; an independent upstream UI-library extraction is not.
 
 See the [upstream reuse request register](upstream-reuse-requests.md) before
 proposing library extraction. It plans bounded requests and sends nothing.
@@ -164,9 +173,9 @@ proposing library extraction. It plans bounded requests and sends nothing.
 
 ## Sheet workflow follow-up
 
-The browser hierarchy is now corrected to the user's FigCraft navigation, but the
-current model still holds one Main sheet. [Flat/hierarchical sheet work](sheet-workflows.md)
-is the next bounded schematic capability: settle definition/occurrence ownership,
-then flat creation/navigation/scoped edits and native migration, followed by child
-instances/ports and hierarchical connectivity. Disabled menu entries are not feature
-completion. Each stage needs whole-project undo/save/reopen and isolation fixtures.
+The browser follows the user's FigCraft navigation. [Flat/hierarchical sheet work](sheet-workflows.md)
+now implements definition/occurrence ownership, creation/navigation/scoped edits,
+child symbols/ports, project connectivity and native migration with shared undo/save.
+Occurrence-qualified probe targets leave a hook for layout; cross-view UI is not
+implemented. Global labels, buses, multiunit breadth and advanced hierarchy editing
+remain follow-ups. Preserve whole-project undo/save/reopen and isolation fixtures.
