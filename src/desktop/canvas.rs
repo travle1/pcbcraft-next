@@ -91,6 +91,10 @@ impl Default for Canvas {
     }
 }
 impl Canvas {
+    pub(super) fn clear_context(&mut self) {
+        self.context = None;
+        self.context_open = false;
+    }
     pub(super) fn screen(&self, p: Point, rect: Rect) -> Pos2 {
         rect.center()
             + self.offset
@@ -168,6 +172,13 @@ impl Canvas {
         for a in &doc.annotations {
             bounds.extend_with(Pos2::new(a.at.x as f32 / 1e6, a.at.y as f32 / 1e6));
         }
+        for p in doc.ports.iter().map(|p| p.at).chain(
+            doc.sheet_symbols
+                .iter()
+                .flat_map(|s| [s.at, s.bottom_right()]),
+        ) {
+            bounds.extend_with(Pos2::new(p.x as f32 / 1e6, p.y as f32 / 1e6));
+        }
         if bounds.is_finite() {
             bounds = bounds.expand(18.0);
             self.zoom = (rect.width() / (bounds.width() * 8.0))
@@ -201,8 +212,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
         full.min + egui::vec2(left_side + 24.0, 52.0),
         full.max - egui::vec2(side + 28.0, 85.0),
     );
-    let mut doc = app.session.document().clone();
+    let mut doc = app.document().clone();
     super::interaction::preview(app, &mut doc);
+    app.preview_sheet_objects(&mut doc);
     app.canvas.text_hits.clear();
     if let Some(drag) = &app.canvas.wire_drag {
         if drag.incarnation == app.session.incarnation && drag.revision == app.session.revision() {
@@ -267,24 +279,45 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
             );
         }
     }
-    painter.text(
-        Pos2::new(
-            if app.layout.browser.is_finite() {
-                app.layout.browser.right() + 12.0
-            } else {
-                canvas.left()
-            },
-            full.top() + 24.0,
-        ),
-        Align2::LEFT_CENTER,
-        format!("{}  /  Main", doc.name),
+    let path = format!(
+        "{}  /  {}",
+        app.session.project().name,
+        app.session.project().path(app.active_sheet())
+    );
+    let left = if app.layout.browser.is_finite() {
+        app.layout.browser.right() + 12.0
+    } else {
+        canvas.left()
+    };
+    let mut heading = egui::text::LayoutJob::simple_singleline(
+        path.clone(),
         FontId::proportional(14.0),
         t.ui.text,
     );
+    heading.wrap.max_width = (canvas.right() - left - 70.0).max(20.0);
+    heading.wrap.max_rows = 1;
+    let heading = painter.layout_job(heading);
+    let position = Pos2::new(left, full.top() + 24.0 - heading.size().y / 2.0);
+    ui.interact(
+        Rect::from_min_size(position, heading.size()),
+        ui.id().with("sheet_breadcrumb"),
+        Sense::hover(),
+    )
+    .on_hover_text(path);
+    painter.galley(position, heading, t.ui.text);
     painter.text(
         Pos2::new(canvas.right(), full.top() + 24.0),
         Align2::RIGHT_CENTER,
-        "1 / 1",
+        format!(
+            "{} / {}",
+            app.session
+                .project()
+                .occurrences
+                .iter()
+                .position(|o| o.id == app.active_sheet())
+                .map_or(1, |i| i + 1),
+            app.session.project().occurrences.len()
+        ),
         FontId::proportional(12.0),
         t.ui.muted,
     );
@@ -765,7 +798,12 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
             }
         }
     }
-    if doc.symbols.is_empty() && doc.wires.is_empty() {
+    if doc.symbols.is_empty()
+        && doc.wires.is_empty()
+        && doc.sheet_symbols.is_empty()
+        && doc.ports.is_empty()
+        && doc.annotations.is_empty()
+    {
         let center = canvas.center();
         painter.text(
             center - egui::vec2(0.0, 38.0),
@@ -871,6 +909,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                 app.notice("The project changed during the drag. Choose the part again.");
             }
         }
+        return;
+    }
+    if app.sheet_objects(ui, &response, &doc, canvas, input_enabled) {
         return;
     }
     if super::interaction::update(app, ui, &response, &doc, canvas, &projected, input_enabled) {
@@ -1197,7 +1238,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
             };
         }
         if app.session.incarnation == drag.incarnation {
-            match app.session.apply(
+            match app.apply(
                 drag.revision,
                 Command::EditWire {
                     edit: WireEdit::WithRoutes {
@@ -1477,6 +1518,28 @@ fn wire_target(
     if let Some(pin) = pin {
         return Anchor::Existing(pin.clone().into());
     }
+    if app.canvas.pins_selectable {
+        for endpoint in doc
+            .ports
+            .iter()
+            .map(|p| Endpoint::Port(pcbcraft_foundation::project::PortRef { port: p.id }))
+            .chain(doc.sheet_symbols.iter().flat_map(|s| {
+                s.pins.iter().map(move |p| {
+                    Endpoint::SheetPin(pcbcraft_foundation::project::SheetPinRef {
+                        sheet_symbol: s.id,
+                        port: p.id,
+                    })
+                })
+            }))
+        {
+            if doc
+                .endpoint(&endpoint)
+                .is_some_and(|at| app.canvas.screen(at, canvas).distance(pos) < 9.0)
+            {
+                return Anchor::Existing(endpoint);
+            }
+        }
+    }
     if app.canvas.wires_visible
         && app.canvas.nets_selectable
         && let Some(j) = doc
@@ -1552,17 +1615,18 @@ fn wire_target(
     Anchor::Free(app.canvas.world(pos, canvas))
 }
 fn wire_click(app: &mut App, target: Anchor, finish: bool) {
+    let target_at = target.point(app.document());
     if let Some(draft) = &mut app.canvas.wire_start {
         if finish {
             finish_wire(app, target);
-        } else if let Some(at) = target.point(app.session.document()) {
+        } else if let Some(at) = target_at {
             if draft.points.len() < 254 {
                 extend_orthogonal(&mut draft.points, at, draft.vertical_first);
             } else {
                 app.notice("Finish this wire before adding more corners.");
             }
         }
-    } else if let Some(at) = target.point(app.session.document()) {
+    } else if let Some(at) = target.point(app.document()) {
         app.canvas.wire_start = Some(WireDraft {
             from: target,
             points: vec![at],
@@ -1581,7 +1645,7 @@ fn finish_wire(app: &mut App, target: Anchor) {
         app.notice("The project changed during wiring. Start the wire again.");
         return;
     }
-    let Some(at) = target.point(app.session.document()) else {
+    let Some(at) = target.point(app.document()) else {
         return;
     };
     let mut points = draft.points.clone();
@@ -1590,7 +1654,7 @@ fn finish_wire(app: &mut App, target: Anchor) {
     if points.len() < 2 {
         return;
     }
-    match app.session.apply(
+    match app.apply(
         draft.revision,
         Command::EditWire {
             edit: WireEdit::WithRoutes {
@@ -1623,9 +1687,16 @@ fn attachment_target(
     projected: &[(WireId, Vec<Pos2>)],
     pin: Option<&PinRef>,
 ) -> Option<Anchor> {
-    let doc = app.session.document();
+    let doc = app.document();
     if let Some(pin) = pin {
         return Some(Anchor::Existing(pin.clone().into()));
+    }
+    let hierarchy = wire_target(app, doc, canvas, pos, None, None);
+    if matches!(
+        &hierarchy,
+        Anchor::Existing(Endpoint::Port(_) | Endpoint::SheetPin(_))
+    ) {
+        return Some(hierarchy);
     }
     if let Some(j) = doc
         .junctions
@@ -1820,18 +1891,17 @@ mod tests {
         let mut ids = Vec::new();
         for x in [-25_400_000, 25_400_000] {
             ids.push(
-                app.session
-                    .apply(
-                        app.session.revision(),
-                        Command::Place {
-                            kind: PartKind::Resistor,
-                            at: Point { x, y: 0 },
-                        },
-                    )?
-                    .ok_or("No component")?,
+                app.apply(
+                    app.session.revision(),
+                    Command::Place {
+                        kind: PartKind::Resistor,
+                        at: Point { x, y: 0 },
+                    },
+                )?
+                .ok_or("No component")?,
             );
         }
-        app.session.apply(
+        app.apply(
             app.session.revision(),
             Command::Connect {
                 from: PinRef {
@@ -1847,7 +1917,7 @@ mod tests {
         app.canvas.fit = false;
         app.select(None);
         frame(&mut app, &ctx, vec![]);
-        let before = app.session.document().clone();
+        let before = app.document().clone();
         click(&mut app, &ctx, Pos2::new(798.0, 483.5));
         assert_eq!(
             app.nets
@@ -1857,7 +1927,7 @@ mod tests {
                 .len(),
             2
         );
-        assert_eq!(app.session.document(), &before);
+        assert_eq!(app.document(), &before);
         Ok(())
     }
 
@@ -1869,14 +1939,13 @@ mod tests {
         app.tool = Tool::Place(PartKind::Resistor);
         click(&mut app, &ctx, center);
         let symbol = app
-            .session
             .document()
             .symbols
             .first()
             .ok_or("Pointer did not place symbol")?
             .clone();
         assert_eq!(symbol.at, Point::default());
-        let placed = app.session.document().clone();
+        let placed = app.document().clone();
         let revision = app.session.revision();
         frame(&mut app, &ctx, vec![pointer(center, true)]);
         frame(
@@ -1890,7 +1959,7 @@ mod tests {
             vec![egui::Event::PointerMoved(center + egui::vec2(60.0, 30.0))],
         );
         assert_eq!(
-            app.session.document(),
+            app.document(),
             &placed,
             "Drag preview must not mutate the document"
         );
@@ -1900,11 +1969,11 @@ mod tests {
             vec![pointer(center + egui::vec2(60.0, 30.0), false)],
         );
         assert_eq!(app.session.revision(), revision + 1);
-        assert_ne!(app.session.document(), &placed);
+        assert_ne!(app.document(), &placed);
         app.history(false);
-        assert_eq!(app.session.document(), &placed);
+        assert_eq!(app.document(), &placed);
         app.history(true);
-        assert_ne!(app.session.document(), &placed);
+        assert_ne!(app.document(), &placed);
         Ok(())
     }
 
@@ -1916,7 +1985,7 @@ mod tests {
         click(&mut app, &ctx, Pos2::new(650.0, 483.5));
         app.tool = Tool::Place(PartKind::Led);
         click(&mut app, &ctx, Pos2::new(950.0, 483.5));
-        let doc = app.session.document().clone();
+        let doc = app.document().clone();
         let a = doc
             .symbols
             .first()
@@ -1947,7 +2016,7 @@ mod tests {
         click(&mut app, &ctx, a);
         assert!(app.canvas.wire_start.is_some());
         click(&mut app, &ctx, b);
-        assert_eq!(app.session.document().wires.len(), 1);
+        assert_eq!(app.document().wires.len(), 1);
         click(&mut app, &ctx, a);
         frame(
             &mut app,
@@ -1962,7 +2031,7 @@ mod tests {
         );
         assert!(app.canvas.wire_start.is_none());
         assert!(app.tool == Tool::Select);
-        assert_eq!(app.session.document().wires.len(), 1);
+        assert_eq!(app.document().wires.len(), 1);
         Ok(())
     }
     fn key(app: &mut App, ctx: &egui::Context, key: egui::Key) {
@@ -1997,25 +2066,25 @@ mod tests {
         key(&mut app, &ctx, egui::Key::W);
         click(&mut app, &ctx, Pos2::new(600.0, 400.0));
         assert!(
-            app.session.document().wires.is_empty(),
+            app.document().wires.is_empty(),
             "Wire preview is not committed"
         );
         click(&mut app, &ctx, Pos2::new(950.0, 400.0));
         key(&mut app, &ctx, egui::Key::Enter);
-        assert_eq!(app.session.document().wires.len(), 1);
+        assert_eq!(app.document().wires.len(), 1);
         assert!(app.canvas.wire_start.is_none());
-        let before = app.session.document().clone();
+        let before = app.document().clone();
         // Start in the middle of an existing segment, not on a part or endpoint.
         click(&mut app, &ctx, Pos2::new(750.0, 400.0));
         click(&mut app, &ctx, Pos2::new(750.0, 650.0));
         key(&mut app, &ctx, egui::Key::Enter);
         assert_eq!(
-            app.session.document().wires.len(),
+            app.document().wires.len(),
             3,
             "Branch splits and attaches atomically: {:?}",
             app.notices
         );
-        let branched = app.session.document().clone();
+        let branched = app.document().clone();
         let n = pcbcraft_foundation::netlist::Netlist::compile(&branched)?;
         assert_eq!(n.nets.len(), 1);
         assert!(n.nets[0].terminals.is_empty());
@@ -2023,18 +2092,18 @@ mod tests {
         click(&mut app, &ctx, Pos2::new(750.0, 550.0));
         assert!(app.nets.wire.is_some(), "Canvas selects the exact wire");
         key(&mut app, &ctx, egui::Key::Delete);
-        assert_eq!(app.session.document().wires.len(), 2);
+        assert_eq!(app.document().wires.len(), 2);
         app.history(false);
-        assert_eq!(*app.session.document(), branched);
+        assert_eq!(*app.document(), branched);
         app.history(false);
-        assert_eq!(*app.session.document(), before);
+        assert_eq!(*app.document(), before);
         app.history(true);
-        assert_eq!(*app.session.document(), branched);
+        assert_eq!(*app.document(), branched);
         app.select_net(n.nets[0].anchor.clone());
         key(&mut app, &ctx, egui::Key::Delete);
-        assert!(app.session.document().wires.is_empty());
+        assert!(app.document().wires.is_empty());
         app.history(false);
-        assert_eq!(*app.session.document(), branched);
+        assert_eq!(*app.document(), branched);
         Ok(())
     }
     #[test]
@@ -2055,47 +2124,45 @@ mod tests {
         );
         key(&mut app, &ctx, egui::Key::Backspace);
         key(&mut app, &ctx, egui::Key::Escape);
-        assert!(
-            app.session.document().wires.is_empty() && app.session.document().junctions.is_empty()
-        );
+        assert!(app.document().wires.is_empty() && app.document().junctions.is_empty());
         app.tool = Tool::Wire;
         click(&mut app, &ctx, Pos2::new(600.0, 350.0));
         click(&mut app, &ctx, Pos2::new(760.0, 450.0));
         key(&mut app, &ctx, egui::Key::Enter);
         assert!(
-            app.session.document().wires[0]
+            app.document().wires[0]
                 .bends
                 .as_ref()
                 .is_some_and(|b| !b.is_empty())
         );
-        let first = app.session.document().clone();
+        let first = app.document().clone();
         click(&mut app, &ctx, Pos2::new(760.0, 450.0));
         click(&mut app, &ctx, Pos2::new(950.0, 450.0));
         key(&mut app, &ctx, egui::Key::Enter);
         assert_eq!(
-            app.session.document().wires.len(),
+            app.document().wires.len(),
             1,
             "Extending a free end heals into one continuous run"
         );
         assert_eq!(
-            pcbcraft_foundation::netlist::Netlist::compile(app.session.document())?
+            pcbcraft_foundation::netlist::Netlist::compile(app.document())?
                 .nets
                 .len(),
             1
         );
         app.history(false);
-        assert_eq!(*app.session.document(), first);
+        assert_eq!(*app.document(), first);
         app.tool = Tool::Wire;
         click(&mut app, &ctx, Pos2::new(600.0, 600.0));
         let draft = app.canvas.wire_start.clone();
-        app.session.apply(
+        app.apply(
             app.session.revision(),
             Command::Place {
                 kind: PartKind::Resistor,
                 at: Point::default(),
             },
         )?;
-        let changed = app.session.document().clone();
+        let changed = app.document().clone();
         assert!(draft.is_some());
         frame(
             &mut app,
@@ -2103,7 +2170,7 @@ mod tests {
             vec![egui::Event::PointerMoved(Pos2::new(900.0, 600.0))],
         );
         key(&mut app, &ctx, egui::Key::Enter);
-        assert_eq!(*app.session.document(), changed);
+        assert_eq!(*app.document(), changed);
         assert!(app.canvas.wire_start.is_none());
         Ok(())
     }
@@ -2117,7 +2184,7 @@ mod tests {
         click(&mut app, &ctx, Pos2::new(950.0, 400.0));
         key(&mut app, &ctx, egui::Key::Enter);
         key(&mut app, &ctx, egui::Key::Escape);
-        let before = app.session.document().clone();
+        let before = app.document().clone();
         let revision = app.session.revision();
         let start = Pos2::new(750.0, 400.0);
         let end = Pos2::new(750.0, 500.0);
@@ -2128,10 +2195,10 @@ mod tests {
         );
         frame(&mut app, &ctx, vec![egui::Event::PointerMoved(end)]);
         assert!(app.canvas.wire_drag.is_some());
-        assert_eq!(*app.session.document(), before);
+        assert_eq!(*app.document(), before);
         frame(&mut app, &ctx, vec![pointer(end, false)]);
         assert_eq!(app.session.revision(), revision + 1);
-        let shifted = app.session.document().clone();
+        let shifted = app.document().clone();
         assert_ne!(shifted, before);
         assert_eq!(
             pcbcraft_foundation::netlist::Netlist::compile(&before)?,
@@ -2149,7 +2216,7 @@ mod tests {
         assert!(app.canvas.wire_drag.is_some());
         key(&mut app, &ctx, egui::Key::Escape);
         frame(&mut app, &ctx, vec![pointer(moved, false)]);
-        assert_eq!(*app.session.document(), shifted);
+        assert_eq!(*app.document(), shifted);
         // A free endpoint can be repositioned; its other endpoint stays fixed.
         let endpoint = Pos2::new(600.0, 400.0);
         let moved = Pos2::new(560.0, 350.0);
@@ -2161,11 +2228,11 @@ mod tests {
         frame(&mut app, &ctx, vec![egui::Event::PointerMoved(moved)]);
         assert!(app.canvas.wire_drag.is_some());
         frame(&mut app, &ctx, vec![pointer(moved, false)]);
-        assert_ne!(*app.session.document(), shifted);
+        assert_ne!(*app.document(), shifted);
         app.history(false);
-        assert_eq!(*app.session.document(), shifted);
+        assert_eq!(*app.document(), shifted);
         app.history(false);
-        assert_eq!(*app.session.document(), before);
+        assert_eq!(*app.document(), before);
         Ok(())
     }
     #[test]
@@ -2181,7 +2248,7 @@ mod tests {
         click(&mut app, &ctx, Pos2::new(750.0, 700.0));
         key(&mut app, &ctx, egui::Key::Enter);
         key(&mut app, &ctx, egui::Key::Escape);
-        let before = app.session.document().clone();
+        let before = app.document().clone();
         let revision = app.session.revision();
         assert_eq!(
             pcbcraft_foundation::netlist::Netlist::compile(&before)?
@@ -2197,18 +2264,18 @@ mod tests {
             vec![egui::Event::PointerMoved(start), pointer(start, true)],
         );
         frame(&mut app, &ctx, vec![egui::Event::PointerMoved(end)]);
-        assert_eq!(*app.session.document(), before);
+        assert_eq!(*app.document(), before);
         frame(&mut app, &ctx, vec![pointer(end, false)]);
         assert_eq!(app.session.revision(), revision + 1);
         assert_eq!(
-            pcbcraft_foundation::netlist::Netlist::compile(app.session.document())?
+            pcbcraft_foundation::netlist::Netlist::compile(app.document())?
                 .nets
                 .len(),
             1
         );
-        assert_eq!(app.session.document().wires.len(), 3);
+        assert_eq!(app.document().wires.len(), 3);
         app.history(false);
-        assert_eq!(*app.session.document(), before);
+        assert_eq!(*app.document(), before);
         Ok(())
     }
     fn gesture_frame(
@@ -2277,7 +2344,7 @@ mod tests {
             app.select(None);
             app.canvas.fit = false;
             frame(&mut app, &ctx, vec![]);
-            let before = app.session.document().clone();
+            let before = app.document().clone();
             let revision = app.session.revision();
             let center = Pos2::new(798.0, 483.5);
             drag_box(
@@ -2289,7 +2356,7 @@ mod tests {
             );
             assert_eq!(app.selection.symbols.len(), 2, "{button:?}");
             assert!(!app.canvas.context_open);
-            assert_eq!(app.session.document(), &before);
+            assert_eq!(app.document(), &before);
             assert_eq!(app.session.revision(), revision);
             // Primary dragging an existing selection previews the group, then commits once.
             let start = center + vec2(-120.0, 0.0);
@@ -2300,10 +2367,10 @@ mod tests {
                 vec![egui::Event::PointerMoved(start), pointer(start, true)],
             );
             frame(&mut app, &ctx, vec![egui::Event::PointerMoved(end)]);
-            assert_eq!(app.session.document(), &before);
+            assert_eq!(app.document(), &before);
             frame(&mut app, &ctx, vec![pointer(end, false)]);
             assert_eq!(app.session.revision(), revision + 1);
-            for (old, new) in before.symbols.iter().zip(&app.session.document().symbols) {
+            for (old, new) in before.symbols.iter().zip(&app.document().symbols) {
                 assert_eq!(
                     new.at,
                     Point {
@@ -2313,7 +2380,7 @@ mod tests {
                 );
             }
             app.history(false);
-            assert_eq!(app.session.document(), &before);
+            assert_eq!(app.document(), &before);
             app.select(None);
             // A partial left-to-right window excludes a symbol; a crossing includes it.
             let a = center + vec2(-121.0, -50.0);
@@ -2323,9 +2390,9 @@ mod tests {
             drag_box(&mut app, &ctx, b, a, button);
             assert_eq!(app.selection.symbols.len(), 1);
             app.delete_selection();
-            assert_eq!(app.session.document().symbols.len(), 1);
+            assert_eq!(app.document().symbols.len(), 1);
             app.history(false);
-            assert_eq!(app.session.document(), &before);
+            assert_eq!(app.document(), &before);
         }
         Ok(())
     }
@@ -2341,7 +2408,7 @@ mod tests {
         app.select(None);
         app.canvas.fit = false;
         frame(&mut app, &ctx, vec![]);
-        let before = app.session.document().clone();
+        let before = app.document().clone();
         let center = Pos2::new(798.0, 483.5);
         for (x, modifiers, expected) in [
             (-120.0, egui::Modifiers::SHIFT, 1),
@@ -2392,7 +2459,7 @@ mod tests {
             egui::PointerButton::Middle,
         );
         assert_ne!(app.canvas.offset, offset);
-        assert_eq!(app.session.document(), &before);
+        assert_eq!(app.document(), &before);
         Ok(())
     }
     #[test]
@@ -2403,7 +2470,7 @@ mod tests {
             kind: PartKind::Resistor,
             at: Point::default(),
         });
-        let symbol = app.session.document().symbols[0].id;
+        let symbol = app.document().symbols[0].id;
         let target = TextTarget::Reference(symbol);
         let mut appearance = target.defaults();
         appearance.link = "https://example.com/part".into();
@@ -2424,7 +2491,7 @@ mod tests {
             .center();
         click(&mut app, &ctx, at);
         assert_eq!(app.text_ui.draft.as_ref().map(|d| d.target), Some(target));
-        let before = app.session.document().clone();
+        let before = app.document().clone();
         let revision = app.session.revision();
         drag_box(
             &mut app,
@@ -2435,12 +2502,12 @@ mod tests {
         );
         assert_eq!(app.session.revision(), revision + 1);
         assert_ne!(
-            text::appearance(app.session.document(), target).offset,
+            text::appearance(app.document(), target).offset,
             Point::default()
         );
-        assert_eq!(app.session.document().symbols, before.symbols);
+        assert_eq!(app.document().symbols, before.symbols);
         app.history(false);
-        assert_eq!(app.session.document(), &before);
+        assert_eq!(app.document(), &before);
         frame(&mut app, &ctx, vec![]);
         for pressed in [true, false] {
             let output = gesture_frame(
@@ -2464,7 +2531,7 @@ mod tests {
             }
             output.drop_without_applying_deltas();
         }
-        assert_eq!(app.session.document(), &before);
+        assert_eq!(app.document(), &before);
         Ok(())
     }
 }

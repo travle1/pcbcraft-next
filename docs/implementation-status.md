@@ -57,7 +57,7 @@ Canvas selection uses symbol/reference ink rather than a filled bounding rectang
 Browser uses the FigCraft project/sheet tree; Symbols/Nets entries open scoped
 Search result tables. The tree scrolls when needed and retains a bottom height grip;
 the grip cannot consume the last rows. Nets are derived from actual terminal
-links and cached by incarnation/revision. Click a row or wire to highlight the net,
+links and cached by incarnation/revision, with caches reset on occurrence switches. Click a row or wire to highlight the net,
 edit its name, inspect terminals and review connection removal. A split preview
 explains name retention/clearing before one undoable transaction. Net Properties
 scrolls when necessary. Netlist… generates a copyable JSON snapshot, separate from
@@ -70,15 +70,18 @@ last-read bytes before replacement. Failed loads/saves retain the editor. `.pc`
 uses a bounded, strictly versioned draft envelope described in
 [ADR 0002](adr/0002-schematic-draft.md). Built-in parts work offline.
 
+The editor now has real sheet creation, navigation, parent blocks and interface ports.
+The entire project shares history and persistence; revision-bound cross-probe
+snapshots expose future layout targets without implementing a layout view.
+
 ## Deliberate limits
 
-This slice has one sheet and single-unit components. Box selection supports symbols, wires and sheet notes; mixed group movement/deletion commits atomically. See [selection and text](selection-and-text.md). Legacy links have derived orthogonal paths with pin/body avoidance. New wires
+This slice supports flat and hierarchical sheets, repeated definitions, explicit ports and single-unit components; see [sheet workflows](sheet-workflows.md). Box selection supports symbols, wires and sheet notes; mixed group movement/deletion commits atomically. See [selection and text](selection-and-text.md). Legacy links have derived orthogonal paths with pin/body avoidance. New wires
 support free endpoints, authored bends and explicit branches, with direct deletion
 and right-click actions. Select mode drags segments, corners and free junctions;
 previews commit once on release. Manual routes do not automatically avoid bodies
 or unrelated nets. General label placement and buses remain planned.
-See [wire editing](wire-editing.md). The compiler covers only explicit links
-in this single-sheet draft, not full hierarchical schematic semantics.
+See [wire editing](wire-editing.md). The compiler covers explicit local links and occurrence-qualified port bridges. Global labels, buses and full hierarchical ERC remain future work.
 The [original fan demo](fan-controller-demo.md) uses stored section annotations
 and display aliases for explicit links. Names do not create connectivity;
 validation rejects conflicting or disconnected alias groups. Incidental
@@ -88,7 +91,7 @@ names reject atomically. Delete a component to remove
 its incident links; undo restores the aggregate. This is a starting interaction
 model, not production schematic capture or an electrical reference design.
 
-ERC/DRC, simulation, PCB/layout/3D and split view, footprints, hierarchy/multiunit support, external libraries,
+ERC/DRC, simulation, PCB/layout/3D and split view, footprints, multiunit support, advanced hierarchy editing, external libraries,
 ECO/cross-probing, variants, manufacturing and KiCad adapters remain planned.
 No checks are reported as passed. No SolidCore API is needed by this 2D slice;
 the future geometry boundary remains SolidCore-first, with no Truck fallback.
@@ -99,9 +102,9 @@ has curated coordinates with bounded display routing and supply aliases. First-c
 an explicit early milestone in [its spec](specs/ai-authoring.md), not inferred from
 the existence of a headless command enum.
 
-Undo is limited to 32 document snapshots and is not persisted. Autosave, crash
-recovery, cross-process file locking and general migrations remain work. The version 5 draft reader accepts
-versions 1–4, preserving symbol definitions and path/alias presentation while assigning
+Undo is limited to 32 whole-project snapshots and is not persisted. Autosave, crash
+recovery, cross-process file locking and general migrations remain work. The version 6 project reader migrates
+versions 1–5, preserving symbol definitions and path/alias presentation while assigning
 legacy notes durable identities. Version 5 stores text appearance and web links. External-edit comparison is not a lock against a simultaneous
 writer between comparison and replacement. Saved drafts pin the built-in catalog
 version; they do not yet embed general library definitions/assets. Settings and

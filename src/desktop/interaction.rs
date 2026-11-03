@@ -407,7 +407,7 @@ pub(super) fn update(
                     stamp: (_, revision),
                     ..
                 } => {
-                    match app.session.apply(
+                    match app.apply(
                         revision,
                         Command::MoveItems {
                             items,
@@ -428,8 +428,8 @@ pub(super) fn update(
                     stamp: (_, revision),
                     ..
                 } => {
-                    if let Some(content) = target.content(app.session.document()) {
-                        match app.session.apply(
+                    if let Some(content) = target.content(app.document()) {
+                        match app.apply(
                             revision,
                             Command::SetText {
                                 target,

@@ -20,10 +20,10 @@ pub(super) struct Draft {
 }
 impl App {
     pub(super) fn open_text(&mut self, target: TextTarget) {
-        let Some(content) = target.content(self.session.document()) else {
+        let Some(content) = target.content(self.document()) else {
             return;
         };
-        let appearance = text::appearance(self.session.document(), target);
+        let appearance = text::appearance(self.document(), target);
         self.select(None);
         match target {
             TextTarget::Note(id) => {
@@ -51,7 +51,7 @@ impl App {
         if self.busy() {
             return;
         }
-        let result = self.session.apply(
+        let result = self.apply(
             self.session.revision(),
             Command::AddNote {
                 at,
@@ -60,7 +60,7 @@ impl App {
         );
         match result {
             Ok(_) => {
-                if let Some(note) = self.session.document().annotations.last() {
+                if let Some(note) = self.document().annotations.last() {
                     self.open_text(TextTarget::Note(note.id));
                 }
             }
@@ -191,8 +191,8 @@ impl App {
                 }
             });
         ui.separator();
-        let changed = d.target.content(self.session.document()).as_ref() != Some(&d.content)
-            || text::appearance(self.session.document(), d.target) != d.appearance;
+        let changed = d.target.content(self.document()).as_ref() != Some(&d.content)
+            || text::appearance(self.document(), d.target) != d.appearance;
         let mut applied = false;
         ui.horizontal(|ui| {
             if controls::action(
@@ -206,7 +206,7 @@ impl App {
                 let result = if d.incarnation != self.session.incarnation {
                     Err("Project changed. Reselect the text.".into())
                 } else {
-                    self.session.apply(
+                    self.apply(
                         d.revision,
                         Command::SetText {
                             target: d.target,
@@ -314,9 +314,9 @@ mod tests {
     fn compact_text_inspector_applies_once_and_rejects_stale_or_reopened_drafts() -> Result<()> {
         let (mut app, ctx) = library_fixture()?;
         app.library = false;
-        let target = TextTarget::Note(app.session.document().annotations[0].id);
+        let target = TextTarget::Note(app.document().annotations[0].id);
         app.open_text(target);
-        let before = app.session.document().clone();
+        let before = app.document().clone();
         let revision = app.session.revision();
         let draft = app.text_ui.draft.as_mut().ok_or("Missing draft")?;
         draft.content = "Power stage\nDocumentation".into();
@@ -336,15 +336,15 @@ mod tests {
         workspace_click(&mut app, &ctx, apply.center());
         assert_eq!(app.session.revision(), revision + 1);
         assert_eq!(
-            target.content(app.session.document()).as_deref(),
+            target.content(app.document()).as_deref(),
             Some("Power stage\nDocumentation")
         );
         app.session.undo()?;
-        assert_eq!(app.session.document(), &before);
+        assert_eq!(app.document(), &before);
         // The still-open inspector is stamped before undo and cannot overwrite it.
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
         workspace_click(&mut app, &ctx, apply.center());
-        assert_eq!(app.session.document(), &before);
+        assert_eq!(app.document(), &before);
         assert!(
             app.text_ui
                 .draft
@@ -357,7 +357,7 @@ mod tests {
         app.session = pcbcraft_foundation::session::Session::new(before.clone())?;
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
         workspace_click(&mut app, &ctx, apply.center());
-        assert_eq!(app.session.document(), &before);
+        assert_eq!(app.document(), &before);
         assert!(
             app.text_ui
                 .draft

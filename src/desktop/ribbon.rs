@@ -172,7 +172,20 @@ impl App {
             return;
         }
         match action {
+            RibbonAction::NewSheet => self.start_sheet_dialog(
+                super::sheets::Kind::Create { parent: None },
+                self.active_sheet(),
+            ),
+            RibbonAction::NewSubsheet => self.start_sheet_dialog(
+                super::sheets::Kind::Create {
+                    parent: Some(self.active_sheet()),
+                },
+                self.active_sheet(),
+            ),
             RibbonAction::Symbol => self.library = true,
+            RibbonAction::Port => {
+                self.start_sheet_dialog(super::sheets::Kind::Port(None), self.active_sheet())
+            }
             RibbonAction::Text => self.add_note(self.canvas.last_world),
             RibbonAction::Wire => {
                 self.tool = Tool::Wire;
@@ -207,6 +220,8 @@ impl App {
 #[derive(Clone, Copy)]
 enum RibbonAction {
     Symbol,
+    NewSheet,
+    NewSubsheet,
     Text,
     Power,
     Port,
@@ -284,7 +299,7 @@ impl RibbonAction {
             | Self::Wires
             | Self::Fit => None,
             Self::Power => Some("Power symbols are not implemented yet."),
-            Self::Port => Some("Hierarchical ports are not implemented yet."),
+            Self::Port => None,
             Self::Bus => Some("Buses are not implemented yet."),
             Self::Label => Some("Net labels are not implemented yet."),
             Self::Mirror => Some("Symbol mirroring is not implemented yet."),
@@ -294,7 +309,11 @@ impl RibbonAction {
             Self::Sync => Some("Schematic-to-board synchronization is not implemented yet."),
             Self::Erc => None,
             _ if app.busy() => Some("Finish the current file operation first."),
-            Self::Delete if app.selection.is_empty() && app.nets.selected.is_none() => {
+            Self::Delete
+                if app.selection.is_empty()
+                    && app.nets.selected.is_none()
+                    && app.sheets.selected.is_none() =>
+            {
                 Some("Select a symbol, wire or net first.")
             }
             Self::Rotate if app.selected_symbol().is_none() => Some("Select a symbol first."),
@@ -505,6 +524,30 @@ const LIBRARY_GROUPS: &[RibbonGroup] = &[RibbonGroup {
     extras: &[],
 }];
 const MANAGE_GROUPS: &[RibbonGroup] = &[
+    RibbonGroup {
+        label: "Sheets",
+        tools: &[
+            tool(
+                RibbonAction::NewSheet,
+                "New sheet",
+                Icon::Sheet,
+                "Add an independent flat sheet",
+            ),
+            tool(
+                RibbonAction::NewSubsheet,
+                "Subsheet",
+                Icon::Sheet,
+                "Add a child sheet in the active sheet",
+            ),
+            tool(
+                RibbonAction::Port,
+                "Port",
+                Icon::Port,
+                "Add an explicit hierarchical interface port",
+            ),
+        ],
+        extras: &[],
+    },
     RibbonGroup {
         label: "Project",
         tools: &[

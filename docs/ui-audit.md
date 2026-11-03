@@ -129,3 +129,25 @@ and `browser-empty-compact.png`. Compact review caught clipped tree/result rows;
 spacing and drawer height were corrected and recaptured. UI tests cover hierarchy,
 fixed result positions on selection, collapse without navigation, disabled creation,
 scrolling to the final item, real net edits/report access and compact/scaled bounds.
+
+
+## Flat and hierarchical sheet controls (November 3, 2026)
+
+Real sheet actions now use the existing menu/action/field tokens: Manage → Sheets,
+browser context menus, creation and destructive-review dialogs, and contextual
+Properties for sheet symbols and ports. The tree follows the user's final
+`01-schematic-overview.png`: Main expanded, inactive children/siblings folded on
+open, stable selection rows, nested children and sheet-local Symbols/Nets links.
+The browser sizes to visible rows and scrolls within the available viewport.
+
+Native 1600×1000 and 1000×700 captures were reviewed at
+`work/proof/sheets-main.png` and `work/proof/sheets-compact.png`. Compact review
+caught title/pin collisions: titles now sit above blocks, matching the rendering;
+port rows have more separation, long titles truncate, and tiny pin labels hide
+below 35% zoom. A pointer/render test guards title/pin separation and zoom behavior.
+Other tests cover live dialogs, scoped navigation, camera/selection restoration,
+port wiring, draggable blocks, Delete review and save/reopen. All 80 tests and
+Clippy pass. Local proof files are excluded from version control.
+
+This is a schematic hierarchy slice, not a layout view, a complete FigCraft
+animation implementation or an accessibility/performance certification.

@@ -86,7 +86,7 @@ fn workspace_panels_respect_real_bounds_and_drawer_does_not_move_camera() -> Res
 #[test]
 fn library_header_floats_snaps_and_cancels_without_document_changes() -> Result<()> {
     let (mut app, ctx) = library_fixture()?;
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let revision = app.session.revision();
     let move_header = |app: &mut App, target: egui::Pos2, cancel: bool| -> Result<()> {
         let origin = measured_area(&ctx, "parts_library")?.min + egui::vec2(90.0, 24.0);
@@ -125,7 +125,7 @@ fn library_header_floats_snaps_and_cancels_without_document_changes() -> Result<
     );
     move_header(&mut app, egui::pos2(480.0, 280.0), false)?;
     assert_eq!(app.library_ui.dock, library::Dock::Floating);
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     assert_eq!(app.session.revision(), revision);
     Ok(())
 }
@@ -135,7 +135,7 @@ fn command_search_keyboard_dispatch_and_dismissal_preserve_canvas() -> Result<()
     let (mut app, ctx) = library_fixture()?;
     app.library = false;
     app.tool = Tool::Place(PartKind::Led);
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     app.palette = true;
     for _ in 0..3 {
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
@@ -171,7 +171,7 @@ fn command_search_keyboard_dispatch_and_dismissal_preserve_canvas() -> Result<()
     workspace_click(&mut app, &ctx, egui::pos2(600.0, 600.0));
     assert!(!app.palette);
     assert_eq!(
-        app.session.document(),
+        app.document(),
         &before,
         "Dismissal must not place a component"
     );
@@ -232,7 +232,7 @@ fn library_text(output: &egui::FullOutput, label: &str) -> Result<egui::Rect> {
 #[test]
 fn parts_library_modes_search_and_click_placement() -> Result<()> {
     let (mut app, ctx) = library_fixture()?;
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let revision = app.session.revision();
     for (name, view) in [
         ("Small", library::View::Small),
@@ -256,7 +256,7 @@ fn parts_library_modes_search_and_click_placement() -> Result<()> {
             }
         }
         output.drop_without_applying_deltas();
-        assert_eq!(app.session.document(), &before);
+        assert_eq!(app.document(), &before);
         assert_eq!(app.session.revision(), revision);
     }
     // Filtering is case insensitive and searches both part name and value.
@@ -269,19 +269,16 @@ fn parts_library_modes_search_and_click_placement() -> Result<()> {
     workspace_click(&mut app, &ctx, led);
     assert!(app.library && app.tool == Tool::Place(PartKind::Led));
     assert_eq!(
-        app.session.document(),
+        app.document(),
         &before,
         "Choosing a thumbnail only starts a preview"
     );
     workspace_click(&mut app, &ctx, egui::pos2(600.0, 500.0));
-    assert_eq!(
-        app.session.document().components.len(),
-        before.components.len() + 1
-    );
+    assert_eq!(app.document().components.len(), before.components.len() + 1);
     assert_eq!(app.session.revision(), revision + 1);
     assert!(app.library, "The parts browser stays open after placement");
     app.history(false);
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     app.library_ui.search = "no matching original part".into();
     let output = workspace_frame(&mut app, &ctx, vec![]);
     assert!(library_text(&output, "No matching parts").is_ok());
@@ -342,18 +339,15 @@ fn release_library_drag(app: &mut App, ctx: &egui::Context, target: egui::Pos2) 
 #[test]
 fn library_drag_placement_is_atomic_cancellable_and_revision_bound() -> Result<()> {
     let (mut app, ctx) = library_fixture()?;
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let revision = app.session.revision();
     begin_library_drag(&mut app, &ctx)?;
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     release_library_drag(&mut app, &ctx, egui::pos2(600.0, 500.0));
     assert_eq!(app.session.revision(), revision + 1);
-    assert_eq!(
-        app.session.document().components.len(),
-        before.components.len() + 1
-    );
+    assert_eq!(app.document().components.len(), before.components.len() + 1);
     app.history(false);
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     let revision = app.session.revision();
     begin_library_drag(&mut app, &ctx)?;
     release_library_drag(&mut app, &ctx, egui::pos2(80.0, 240.0));
@@ -365,21 +359,15 @@ fn library_drag_placement_is_atomic_cancellable_and_revision_bound() -> Result<(
     begin_library_drag(&mut app, &ctx)?;
     workspace_key(&mut app, &ctx, egui::Key::Escape);
     release_library_drag(&mut app, &ctx, egui::pos2(600.0, 500.0));
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     begin_library_drag(&mut app, &ctx)?;
-    let selected = app
-        .session
-        .document()
-        .symbols
-        .first()
-        .ok_or("Missing symbol")?
-        .id;
+    let selected = app.document().symbols.first().ok_or("Missing symbol")?.id;
     app.command(Command::Rotate { symbol: selected });
-    let changed = app.session.document().clone();
+    let changed = app.document().clone();
     let revision = app.session.revision();
     release_library_drag(&mut app, &ctx, egui::pos2(600.0, 500.0));
     assert_eq!(
-        app.session.document(),
+        app.document(),
         &changed,
         "Stale drag cannot modify the new revision"
     );
@@ -599,10 +587,10 @@ fn capture_group_menu_shares_commands_and_disables_planned_edits() -> Result<()>
         "Delete remains in Modify's menu"
     );
     output.drop_without_applying_deltas();
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let revision = app.session.revision();
     click(&mut app, mirror);
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     assert_eq!(app.session.revision(), revision);
     assert!(
         egui::Popup::is_any_open(&ctx),
@@ -616,7 +604,7 @@ fn capture_group_menu_shares_commands_and_disables_planned_edits() -> Result<()>
     assert!(!egui::Popup::is_any_open(&ctx));
     app.history(false);
     assert_eq!(
-        app.session.document(),
+        app.document(),
         &before,
         "Dropdown edit uses the existing session undo"
     );
@@ -643,7 +631,7 @@ fn schematic_grid_and_fit_are_presentation_only() -> Result<()> {
     let ctx = egui::Context::default();
     theme::apply(&ctx);
     let t = theme::current(&ctx);
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let revision = app.session.revision();
     let output = workspace_frame(&mut app, &ctx, vec![]);
     let grid_count = |output: &egui::FullOutput| {
@@ -663,7 +651,7 @@ fn schematic_grid_and_fit_are_presentation_only() -> Result<()> {
     app.canvas.grid = false;
     let output = workspace_frame(&mut app, &ctx, vec![]);
     assert_eq!(grid_count(&output), 0);
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     assert_eq!(app.session.revision(), revision);
     output.drop_without_applying_deltas();
     Ok(())
@@ -812,7 +800,7 @@ fn workspace_picker_dismissal_and_planned_rows_preserve_editor_state() -> Result
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
     }
     app.tool = Tool::Place(PartKind::Resistor);
-    let document = app.session.document().clone();
+    let document = app.document().clone();
     let revision = app.session.revision();
     let selected = app.selected_symbol();
     let output = workspace_frame(&mut app, &ctx, vec![]);
@@ -841,7 +829,7 @@ fn workspace_picker_dismissal_and_planned_rows_preserve_editor_state() -> Result
     workspace_click(&mut app, &ctx, egui::pos2(600.0, 550.0));
     assert!(!egui::Popup::is_id_open(&ctx, workspace::popup_id()));
     assert_eq!(
-        app.session.document(),
+        app.document(),
         &document,
         "Dismissal must not place a symbol behind the popup"
     );
@@ -852,7 +840,7 @@ fn workspace_picker_dismissal_and_planned_rows_preserve_editor_state() -> Result
         !egui::Popup::is_id_open(&ctx, workspace::popup_id()),
         "Keyboard activation selects Current"
     );
-    assert_eq!(app.session.document(), &document);
+    assert_eq!(app.document(), &document);
     assert_eq!(app.session.revision(), revision);
     assert_eq!(app.selected_symbol(), selected);
     assert!(!app.session.dirty());
@@ -958,7 +946,7 @@ fn theme_publication_is_local_and_does_not_change_the_electronics_document() -> 
         capture_selection: false,
         open: None,
     })?;
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let revision = app.session.revision();
     let first = egui::Context::default();
     let second = egui::Context::default();
@@ -989,7 +977,7 @@ fn theme_publication_is_local_and_does_not_change_the_electronics_document() -> 
     first
         .run_ui(input, |ui| app.show(ui))
         .drop_without_applying_deltas();
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     assert_eq!(app.session.revision(), revision);
     assert!(!app.session.dirty());
     Ok(())
@@ -1069,22 +1057,16 @@ fn desktop_save_reopen_and_failed_open_keep_session_contract() -> Result<()> {
     let ctx = egui::Context::default();
     let temp = tempfile::tempdir()?;
     let path = temp.path().join("desktop.pc");
-    app.disk_bytes = Some(persistence::write(&path, app.session.document(), None)?);
+    app.disk_bytes = Some(persistence::write(&path, app.document(), None)?);
     app.path = Some(path.clone());
-    let symbol = app
-        .session
-        .document()
-        .symbols
-        .first()
-        .ok_or("No symbol")?
-        .id;
+    let symbol = app.document().symbols.first().ok_or("No symbol")?.id;
     app.command(Command::Edit {
         symbol,
         reference: "J9".into(),
         value: "Bench input".into(),
     });
     assert!(app.session.dirty());
-    let saved = app.session.document().clone();
+    let saved = app.document().clone();
     app.save(false);
     finish_file_job(&mut app, &ctx);
     assert!(!app.session.dirty());
@@ -1092,12 +1074,12 @@ fn desktop_save_reopen_and_failed_open_keep_session_contract() -> Result<()> {
     let old_incarnation = app.session.incarnation;
     app.load(Some(path));
     finish_file_job(&mut app, &ctx);
-    assert_eq!(app.session.document(), &saved);
+    assert_eq!(app.document(), &saved);
     assert_ne!(app.session.incarnation, old_incarnation);
     assert!(!app.session.can_undo());
     app.load(Some(temp.path().join("missing.pc")));
     finish_file_job(&mut app, &ctx);
-    assert_eq!(app.session.document(), &saved);
+    assert_eq!(app.document(), &saved);
     assert_eq!(app.drawer, Some("Messages"));
     Ok(())
 }
@@ -1121,7 +1103,7 @@ fn file_dialog_blocks_edits_and_pending_capture_survives_frames() -> Result<()> 
     })?;
     let ctx = egui::Context::default();
     theme::apply(&ctx);
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let (tx, rx) = mpsc::channel();
     app.job = Some(rx);
     app.command(Command::Place {
@@ -1129,7 +1111,7 @@ fn file_dialog_blocks_edits_and_pending_capture_survives_frames() -> Result<()> 
         at: Point::default(),
     });
     app.history(false);
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     let input = egui::RawInput {
         screen_rect: Some(egui::Rect::from_min_size(
             egui::Pos2::ZERO,
@@ -1146,7 +1128,7 @@ fn file_dialog_blocks_edits_and_pending_capture_survives_frames() -> Result<()> 
     tx.send(FileResult::Error("Original test failure".into()))
         .map_err(|e| e.to_string())?;
     app.poll(&ctx);
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     assert!(!app.busy());
     assert_eq!(app.drawer, Some("Messages"));
     Ok(())
@@ -1173,15 +1155,15 @@ fn dirty_project_requires_resolution_before_new_document() -> Result<()> {
         kind: PartKind::Resistor,
         at: Point::default(),
     });
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     app.request(Action::New);
     assert!(matches!(app.pending, Some(Action::New)));
     app.command(Command::Delete {
         symbol: before.symbols.first().ok_or("No symbol")?.id,
     });
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     app.pending = None; // The cancel button resolves the dialog without mutation.
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     Ok(())
 }
 
@@ -1189,7 +1171,7 @@ fn dirty_project_requires_resolution_before_new_document() -> Result<()> {
 fn ribbon_tabs_switch_command_sets_without_opening_panels() -> Result<()> {
     let (mut app, ctx) = library_fixture()?;
     app.library = false;
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let selection = app.selected_symbol();
     let panels = (app.browser, app.properties, app.filters, app.drawer);
     for (label, tab, tool) in [
@@ -1210,7 +1192,7 @@ fn ribbon_tabs_switch_command_sets_without_opening_panels() -> Result<()> {
             panels
         );
         assert_eq!(app.selected_symbol(), selection);
-        assert_eq!(app.session.document(), &before);
+        assert_eq!(app.document(), &before);
         let output = workspace_frame(&mut app, &ctx, vec![]);
         assert!(
             ribbon_text(&output, tool).is_ok(),
@@ -1235,7 +1217,7 @@ fn ribbon_tabs_switch_command_sets_without_opening_panels() -> Result<()> {
 fn browser_indexes_preserve_hierarchy_and_result_selection_geometry() -> Result<()> {
     let (mut app, ctx) = library_fixture()?;
     app.library = false;
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let picked = app.selection.clone();
     let output = workspace_frame(&mut app, &ctx, vec![]);
     let at = panel_text(&output, app.layout.browser, "Symbols")?
@@ -1271,11 +1253,11 @@ fn browser_indexes_preserve_hierarchy_and_result_selection_geometry() -> Result<
     assert_ne!(font, bold);
     assert_eq!(panel_text(&output, app.layout.browser, "Main")?.0, sheet);
     output.drop_without_applying_deltas();
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     Ok(())
 }
 
-fn panel_text(
+pub(super) fn panel_text(
     output: &egui::FullOutput,
     panel: egui::Rect,
     label: &str,
@@ -1301,7 +1283,7 @@ fn properties_can_float_dock_close_and_reopen_without_editing() -> Result<()> {
     for _ in 0..3 {
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
     }
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let origin = measured_area(&ctx, "properties")?.min + egui::vec2(75.0, 24.0);
     let target = egui::pos2(480.0, 280.0);
     workspace_frame(
@@ -1353,7 +1335,7 @@ fn properties_can_float_dock_close_and_reopen_without_editing() -> Result<()> {
     assert!(found);
     workspace_key(&mut app, &ctx, egui::Key::Escape);
     assert!(app.inspector.draft.is_none());
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     Ok(())
 }
 
@@ -1365,7 +1347,7 @@ fn browser_scroll_reaches_last_row_and_height_is_user_resizable() -> Result<()> 
     for _ in 0..3 {
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
     }
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let body = app.panel_ui.browser_body.ok_or("No browser body")?;
     for _ in 0..8 {
         workspace_frame(
@@ -1415,7 +1397,7 @@ fn browser_scroll_reaches_last_row_and_height_is_user_resizable() -> Result<()> 
         "Dragging must actually resize the card"
     );
     assert!(app.layout.bounds.contains_rect(app.layout.browser));
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     Ok(())
 }
 
@@ -1452,7 +1434,7 @@ fn net_browser_selects_and_names_real_connectivity_with_undo() -> Result<()> {
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
     }
     assert!(!app.layout.properties.intersects(app.layout.filters));
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     app.nets.name = "LOGIC_3V3".into();
     let output = workspace_frame(&mut app, &ctx, vec![]);
     let apply = ribbon_text(&output, "Apply name")?.0.center();
@@ -1463,7 +1445,7 @@ fn net_browser_selects_and_names_real_connectivity_with_undo() -> Result<()> {
         Some("LOGIC_3V3")
     );
     app.history(false);
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     assert!(app.nets.selected.is_none());
     app.open_sheet_index(true);
     let output = workspace_frame(&mut app, &ctx, vec![]);
@@ -1479,7 +1461,7 @@ fn net_browser_selects_and_names_real_connectivity_with_undo() -> Result<()> {
     assert!(visible);
     workspace_key(&mut app, &ctx, egui::Key::Escape);
     assert!(!app.nets.modal());
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     Ok(())
 }
 
@@ -1492,7 +1474,7 @@ fn canvas_context_menu_stays_open_and_deletes_the_clicked_wire() -> Result<()> {
     app.canvas = Default::default();
     app.canvas.fit = false;
     app.selection.clear();
-    app.session.apply(
+    app.apply(
         0,
         Command::DrawWire {
             from: Anchor::Free(Point {
@@ -1509,7 +1491,7 @@ fn canvas_context_menu_stays_open_and_deletes_the_clicked_wire() -> Result<()> {
     for _ in 0..3 {
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
     }
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let full = app.layout.bounds;
     let canvas = egui::Rect::from_min_max(
         full.min + egui::vec2(284.0, 52.0),
@@ -1547,11 +1529,11 @@ fn canvas_context_menu_stays_open_and_deletes_the_clicked_wire() -> Result<()> {
         "Moving into the popup must not lose its target"
     );
     output.drop_without_applying_deltas();
-    assert_eq!(*app.session.document(), before);
+    assert_eq!(*app.document(), before);
     workspace_click(&mut app, &ctx, delete);
-    assert!(app.session.document().wires.is_empty());
+    assert!(app.document().wires.is_empty());
     app.history(false);
-    assert_eq!(*app.session.document(), before);
+    assert_eq!(*app.document(), before);
     Ok(())
 }
 
@@ -1606,7 +1588,7 @@ fn file_menu_and_filter_labels_fit_at_compact_and_scaled_sizes() -> Result<()> {
         }
         let file = ribbon_text(&output, "File")?.0.center();
         output.drop_without_applying_deltas();
-        let before = app.session.document().clone();
+        let before = app.document().clone();
         for pressed in [true, false] {
             frame(
                 &mut app,
@@ -1627,7 +1609,7 @@ fn file_menu_and_filter_labels_fit_at_compact_and_scaled_sizes() -> Result<()> {
         }
         let output = frame(&mut app, vec![]);
         assert_eq!(
-            *app.session.document(),
+            *app.document(),
             before,
             "Opening a menu cannot execute its first action"
         );
@@ -1662,7 +1644,7 @@ fn file_menu_and_filter_labels_fit_at_compact_and_scaled_sizes() -> Result<()> {
             .drop_without_applying_deltas();
         }
         assert!(
-            app.session.document().symbols.is_empty(),
+            app.document().symbols.is_empty(),
             "Shared menu still dispatches New"
         );
     }
@@ -1673,7 +1655,7 @@ fn file_menu_and_filter_labels_fit_at_compact_and_scaled_sizes() -> Result<()> {
 fn browser_disclosures_do_not_navigate_or_edit_and_sheet_actions_are_honest() -> Result<()> {
     let (mut app, ctx) = library_fixture()?;
     app.library = false;
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let selection = app.selection.clone();
     let revision = app.session.revision();
     for _ in 0..3 {
@@ -1722,7 +1704,11 @@ fn browser_disclosures_do_not_navigate_or_edit_and_sheet_actions_are_honest() ->
     assert!(ribbon_text(&output, "New subsheet…").is_ok());
     output.drop_without_applying_deltas();
     workspace_click(&mut app, &ctx, new);
-    assert_eq!(app.session.document(), &before);
+    assert!(
+        app.sheets.dialog.is_some(),
+        "Sheet creation opens a real reviewed operation"
+    );
+    assert_eq!(app.document(), &before);
     assert_eq!(app.session.revision(), revision);
     assert_eq!(app.selection, selection);
     Ok(())
@@ -1736,7 +1722,7 @@ fn sheet_results_scroll_to_last_symbol_and_browser_remains_visible() -> Result<(
     for _ in 0..4 {
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
     }
-    let before = app.session.document().clone();
+    let before = app.document().clone();
     let body = app.panel_ui.search_body.ok_or("No search body")?;
     for _ in 0..8 {
         workspace_frame(
@@ -1766,10 +1752,10 @@ fn sheet_results_scroll_to_last_symbol_and_browser_remains_visible() -> Result<(
     workspace_click(&mut app, &ctx, last);
     assert_eq!(
         app.selected_symbol()
-            .and_then(|id| app.session.document().component(id))
+            .and_then(|id| app.document().component(id))
             .map(|c| c.reference.as_str()),
         Some("D1")
     );
-    assert_eq!(app.session.document(), &before);
+    assert_eq!(app.document(), &before);
     Ok(())
 }

@@ -68,14 +68,19 @@ grip to float or snap left/right; its **…** menu also sets position or collaps
 **More properties** opens the FigCraft-style General / Pin functions / Library view.
 Done applies reference, value and rotation together as one undoable edit; Cancel
 leaves the document unchanged. Browser selection highlights/bolds without moving rows.
-Browser follows **Project → Sheets → Main → Symbols / Nets**. Disclosure arrows
+Browser follows **Project → Sheets → sheet → Symbols / Nets**, with children nested beneath their parents. Disclosure arrows
 only expand/collapse branches; the sheet remains active independently of object selection.
-Click Symbols or Nets under Main to open that sheet's searchable result table in
+Click Symbols or Nets under a sheet to open that sheet's searchable result table in
 the bottom Search drawer. The browser has a resize grip and scrolls when needed.
 Click a net result or wire to highlight its connections and edit its name in Properties. Each connection has a review-before-remove control; Undo restores the
 whole change. **Search → Nets → Netlist… → Copy JSON** generates a connectivity report.
-Flat sheets and hierarchical subsheets cannot be added yet. Their creation actions
-are disabled in the Project/Sheets/Main context menus; see [sheet workflows](docs/sheet-workflows.md).
+Use **Manage → Sheets → New sheet / Subsheet** (or the browser context menus)
+to create flat or hierarchical sheets. Choose a new definition or reuse an existing
+one. **Capture → Port** adds interface ports; parent pins update automatically.
+Wire those anchors with **W**, drag sheet symbols/ports to move them, and double-click
+a sheet symbol to enter its child. Properties and context menus offer rename/edit
+and reviewed deletion. All sheets share undo/redo and one `.pc` save. Existing
+single-sheet files migrate on open. See [sheet workflows and cross-probing hooks](docs/sheet-workflows.md).
 External netlist import is not implemented. See [net and layout workflows](docs/net-workflows.md).
 Search/ERC/Messages share the bottom drawer; its chevron collapses it. Search
 finds placed symbols, while **S** opens ribbon command search (arrows, Enter, Tab,

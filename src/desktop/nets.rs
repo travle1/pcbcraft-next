@@ -45,7 +45,7 @@ impl App {
         self.nets.selected = None;
         self.nets.wire = None;
         self.nets.error = None;
-        match Netlist::compile(self.session.document()) {
+        match Netlist::compile(self.document()) {
             Ok(snapshot) => self.nets.snapshot = snapshot,
             Err(e) => {
                 self.nets.snapshot = Netlist::default();
@@ -68,8 +68,8 @@ impl App {
         self.panel_ui.properties_collapsed = false;
     }
     pub(super) fn open_net_report(&mut self) {
-        match netlist::report(
-            self.session.document(),
+        match pcbcraft_foundation::project::report(
+            self.session.project(),
             self.session.incarnation,
             self.session.revision(),
         ) {
@@ -87,10 +87,10 @@ impl App {
             true,
         );
         let mut nets = self.nets.snapshot.nets.clone();
-        nets.sort_by_key(|n| n.title(self.session.document()));
+        nets.sort_by_key(|n| n.title(self.document()));
         let mut count = 0;
         for net in nets {
-            let title = net.title(self.session.document());
+            let title = net.title(self.document());
             if !title.to_lowercase().contains(query) {
                 continue;
             }
@@ -101,7 +101,7 @@ impl App {
                 &[
                     (&title, 0.55),
                     (&net.terminals.len().to_string(), 0.15),
-                    ("Main", 0.30),
+                    (self.sheet_name(), 0.30),
                 ],
                 self.nets.selected.as_ref() == Some(&net.anchor),
                 false,
@@ -123,7 +123,7 @@ impl App {
             return;
         };
         let t = theme::current(ui.ctx());
-        let doc = self.session.document().clone();
+        let doc = self.document().clone();
         ui.horizontal(|ui| {
             ui.add(Icon::Wire.image(24.0, ui.ctx()));
             ui.label(RichText::new(net.title(&doc)).font(theme::semibold(16.0)));
@@ -266,7 +266,7 @@ impl App {
         );
     }
     pub(super) fn review_disconnect(&mut self, wire: WireId, title: String) {
-        match netlist::preview_disconnect(self.session.document(), wire) {
+        match netlist::preview_disconnect(self.document(), wire) {
             Ok(preview) => {
                 self.nets.disconnect = Some(Pending {
                     wire,
@@ -286,7 +286,7 @@ impl App {
         if self.busy() || self.pending.is_some() || self.session.incarnation != incarnation {
             return Err("Project changed. Review the edit again.".into());
         }
-        self.session.apply(revision, command)?;
+        self.apply(revision, command)?;
         self.refresh_selection();
         self.refresh_nets();
         Ok(())
@@ -387,17 +387,17 @@ mod tests {
     #[test]
     fn disconnect_review_rejects_stale_revision_and_reopened_project() -> Result<()> {
         let (mut app, _) = super::super::tests::library_fixture()?;
-        let wire = app.session.document().wires[0].id;
+        let wire = app.document().wires[0].id;
         app.review_disconnect(wire, "Original link".into());
         let p = app.nets.disconnect.take().ok_or("No review")?;
-        let symbol = app.session.document().symbols[0].id;
+        let symbol = app.document().symbols[0].id;
         app.command(Command::Rotate { symbol });
-        let changed = app.session.document().clone();
+        let changed = app.document().clone();
         assert!(
             app.net_edit(p.incarnation, p.revision, Command::Disconnect { wire })
                 .is_err()
         );
-        assert_eq!(app.session.document(), &changed);
+        assert_eq!(app.document(), &changed);
         app.session = pcbcraft_foundation::session::Session::new(changed.clone())?;
         assert!(
             app.net_edit(
@@ -407,7 +407,7 @@ mod tests {
             )
             .is_err()
         );
-        assert_eq!(app.session.document(), &changed);
+        assert_eq!(app.document(), &changed);
         Ok(())
     }
 }

@@ -49,7 +49,7 @@ and retained unchanged in the executable. Definition set 2 adds four original
 multi-pin generic modules. Placing one into a version 1 draft upgrades the set in
 the same transaction; undo restores the prior aggregate. The version 5 envelope
 reader accepts version 1–4 files. Version 1 envelopes cannot contain version 2
-module/annotation/link-alias data; saves emit version 5. Version 1 drawings/terminal semantics must not
+module/annotation/link-alias data; legacy single-sheet saves emitted version 5; the desktop now emits project version 6 (below). Version 1 drawings/terminal semantics must not
 silently change. A future general library snapshot format must migrate these
 definitions explicitly. No manufacturer identity, package or footprint is implied.
 
@@ -144,3 +144,19 @@ other commands. Group/text drag previews bind session incarnation and revision,
 commit once on release, and cancel without mutation. Group motion retains external
 pin anchors, repairs incident authored legs and uses existing overlap normalization.
 No second document/history authority or new dependencies are introduced.
+
+
+## Version 6: complete schematic projects
+
+The desktop now uses `pcbcraft-project-draft/6` and whole-project IO. The project
+aggregate contains sheet definitions, an explicit occurrence tree, parent sheet
+symbols and stable interface ports. Wires may terminate at component pins,
+junctions, child ports or parent sheet pins. One Session owns the aggregate and
+history. v1–5 migrate into a Main occurrence preserving old IDs; existing project
+identity remains unchanged. See [sheet contracts](../sheet-workflows.md).
+
+The old single-sheet functions remain compatibility helpers and reject hierarchy
+or multi-sheet v6 input rather than lose data. Whole-project saves retain the
+existing 4 MiB bound, external-byte-change check and atomic replacement behavior.
+This experimental strict JSON schema still does not settle the final native EDA
+container, and adds no KiCad, recovery, layout or manufacturing compatibility.

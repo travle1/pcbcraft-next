@@ -25,7 +25,7 @@ struct Entry {
     icon: Icon,
     key: &'static str,
 }
-const ENTRIES: [Entry; 11] = [
+const ENTRIES: [Entry; 14] = [
     Entry {
         id: "symbol",
         name: "Place symbol",
@@ -39,6 +39,27 @@ const ENTRIES: [Entry; 11] = [
         path: "CAPTURE › CONNECT",
         icon: Icon::Wire,
         key: "W",
+    },
+    Entry {
+        id: "sheet.new",
+        name: "New flat sheet",
+        path: "MANAGE › SHEETS",
+        icon: Icon::Sheet,
+        key: "",
+    },
+    Entry {
+        id: "sheet.child",
+        name: "New hierarchical subsheet",
+        path: "MANAGE › SHEETS",
+        icon: Icon::Sheet,
+        key: "",
+    },
+    Entry {
+        id: "sheet.port",
+        name: "Add interface port",
+        path: "CAPTURE › PLACE",
+        icon: Icon::Port,
+        key: "",
     },
     Entry {
         id: "text",
@@ -319,6 +340,19 @@ impl App {
             self.query.clear();
             match id {
                 "symbol" => self.library = true,
+                "sheet.new" => self.start_sheet_dialog(
+                    super::sheets::Kind::Create { parent: None },
+                    self.active_sheet(),
+                ),
+                "sheet.child" => self.start_sheet_dialog(
+                    super::sheets::Kind::Create {
+                        parent: Some(self.active_sheet()),
+                    },
+                    self.active_sheet(),
+                ),
+                "sheet.port" => {
+                    self.start_sheet_dialog(super::sheets::Kind::Port(None), self.active_sheet())
+                }
                 "text" => self.add_note(self.canvas.last_world),
                 "wire" => {
                     self.tool = Tool::Wire;

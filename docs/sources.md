@@ -1,5 +1,18 @@
 # Source register
 
+## Sheet implementation (November 3, 2026)
+
+The sheet aggregate, hierarchy/port endpoints, occurrence-qualified connectivity,
+cross-probe seam and tests are original PCBcraft work. The user's actual
+`designs/exports/workspaces-2026-10-30/01-schematic-overview.png` pixels and
+`designs/sheet_navigation.py` were reviewed read-only. SolidCraft's existing
+`ui_kit/tree.rs` at the pinned c553365 reference informed stable selection/disclosure
+behavior. This work extends the existing licensed shared controls and theme;
+no new source/assets/dependencies were imported. The designs, reference checkout
+and preserved fork are unchanged. No KiCad implementation or inherited fork data
+was consulted. See [implemented sheet behavior](sheet-workflows.md).
+
+
 ## Browser hierarchy correction (November 3, 2026)
 
 Read actual pixels of the user's final `01-schematic-overview.png`, plus their

@@ -8,6 +8,7 @@ mod nets;
 mod palette;
 mod panels;
 mod ribbon;
+mod sheets;
 #[cfg(test)]
 mod tests;
 mod text_editor;
@@ -54,13 +55,14 @@ pub struct Options {
     pub open: Option<PathBuf>,
 }
 enum FileResult {
-    Opened(PathBuf, Document, Vec<u8>),
-    Saved(PathBuf, Document, Vec<u8>),
+    Opened(PathBuf, pcbcraft_foundation::project::Project, Vec<u8>),
+    Saved(PathBuf, pcbcraft_foundation::project::Project, Vec<u8>),
     Cancelled,
     Error(Error),
 }
 pub struct App {
     session: Session,
+    sheets: sheets::State,
     selection: pcbcraft_foundation::selection::Selection,
     text_ui: text_editor::State,
     tool: Tool,
@@ -111,6 +113,7 @@ impl App {
         };
         let mut app = Self {
             session,
+            sheets: Default::default(),
             selection: Default::default(),
             text_ui: Default::default(),
             tool: Tool::Select,
@@ -151,7 +154,7 @@ impl App {
             app.library_ui.dock = library::Dock::Left;
         }
         if app.options.demo {
-            let id = app.session.document().symbols.get(1).map(|s| s.id);
+            let id = app.document().symbols.get(1).map(|s| s.id);
             app.select(id);
         }
         if app.options.capture_nets {
@@ -170,7 +173,7 @@ impl App {
         }
         if app.options.capture_text
             && app.options.capture.is_some()
-            && let Some(note) = app.session.document().annotations.first()
+            && let Some(note) = app.document().annotations.first()
         {
             app.open_text(pcbcraft_foundation::text::TextTarget::Note(note.id));
         }
@@ -195,6 +198,7 @@ impl App {
         self.selection.primary_symbol()
     }
     fn select(&mut self, id: Option<SymbolId>) {
+        self.sheets.selected = None;
         self.selection.clear();
         if let Some(id) = id {
             self.selection.symbols.insert(id);
@@ -205,6 +209,7 @@ impl App {
         self.refresh_selection();
     }
     fn set_selection(&mut self, items: pcbcraft_foundation::selection::Selection) {
+        self.sheets.selected = None;
         self.selection = items;
         self.text_ui = Default::default();
         self.nets.selected = None;
@@ -213,10 +218,12 @@ impl App {
         self.properties = true;
     }
     fn refresh_selection(&mut self) {
-        self.selection.retain(self.session.document());
+        let doc = self.document().clone();
+        self.selection.retain(&doc);
         if let Some(c) = self
             .selected_symbol()
-            .and_then(|id| self.session.document().component(id))
+            .and_then(|id| self.document().component(id))
+            .cloned()
         {
             self.reference = c.reference.clone();
             self.value = c.value.clone();
@@ -225,7 +232,7 @@ impl App {
             .text_ui
             .draft
             .as_ref()
-            .is_some_and(|d| !d.target.exists(self.session.document()))
+            .is_some_and(|d| !d.target.exists(self.document()))
         {
             self.text_ui = Default::default();
         }
@@ -234,7 +241,7 @@ impl App {
         if self.busy() || self.pending.is_some() {
             return;
         }
-        match self.session.apply(self.session.revision(), command) {
+        match self.apply(self.session.revision(), command) {
             Ok(Some(id)) => self.select(Some(id)),
             Ok(None) => self.refresh_selection(),
             Err(e) => {
@@ -255,6 +262,8 @@ impl App {
         if let Err(e) = r {
             self.notice(e);
         }
+        self.ensure_sheet();
+        self.sheets.cancel_drag();
         self.refresh_selection();
         self.canvas.drag = None;
         self.canvas.wire_drag = None;
@@ -285,6 +294,8 @@ impl App {
                 match next {
                     Ok(s) => {
                         self.session = s;
+                        self.sheets = Default::default();
+                        self.nets = Default::default();
                         self.path = None;
                         self.disk_bytes = None;
                         self.select(None);
@@ -310,7 +321,7 @@ impl App {
             });
             let result = match path {
                 None => FileResult::Cancelled,
-                Some(path) => match persistence::read(&path) {
+                Some(path) => match persistence::read_project(&path) {
                     Ok((doc, bytes)) => FileResult::Opened(path, doc, bytes),
                     Err(e) => FileResult::Error(e),
                 },
@@ -322,7 +333,7 @@ impl App {
         if self.busy() {
             return;
         }
-        let doc = self.session.document().clone();
+        let doc = self.session.project().clone();
         let current = if save_as { None } else { self.path.clone() };
         let expected = if current.is_some() {
             self.disk_bytes.clone()
@@ -345,7 +356,7 @@ impl App {
                     if path.extension().is_none() {
                         path.set_extension("pc");
                     }
-                    match persistence::write(&path, &doc, expected.as_deref()) {
+                    match persistence::write_project(&path, &doc, expected.as_deref()) {
                         Ok(bytes) => FileResult::Saved(path, doc, bytes),
                         Err(e) => FileResult::Error(e),
                     }
@@ -360,9 +371,19 @@ impl App {
             Some(Ok(result)) => {
                 self.job = None;
                 match result {
-                    FileResult::Opened(path, doc, bytes) => match Session::new(doc) {
+                    FileResult::Opened(path, doc, bytes) => match Session::from_project(doc) {
                         Ok(s) => {
                             self.session = s;
+                            self.sheets = Default::default();
+                            self.sheets.folded = self
+                                .session
+                                .project()
+                                .occurrences
+                                .iter()
+                                .filter(|o| o.id != self.session.project().root)
+                                .map(|o| o.id)
+                                .collect();
+                            self.nets = Default::default();
                             self.path = Some(path);
                             self.disk_bytes = Some(bytes);
                             self.select(None);
@@ -373,7 +394,7 @@ impl App {
                         Err(e) => self.notice(e),
                     },
                     FileResult::Saved(path, doc, bytes) => {
-                        self.session.mark_saved(doc);
+                        self.session.mark_project_saved(doc);
                         self.path = Some(path);
                         self.disk_bytes = Some(bytes);
                         self.notice("Schematic draft saved.");
@@ -406,12 +427,14 @@ impl App {
             || self.palette
             || self.inspector.draft.is_some()
             || self.nets.modal()
+            || self.sheets.dialog.is_some()
             || egui::Popup::is_any_open(ctx)
         {
             return;
         }
         if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
             self.tool = Tool::Select;
+            self.sheets.cancel_drag();
             self.canvas.drag = None;
             self.canvas.wire_drag = None;
             self.canvas.gesture = None;
@@ -475,6 +498,19 @@ impl App {
         }
     }
     fn delete_selection(&mut self) {
+        if let Some(object) = self.sheets.selected {
+            match object {
+                sheets::Object::Block(id) => {
+                    if let Some(child) = self.session.project().child(self.active_sheet(), id) {
+                        self.start_sheet_dialog(sheets::Kind::Delete, child.id);
+                    }
+                }
+                sheets::Object::Port(id) => {
+                    self.start_sheet_dialog(sheets::Kind::DeletePort(id), self.active_sheet())
+                }
+            }
+            return;
+        }
         if !self.selection.is_empty() {
             self.command(Command::DeleteItems {
                 items: self.selection.clone(),
@@ -576,11 +612,11 @@ impl App {
                     ui.separator();
                     let title = format!(
                         "{}{}",
-                        self.session.document().name,
+                        self.session.project().name,
                         if self.session.dirty() { "  •" } else { "" }
                     );
                     ui.add_sized([200.0, 28.0], egui::Button::new(title).fill(t.ui.raised))
-                        .on_hover_text("One project · Main schematic sheet");
+                        .on_hover_text("One project · all sheets share history and connectivity");
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if icons::button(ui, Icon::Close, "Close PCBcraft", true).clicked() {
                             self.request(Action::Quit);
@@ -737,8 +773,10 @@ impl App {
         let popup_was_open = egui::Popup::is_any_open(&ctx)
             || self.palette
             || self.inspector.draft.is_some()
-            || self.nets.modal();
+            || self.nets.modal()
+            || self.sheets.dialog.is_some();
         self.poll(&ctx);
+        self.ensure_sheet();
         self.refresh_nets();
         self.shortcuts(&ctx);
         if ctx.input(|i| i.viewport().close_requested()) && !self.close_allowed {
@@ -772,6 +810,7 @@ impl App {
         self.dialogs(&ctx);
         self.more_properties(&ctx);
         self.net_dialogs(&ctx);
+        self.sheet_dialog(&ctx);
         if self.close_allowed {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }

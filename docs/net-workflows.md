@@ -5,7 +5,7 @@ layout, interchange and simulation work. PCBcraft remains a standalone app.
 
 ## Available now
 
-- **Browser → Sheets → Main → Symbols / Nets** opens a sheet-scoped result table
+- **Browser → Sheets → sheet → Symbols / Nets** opens a sheet-scoped result table
   in the bottom Search drawer without changing the document or current object pick.
   The project tree remains visible; disclosure controls never select objects.
   Both tree and results scroll when needed; the browser keeps its bottom resize grip.
@@ -41,16 +41,17 @@ layout, interchange and simulation work. PCBcraft remains a standalone app.
   Clear or reconcile names first. Buses and general label placement remain planned.
   [Wire controls, persistence and current limits](wire-editing.md).
 - **Search → Nets → Netlist… → Copy JSON** produces a connectivity snapshot with the project,
-  session incarnation, revision, component identities/references, net names,
-  terminal membership, link IDs and unconnected pins. This is a report, not an
+  session incarnation, revision, occurrence-qualified component/terminal targets,
+  sheet paths, local aliases and complete connected node groups. Isolated component
+  pins appear as singleton groups. This is a report, not an
   importable native project or a KiCad/SPICE file. Native `.pc` still saves the
   editable document, including its drawing.
 
 Connectivity is compiled from explicit pin/junction edges, never coordinates,
 crossings or matching names. Results are deterministic for a fixed document and
-cached per incarnation/revision. The derived net anchor is a selection key for
+cached per incarnation/revision and invalidated on occurrence switches. The derived net anchor is a selection key for
 that revision, not a durable electrical identity across arbitrary splits/merges.
-The draft remains single-sheet/single-unit; no ERC or PCB connectivity is implied.
+The draft now supports flat and hierarchical sheets with explicit port bridges and single-unit symbols. The project report qualifies connectivity by occurrence; see [sheet workflows](sheet-workflows.md). No ERC or PCB connectivity is implied.
 
 ## Reading external netlists: next adapter, not implemented
 

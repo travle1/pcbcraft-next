@@ -81,15 +81,7 @@ impl Layout {
         {
             50.0
         } else {
-            let rows = 1 + if app.panel_ui.project_folded {
-                0
-            } else {
-                2 + if app.panel_ui.sheets_folded {
-                    0
-                } else {
-                    1 + if app.panel_ui.main_folded { 0 } else { 2 }
-                }
-            };
+            let rows = app.browser_visible_rows();
             browser_budget.min(
                 app.panel_ui
                     .browser_height
@@ -109,7 +101,7 @@ impl Layout {
             260.0
         } else if app.nets.selected.is_some() {
             420.0
-        } else if app.selected_symbol().is_some() {
+        } else if app.selected_symbol().is_some() || app.sheets.selected.is_some() {
             370.0
         } else {
             152.0
@@ -363,28 +355,43 @@ impl App {
         self.panel_ui.search.clear();
         self.drawer = Some("Search");
     }
-    fn sheet_creation_menu(ui: &mut egui::Ui) {
-        controls::menu_content(ui);
-        controls::MenuItem::new("New sheet…", Icon::Sheet)
-            .enabled(false)
-            .show(ui)
-            .on_disabled_hover_text(
-                "Flat sheets are not implemented yet; this build stores one sheet.",
-            );
-        controls::MenuItem::new("New subsheet…", Icon::Sheet)
-            .enabled(false)
-            .show(ui)
-            .on_disabled_hover_text(
-                "Hierarchical sheets, sheet instances and ports are not implemented yet.",
-            );
+    fn browser_visible_rows(&self) -> usize {
+        fn sheet(app: &App, id: pcbcraft_foundation::document::SheetOccurrenceId) -> usize {
+            if app.sheets.folded.contains(&id)
+                || id == app.session.project().root && app.panel_ui.main_folded
+            {
+                return 1;
+            }
+            3 + app
+                .session
+                .project()
+                .occurrences
+                .iter()
+                .filter(|o| o.parent == Some(id))
+                .map(|o| sheet(app, o.id))
+                .sum::<usize>()
+        }
+        if self.panel_ui.project_folded {
+            1
+        } else if self.panel_ui.sheets_folded {
+            3
+        } else {
+            3 + self
+                .session
+                .project()
+                .occurrences
+                .iter()
+                .filter(|o| o.parent.is_none())
+                .map(|o| sheet(self, o.id))
+                .sum::<usize>()
+        }
     }
     fn browser_contents(&mut self, ui: &mut egui::Ui) {
         use controls::NavigationRow as Row;
-        let doc = self.session.document();
-        let root_id = ui.id().with(("project", format!("{:?}", doc.id)));
-        let name = doc.name.clone();
-        let sheet_id = ui.id().with(("sheet", format!("{:?}", doc.sheet_id)));
-        let (project, fold) = Row {
+        let project = self.session.project();
+        let root_id = ui.id().with(("project", format!("{:?}", project.id)));
+        let name = project.name.clone();
+        let (response, fold) = Row {
             label: &name,
             icon: Icon::Folder,
             depth: 0,
@@ -392,12 +399,12 @@ impl App {
             fold: Some(!self.panel_ui.project_folded),
         }
         .show(ui, root_id);
-        if fold || project.double_clicked() {
+        if fold || response.double_clicked() {
             self.panel_ui.project_folded = !self.panel_ui.project_folded;
         }
-        egui::Popup::context_menu(&project)
+        egui::Popup::context_menu(&response)
             .frame(controls::menu_frame(ui.ctx()))
-            .show(Self::sheet_creation_menu);
+            .show(|ui| self.sheet_menu(ui, None));
         if self.panel_ui.project_folded {
             return;
         }
@@ -409,11 +416,9 @@ impl App {
                 selected: false,
                 fold: None,
             }
-            .show(ui, root_id.with("settings"))
-            .0
-            .on_disabled_hover_text("Project settings are not implemented in this draft.");
+            .show(ui, root_id.with("settings"));
         });
-        let (sheets, fold) = Row {
+        let (response, fold) = Row {
             label: "Sheets",
             icon: Icon::Folder,
             depth: 1,
@@ -421,48 +426,98 @@ impl App {
             fold: Some(!self.panel_ui.sheets_folded),
         }
         .show(ui, root_id.with("sheets"));
-        if fold || sheets.double_clicked() {
+        if fold || response.double_clicked() {
             self.panel_ui.sheets_folded = !self.panel_ui.sheets_folded;
         }
-        egui::Popup::context_menu(&sheets)
+        egui::Popup::context_menu(&response)
             .frame(controls::menu_frame(ui.ctx()))
-            .show(Self::sheet_creation_menu);
+            .show(|ui| self.sheet_menu(ui, None));
         if self.panel_ui.sheets_folded {
             return;
         }
-        let (main, fold) = Row {
-            label: "Main",
+        let roots: Vec<_> = self
+            .session
+            .project()
+            .occurrences
+            .iter()
+            .filter(|o| o.parent.is_none())
+            .map(|o| o.id)
+            .collect();
+        for id in roots {
+            self.sheet_browser_row(ui, id, 2);
+        }
+    }
+    fn sheet_browser_row(
+        &mut self,
+        ui: &mut egui::Ui,
+        id: pcbcraft_foundation::document::SheetOccurrenceId,
+        depth: u8,
+    ) {
+        use controls::NavigationRow as Row;
+        let Some(o) = self.session.project().occurrence(id) else {
+            return;
+        };
+        let name = o.name.clone();
+        let is_root = id == self.session.project().root;
+        let folded = self.sheets.folded.contains(&id) || is_root && self.panel_ui.main_folded;
+        let row_id = ui.id().with(("sheet", format!("{id:?}")));
+        let active = id == self.active_sheet();
+        let (response, fold) = Row {
+            label: &name,
             icon: Icon::Sheet,
-            depth: 2,
-            selected: true,
-            fold: Some(!self.panel_ui.main_folded),
+            depth: depth.min(6),
+            selected: active,
+            fold: Some(!folded),
         }
-        .show(ui, sheet_id);
+        .show(ui, row_id);
         if fold {
-            self.panel_ui.main_folded = !self.panel_ui.main_folded;
+            if folded {
+                self.sheets.folded.remove(&id);
+            } else {
+                self.sheets.folded.insert(id);
+            }
+            if is_root {
+                self.panel_ui.main_folded = !folded;
+            }
         }
-        // The only current sheet is already active; navigating it does not clear an object pick.
-        egui::Popup::context_menu(&main)
+        let response = response.on_hover_text(self.session.project().path(id));
+        if response.clicked() {
+            self.activate_sheet(id);
+        }
+        egui::Popup::context_menu(&response)
             .frame(controls::menu_frame(ui.ctx()))
-            .show(Self::sheet_creation_menu);
-        if self.panel_ui.main_folded {
+            .show(|ui| self.sheet_menu(ui, Some(id)));
+        if folded {
             return;
         }
         for (nets, label, icon) in [(false, "Symbols", Icon::Brand), (true, "Nets", Icon::Wire)] {
-            let selected = self.drawer == Some("Search") && self.panel_ui.search_nets == nets;
             if (Row {
                 label,
                 icon,
-                depth: 3,
-                selected,
+                depth: (depth + 1).min(7),
+                selected: active
+                    && self.drawer == Some("Search")
+                    && self.panel_ui.search_nets == nets,
                 fold: None,
             })
-            .show(ui, sheet_id.with(label))
+            .show(ui, row_id.with(label))
             .0
             .clicked()
             {
+                self.activate_sheet(id);
                 self.open_sheet_index(nets);
             }
+        }
+        let children: Vec<_> = self
+            .session
+            .project()
+            .occurrences
+            .iter()
+            .filter(|o| o.parent == Some(id))
+            .map(|o| o.id)
+            .collect();
+        for child in children {
+            self.sheet_browser_row(ui, child, depth + 1);
         }
     }
 
@@ -552,13 +607,22 @@ impl App {
         let t = theme::current(ui.ctx());
         ui.horizontal(|ui| {
             ui.add_sized(
-                [(ui.available_width() - 120.0).max(80.0), 28.0],
+                [(ui.available_width() - 128.0).max(80.0), 28.0],
                 controls::text_input(
                     egui::TextEdit::singleline(&mut self.panel_ui.search)
                         .hint_text("Search schematic…"),
                 ),
             );
-            ui.label(RichText::new("Sheet: Main").small().color(t.ui.muted));
+            ui.add_sized(
+                [120.0, 28.0],
+                egui::Label::new(
+                    RichText::new(format!("Sheet: {}", self.sheet_name()))
+                        .small()
+                        .color(t.ui.muted),
+                )
+                .truncate(),
+            )
+            .on_hover_text(self.session.project().path(self.active_sheet()));
         });
         ui.horizontal(|ui| {
             theme::quiet_buttons(ui);
@@ -574,7 +638,7 @@ impl App {
             });
         });
         let query = self.panel_ui.search.trim().to_lowercase();
-        let doc = self.session.document().clone();
+        let doc = self.document().clone();
         let output = egui::ScrollArea::vertical()
             .id_salt(("sheet_results", self.panel_ui.search_nets))
             .min_scrolled_height(0.0)
@@ -606,7 +670,11 @@ impl App {
                         if controls::result_row(
                             ui,
                             ui.id().with(format!("{:?}", symbol.id)),
-                            &[(&c.reference, 0.19), (&c.value, 0.56), ("Main", 0.25)],
+                            &[
+                                (&c.reference, 0.19),
+                                (&c.value, 0.56),
+                                (self.sheet_name(), 0.25),
+                            ],
                             self.selection.symbols.contains(&symbol.id),
                             false,
                         )

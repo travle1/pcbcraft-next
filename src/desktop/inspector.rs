@@ -249,12 +249,15 @@ impl App {
             }
             return;
         }
+        if self.sheet_properties(ui) {
+            return;
+        }
         if self.nets.selected.is_some() {
             self.net_properties(ui);
             return;
         }
         let t = theme::current(ui.ctx());
-        let doc = self.session.document().clone();
+        let doc = self.document().clone();
         ui.add_enabled_ui(!self.busy(), |ui| {
             let Some((symbol, c)) = self
                 .selected_symbol()
@@ -372,12 +375,7 @@ impl App {
     }
     pub(super) fn open_properties(&mut self) {
         if let Some(symbol) = self.selected_symbol()
-            && let Some(s) = self
-                .session
-                .document()
-                .symbols
-                .iter()
-                .find(|s| s.id == symbol)
+            && let Some(s) = self.document().symbols.iter().find(|s| s.id == symbol)
         {
             self.inspector.draft = Some(Draft {
                 symbol,
@@ -395,7 +393,7 @@ impl App {
         if self.busy() || self.session.incarnation != d.incarnation {
             return Err("The project changed. Reopen properties before applying.".into());
         }
-        self.session.apply(
+        self.apply(
             d.revision,
             Command::SetProperties {
                 symbol: d.symbol,
@@ -411,7 +409,7 @@ impl App {
         let Some(mut d) = self.inspector.draft.take() else {
             return;
         };
-        let Some(c) = self.session.document().component(d.symbol).cloned() else {
+        let Some(c) = self.document().component(d.symbol).cloned() else {
             return;
         };
         let t = theme::current(ctx);
@@ -469,7 +467,7 @@ impl App {
                     _=> {
                         controls::section(ui,"PROJECT DEFINITION");
                         ui.label("Original built-in catalog");
-                        ui.label(format!("Definition set version {}",self.session.document().builtin_definitions_version));
+                        ui.label(format!("Definition set version {}",self.document().builtin_definitions_version));
                         ui.label(RichText::new("Available offline. External sources and reviewable library upgrades are planned.").color(t.ui.muted));
                     }
                 }
@@ -514,7 +512,7 @@ mod tests {
     #[test]
     fn detailed_properties_commit_once_and_reject_stale_or_reopened_drafts() -> Result<()> {
         let (mut app, _) = super::super::tests::library_fixture()?;
-        let before = app.session.document().clone();
+        let before = app.document().clone();
         app.open_properties();
         let mut d = app.inspector.draft.take().ok_or("No draft")?;
         d.reference = "U9".into();
@@ -524,15 +522,15 @@ mod tests {
         app.apply_property_draft(&d)?;
         assert_eq!(app.session.revision(), rev + 1);
         app.session.undo()?;
-        assert_eq!(app.session.document(), &before);
+        assert_eq!(app.document(), &before);
         assert!(app.apply_property_draft(&d).is_err());
-        assert_eq!(app.session.document(), &before);
+        assert_eq!(app.document(), &before);
         app.refresh_selection();
         app.open_properties();
         let d = app.inspector.draft.take().ok_or("No draft")?;
         app.session = pcbcraft_foundation::session::Session::new(before.clone())?;
         assert!(app.apply_property_draft(&d).is_err());
-        assert_eq!(app.session.document(), &before);
+        assert_eq!(app.document(), &before);
         Ok(())
     }
 }
