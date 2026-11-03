@@ -50,10 +50,10 @@ the pointer moves into the popup; opening a menu does not mutate the document.
 
 ## Saved data and limits
 
-Native draft **v4** saves junction IDs, wire endpoints and authored bends. It reads
-v1–v3 drafts without silently changing their stored layout/alias presentation.
+Native draft **v5** retains the junction IDs, endpoints and authored bends introduced
+in v4, and adds text appearance/links. It reads v1–v4 drafts without silently changing their stored layout/alias presentation.
 Editing or branching an older automatic route saves that route explicitly. Keep
-using the new binary for v4 files; older binaries cannot read the new schema.
+using the new binary for v5 files; older binaries cannot read the new schema.
 The connectivity report includes free wire points and explicit edge membership.
 
 One Electronics session owns edits, naming, splits, deletion, history and save.
@@ -75,12 +75,14 @@ self-intersection solver. Overlap cleanup has a bounded comparison/merge budget;
 a too-complex edit rejects atomically. Coincident distinct pins and unsupported
 parallel-edge loops reject instead of losing terminal identity. Connecting two interior points of the same original edge
 in one new wire is currently rejected; create the intermediate branch first.
-No buses, general label-placement tool, multi-selection route move or PCB routing
-is implemented. Wire deletion removes the selected graph edge rather than cutting
+Box-selected wires can move together with symbols and sheet notes in one transaction;
+external component pins stay attached through orthogonal end legs. See
+[selection and text](selection-and-text.md). No buses, standalone electrical label-placement
+tool or PCB routing is implemented. Wire deletion removes the selected graph edge rather than cutting
 only one visible leg; drag its corners/segments to reshape it instead.
 
 Tests cover free creation, branches, crossing isolation, incompatible names,
 cancellation, stale edits, direct/context deletion, dragging, netlist preservation,
-undo/redo, v4 round trips and rejection of new data in old envelopes. The separate
+undo/redo, native round trips and rejection of new data in old envelopes. The separate
 [AI authoring plan](specs/ai-authoring.md) still needs atomic multi-command proposals,
 MCP/Assistant transports and deterministic arrangement.

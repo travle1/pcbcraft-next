@@ -6,6 +6,7 @@ use super::{
     theme,
 };
 use eframe::egui::{self, Align2, Color32, FontId, Pos2, Rect, Sense, Shape, Stroke, Vec2};
+use pcbcraft_foundation::text::TextTarget;
 use pcbcraft_foundation::wiring::{self, Anchor, Projection, WireEdit};
 use pcbcraft_foundation::{document::*, session::Command};
 
@@ -24,7 +25,11 @@ pub struct Canvas {
     pub wire_start: Option<WireDraft>,
     pub wire_drag: Option<WireDrag>,
     pub capture_wire_hit: Option<Pos2>,
-    routes: Vec<Projection>,
+    pub(super) gesture: Option<super::interaction::Gesture>,
+    pub(super) text_hits: Vec<(pcbcraft_foundation::text::TextTarget, Rect)>,
+    pub texts_selectable: bool,
+    pub labels_selectable: bool,
+    pub(super) routes: Vec<Projection>,
     context: Option<CanvasContext>,
     pub(super) context_open: bool,
     pub last_world: Point,
@@ -51,6 +56,8 @@ struct CanvasContext {
     wire: Option<WireId>,
     anchor: Option<Endpoint>,
     symbol: Option<SymbolId>,
+    text: Option<TextTarget>,
+    at: Point,
     target: Anchor,
     incarnation: ProjectId,
     revision: u64,
@@ -72,6 +79,10 @@ impl Default for Canvas {
             wire_start: None,
             wire_drag: None,
             capture_wire_hit: None,
+            gesture: None,
+            text_hits: Vec::new(),
+            texts_selectable: true,
+            labels_selectable: true,
             routes: Vec::new(),
             context: None,
             context_open: false,
@@ -191,6 +202,8 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
         full.max - egui::vec2(side + 28.0, 85.0),
     );
     let mut doc = app.session.document().clone();
+    super::interaction::preview(app, &mut doc);
+    app.canvas.text_hits.clear();
     if let Some(drag) = &app.canvas.wire_drag {
         if drag.incarnation == app.session.incarnation && drag.revision == app.session.revision() {
             if let Ok(preview) = wiring::preview_edit(
@@ -326,15 +339,18 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
         }
     }
     for annotation in &doc.annotations {
-        painter.text(
-            app.canvas.screen(annotation.at, canvas),
-            Align2::LEFT_BOTTOM,
-            &annotation.text,
-            FontId::proportional(
-                (22.0 * app.canvas.zoom)
-                    .clamp(if app.canvas.zoom >= 0.25 { 10.0 } else { 6.0 }, 22.0),
-            ),
-            t.canvas.symbol,
+        super::text_editor::paint(
+            app,
+            &doc,
+            &painter,
+            super::text_editor::Run {
+                target: TextTarget::Note(annotation.id),
+                at: app.canvas.screen(annotation.at, canvas),
+                align: Align2::LEFT_BOTTOM,
+                content: &annotation.text,
+                size: (22.0 * app.canvas.zoom).clamp(6.0, 22.0),
+                color: t.canvas.symbol,
+            },
         );
     }
     let selected_net = app.nets.selected_net().cloned();
@@ -379,9 +395,10 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
         });
         let mut aliases = std::collections::BTreeSet::new();
         for wire in ordered_wires {
-            let highlighted = selected_net
-                .as_ref()
-                .is_some_and(|n| n.links.binary_search(&wire.id).is_ok());
+            let highlighted = app.selection.wires.contains(&wire.id)
+                || selected_net
+                    .as_ref()
+                    .is_some_and(|n| n.links.binary_search(&wire.id).is_ok());
             let wire_color = if highlighted {
                 t.canvas.selection
             } else {
@@ -419,18 +436,21 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                         } else {
                             (b + egui::vec2(0.0, 3.0), Align2::CENTER_TOP)
                         };
-                        painter.text(
-                            anchor,
-                            align,
-                            label,
-                            FontId::proportional(
-                                (15.0 * app.canvas.zoom)
-                                    .clamp(if app.canvas.zoom >= 0.25 { 8.5 } else { 6.0 }, 18.0),
-                            ),
-                            if highlighted {
-                                t.canvas.selection
-                            } else {
-                                t.canvas.value
+                        super::text_editor::paint(
+                            app,
+                            &doc,
+                            &painter,
+                            super::text_editor::Run {
+                                target: TextTarget::Net(wire.id),
+                                at: anchor,
+                                align,
+                                content: label,
+                                size: (15.0 * app.canvas.zoom).clamp(6.0, 18.0),
+                                color: if highlighted {
+                                    t.canvas.selection
+                                } else {
+                                    t.canvas.value
+                                },
                             },
                         );
                     }
@@ -445,7 +465,8 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                 let b = app.canvas.screen(b, canvas);
                 let da = app.canvas.direction(&doc, &wire.from);
                 let db = app.canvas.direction(&doc, &wire.to);
-                let net = app.nets.snapshot.containing(&wire.from);
+                let net_owned = app.nets.snapshot.containing(&wire.from).cloned();
+                let net = net_owned.as_ref();
                 let anchor = net.map_or_else(|| wire.from.clone(), |n| n.anchor.clone());
                 let mut obstacles = bodies.clone();
                 for symbol in &doc.symbols {
@@ -530,20 +551,26 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                     && let Some(drawn_anchor) = drawn_groups.get(&wire.from)
                     && path_labels.insert(drawn_anchor.clone())
                 {
-                    painter.text(
-                        points
-                            .windows(2)
-                            .filter(|p| (p[0].y - p[1].y).abs() < 0.01)
-                            .max_by(|x, y| x[0].distance(x[1]).total_cmp(&y[0].distance(y[1])))
-                            .map_or(a, |p| p[0].lerp(p[1], 0.5))
-                            - egui::vec2(0.0, 5.0),
-                        Align2::CENTER_BOTTOM,
-                        label,
-                        FontId::proportional((15.0 * app.canvas.zoom).clamp(6.0, 18.0)),
-                        if highlighted {
-                            t.canvas.selection
-                        } else {
-                            t.canvas.value
+                    super::text_editor::paint(
+                        app,
+                        &doc,
+                        &painter,
+                        super::text_editor::Run {
+                            target: TextTarget::Net(wire.id),
+                            at: points
+                                .windows(2)
+                                .filter(|p| (p[0].y - p[1].y).abs() < 0.01)
+                                .max_by(|x, y| x[0].distance(x[1]).total_cmp(&y[0].distance(y[1])))
+                                .map_or(a, |p| p[0].lerp(p[1], 0.5))
+                                - egui::vec2(0.0, 5.0),
+                            align: Align2::CENTER_BOTTOM,
+                            content: label,
+                            size: (15.0 * app.canvas.zoom).clamp(6.0, 18.0),
+                            color: if highlighted {
+                                t.canvas.selection
+                            } else {
+                                t.canvas.value
+                            },
                         },
                     );
                 }
@@ -638,7 +665,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
         if let Some(c) = doc.component(s.id) {
             let shown = app.canvas.shown_symbol(s);
             let center = app.canvas.screen(shown.at, canvas);
-            let selected = app.selected == Some(s.id);
+            let selected = app.selection.symbols.contains(&s.id);
             let vertical = !shown.quarter_turns.is_multiple_of(2);
             paint_symbol(
                 &painter,
@@ -652,52 +679,53 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                     t.canvas.symbol
                 },
             );
-            painter.text(
-                center
-                    + (if c.kind.is_block() {
-                        let size = symbol_size(c.kind, shown.quarter_turns);
-                        egui::vec2(-size.x * 0.35, -size.y * 0.5 - 12.0)
-                    } else if vertical {
-                        egui::vec2(34.0, -8.0)
+            super::text_editor::paint(
+                app,
+                &doc,
+                &painter,
+                super::text_editor::Run {
+                    target: TextTarget::Reference(s.id),
+                    at: center
+                        + (if c.kind.is_block() {
+                            let size = symbol_size(c.kind, shown.quarter_turns);
+                            egui::vec2(-size.x * 0.35, -size.y * 0.5 - 12.0)
+                        } else if vertical {
+                            egui::vec2(34.0, -8.0)
+                        } else {
+                            egui::vec2(-28.0, -34.0)
+                        }) * app.canvas.zoom,
+                    align: Align2::LEFT_BOTTOM,
+                    content: &c.reference,
+                    size: (t.schematic.reference_size * app.canvas.zoom)
+                        .clamp(if app.canvas.zoom >= 0.25 { 9.0 } else { 6.0 }, 22.0),
+                    color: if selected {
+                        t.canvas.selection
                     } else {
-                        egui::vec2(-28.0, -34.0)
-                    }) * app.canvas.zoom,
-                Align2::LEFT_BOTTOM,
-                &c.reference,
-                if selected {
-                    theme::semibold(
-                        (t.schematic.reference_size * app.canvas.zoom)
-                            .clamp(if app.canvas.zoom >= 0.25 { 9.0 } else { 6.0 }, 22.0),
-                    )
-                } else {
-                    FontId::proportional(
-                        (t.schematic.reference_size * app.canvas.zoom)
-                            .clamp(if app.canvas.zoom >= 0.25 { 9.0 } else { 6.0 }, 22.0),
-                    )
-                },
-                if selected {
-                    t.canvas.selection
-                } else {
-                    t.canvas.reference
+                        t.canvas.reference
+                    },
                 },
             );
             if app.canvas.zoom >= 0.25 {
-                painter.text(
-                    center
-                        + (if c.kind.is_block() {
-                            let size = symbol_size(c.kind, shown.quarter_turns);
-                            egui::vec2(-size.x * 0.35, size.y * 0.5 + 12.0)
-                        } else if vertical {
-                            egui::vec2(34.0, 8.0)
-                        } else {
-                            egui::vec2(-28.0, 30.0)
-                        }) * app.canvas.zoom,
-                    Align2::LEFT_TOP,
-                    &c.value,
-                    FontId::proportional(
-                        (t.schematic.value_size * app.canvas.zoom).clamp(8.5, 20.0),
-                    ),
-                    t.canvas.value,
+                super::text_editor::paint(
+                    app,
+                    &doc,
+                    &painter,
+                    super::text_editor::Run {
+                        target: TextTarget::Value(s.id),
+                        at: center
+                            + (if c.kind.is_block() {
+                                let size = symbol_size(c.kind, shown.quarter_turns);
+                                egui::vec2(-size.x * 0.35, size.y * 0.5 + 12.0)
+                            } else if vertical {
+                                egui::vec2(34.0, 8.0)
+                            } else {
+                                egui::vec2(-28.0, 30.0)
+                            }) * app.canvas.zoom,
+                        align: Align2::LEFT_TOP,
+                        content: &c.value,
+                        size: (t.schematic.value_size * app.canvas.zoom).clamp(8.5, 20.0),
+                        color: t.canvas.value,
+                    },
                 );
             }
             if app.canvas.pins_visible && app.canvas.zoom >= 0.25 {
@@ -845,6 +873,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
         }
         return;
     }
+    if super::interaction::update(app, ui, &response, &doc, canvas, &projected, input_enabled) {
+        return;
+    }
     if app.tool == Tool::Select
         && !app.busy()
         && app.pending.is_none()
@@ -858,6 +889,14 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                 wire: hit_wire.as_ref().map(|(id, _)| *id),
                 anchor: hit_net.clone(),
                 symbol: hit,
+                text: app
+                    .canvas
+                    .text_hits
+                    .iter()
+                    .rev()
+                    .find(|(_, r)| r.expand(3.0).contains(pos))
+                    .map(|(t, _)| *t),
+                at: app.canvas.world(pos, canvas),
                 target: wire_target(app, &doc, canvas, pos, pin_hit.as_ref(), hit_wire.as_ref()),
                 incarnation: app.session.incarnation,
                 revision: app.session.revision(),
@@ -877,7 +916,52 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                     ui.label("Project changed. Open the menu again.");
                     return;
                 }
-                if let Some(symbol) = context.symbol {
+                if let Some(target) = context.text {
+                    if MenuItem::new("Edit text", Icon::Annotate)
+                        .show(ui)
+                        .clicked()
+                    {
+                        app.open_text(target);
+                        ui.close();
+                    }
+                    let appearance = pcbcraft_foundation::text::appearance(&doc, target);
+                    if !appearance.link.is_empty()
+                        && MenuItem::new("Open link", Icon::Port).show(ui).clicked()
+                    {
+                        ui.ctx().open_url(egui::OpenUrl::new_tab(appearance.link));
+                        ui.close();
+                    }
+                    if let TextTarget::Note(id) = target {
+                        controls::menu_separator(ui);
+                        if MenuItem::new("Delete text", Icon::Delete)
+                            .danger()
+                            .show(ui)
+                            .clicked()
+                        {
+                            let mut items = pcbcraft_foundation::selection::Selection::default();
+                            items.notes.insert(id);
+                            app.command(Command::DeleteItems { items });
+                            ui.close();
+                        }
+                    }
+                } else if app.selection.len() > 1 {
+                    if MenuItem::new("Delete selection", Icon::Delete)
+                        .shortcut("Del")
+                        .danger()
+                        .show(ui)
+                        .clicked()
+                    {
+                        app.delete_selection();
+                        ui.close();
+                    }
+                    if MenuItem::new("Clear selection", Icon::Close)
+                        .show(ui)
+                        .clicked()
+                    {
+                        app.select(None);
+                        ui.close();
+                    }
+                } else if let Some(symbol) = context.symbol {
                     if MenuItem::new("Properties", Icon::Properties)
                         .show(ui)
                         .clicked()
@@ -962,6 +1046,14 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                         app.library = true;
                         ui.close();
                     }
+                    if MenuItem::new("Add text", Icon::Annotate)
+                        .shortcut("T")
+                        .show(ui)
+                        .clicked()
+                    {
+                        app.add_note(context.at);
+                        ui.close();
+                    }
                     if MenuItem::new("Fit sheet", Icon::Fit)
                         .shortcut("F")
                         .show(ui)
@@ -1042,6 +1134,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                 } else if let Some(anchor) = hit_net {
                     app.select_net(anchor);
                     app.nets.wire = hit_wire.as_ref().map(|(id, _)| *id);
+                    if let Some(id) = app.nets.wire {
+                        app.selection.wires.insert(id);
+                    }
                 } else {
                     app.select(None);
                 }
@@ -1174,7 +1269,7 @@ fn drawn_groups(doc: &Document) -> std::collections::BTreeMap<Endpoint, Endpoint
     groups
 }
 
-fn path_distance(p: Pos2, path: &[Pos2]) -> f32 {
+pub(super) fn path_distance(p: Pos2, path: &[Pos2]) -> f32 {
     path.windows(2)
         .map(|pair| {
             let delta = pair[1] - pair[0];
@@ -1646,6 +1741,7 @@ fn start_wire_drag(
 mod tests {
     use super::super::Options;
     use super::*;
+    use egui::vec2;
 
     #[test]
     fn fit_large_demo_keeps_symbol_bounds_in_compact_viewport() -> Result<()> {
@@ -1681,13 +1777,16 @@ mod tests {
             capture_properties: false,
             capture_nets: false,
             capture_wire_menu: false,
+            capture_text: false,
+            capture_selection: false,
             open: None,
         })?;
         let ctx = egui::Context::default();
         theme::apply(&ctx);
         Ok((app, ctx))
     }
-    fn frame(app: &mut App, ctx: &egui::Context, events: Vec<egui::Event>) {
+    fn frame(app: &mut App, ctx: &egui::Context, mut events: Vec<egui::Event>) {
+        events.insert(0, egui::Event::ModifiersChanged(egui::Modifiers::NONE));
         let input = egui::RawInput {
             screen_rect: Some(Rect::from_min_size(Pos2::ZERO, egui::vec2(1600.0, 1000.0))),
             events,
@@ -2110,6 +2209,262 @@ mod tests {
         assert_eq!(app.session.document().wires.len(), 3);
         app.history(false);
         assert_eq!(*app.session.document(), before);
+        Ok(())
+    }
+    fn gesture_frame(
+        app: &mut App,
+        ctx: &egui::Context,
+        mut events: Vec<egui::Event>,
+        modifiers: egui::Modifiers,
+    ) -> egui::FullOutput {
+        events.insert(0, egui::Event::ModifiersChanged(modifiers));
+        ctx.run_ui(
+            egui::RawInput {
+                screen_rect: Some(Rect::from_min_size(Pos2::ZERO, egui::vec2(1600.0, 1000.0))),
+                events,
+                ..Default::default()
+            },
+            |ui| {
+                app.shortcuts(ctx);
+                egui::CentralPanel::default()
+                    .frame(egui::Frame::NONE)
+                    .show(ui, |ui| show(app, ui, true));
+            },
+        )
+    }
+    fn drag_box(
+        app: &mut App,
+        ctx: &egui::Context,
+        start: Pos2,
+        end: Pos2,
+        button: egui::PointerButton,
+    ) {
+        frame(
+            app,
+            ctx,
+            vec![
+                egui::Event::PointerMoved(start),
+                egui::Event::PointerButton {
+                    pos: start,
+                    button,
+                    pressed: true,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ],
+        );
+        frame(app, ctx, vec![egui::Event::PointerMoved(end)]);
+        frame(
+            app,
+            ctx,
+            vec![egui::Event::PointerButton {
+                pos: end,
+                button,
+                pressed: false,
+                modifiers: egui::Modifiers::NONE,
+            }],
+        );
+    }
+    #[test]
+    fn both_mouse_buttons_window_crossing_and_group_drag_are_atomic() -> Result<()> {
+        for button in [egui::PointerButton::Primary, egui::PointerButton::Secondary] {
+            let (mut app, ctx) = app()?;
+            for x in [-15_000_000, 15_000_000] {
+                app.command(Command::Place {
+                    kind: PartKind::Resistor,
+                    at: Point { x, y: 0 },
+                });
+            }
+            app.select(None);
+            app.canvas.fit = false;
+            frame(&mut app, &ctx, vec![]);
+            let before = app.session.document().clone();
+            let revision = app.session.revision();
+            let center = Pos2::new(798.0, 483.5);
+            drag_box(
+                &mut app,
+                &ctx,
+                center + vec2(-200.0, -70.0),
+                center + vec2(200.0, 70.0),
+                button,
+            );
+            assert_eq!(app.selection.symbols.len(), 2, "{button:?}");
+            assert!(!app.canvas.context_open);
+            assert_eq!(app.session.document(), &before);
+            assert_eq!(app.session.revision(), revision);
+            // Primary dragging an existing selection previews the group, then commits once.
+            let start = center + vec2(-120.0, 0.0);
+            let end = start + vec2(50.8, 40.64);
+            frame(
+                &mut app,
+                &ctx,
+                vec![egui::Event::PointerMoved(start), pointer(start, true)],
+            );
+            frame(&mut app, &ctx, vec![egui::Event::PointerMoved(end)]);
+            assert_eq!(app.session.document(), &before);
+            frame(&mut app, &ctx, vec![pointer(end, false)]);
+            assert_eq!(app.session.revision(), revision + 1);
+            for (old, new) in before.symbols.iter().zip(&app.session.document().symbols) {
+                assert_eq!(
+                    new.at,
+                    Point {
+                        x: old.at.x + 5 * GRID_NM,
+                        y: old.at.y + 4 * GRID_NM
+                    }
+                );
+            }
+            app.history(false);
+            assert_eq!(app.session.document(), &before);
+            app.select(None);
+            // A partial left-to-right window excludes a symbol; a crossing includes it.
+            let a = center + vec2(-121.0, -50.0);
+            let b = center + vec2(-70.0, 50.0);
+            drag_box(&mut app, &ctx, a, b, button);
+            assert!(app.selection.is_empty());
+            drag_box(&mut app, &ctx, b, a, button);
+            assert_eq!(app.selection.symbols.len(), 1);
+            app.delete_selection();
+            assert_eq!(app.session.document().symbols.len(), 1);
+            app.history(false);
+            assert_eq!(app.session.document(), &before);
+        }
+        Ok(())
+    }
+    #[test]
+    fn box_selection_filters_modifiers_escape_and_middle_pan_preserve_document() -> Result<()> {
+        let (mut app, ctx) = app()?;
+        for x in [-15_000_000, 15_000_000] {
+            app.command(Command::Place {
+                kind: PartKind::Resistor,
+                at: Point { x, y: 0 },
+            });
+        }
+        app.select(None);
+        app.canvas.fit = false;
+        frame(&mut app, &ctx, vec![]);
+        let before = app.session.document().clone();
+        let center = Pos2::new(798.0, 483.5);
+        for (x, modifiers, expected) in [
+            (-120.0, egui::Modifiers::SHIFT, 1),
+            (120.0, egui::Modifiers::SHIFT, 2),
+            (-120.0, egui::Modifiers::CTRL, 1),
+        ] {
+            let pos = center + vec2(x, 0.0);
+            for pressed in [true, false] {
+                gesture_frame(
+                    &mut app,
+                    &ctx,
+                    vec![
+                        egui::Event::PointerMoved(pos),
+                        egui::Event::PointerButton {
+                            pos,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers,
+                        },
+                    ],
+                    modifiers,
+                )
+                .drop_without_applying_deltas();
+            }
+            assert_eq!(app.selection.len(), expected);
+        }
+        let selected = app.selection.clone();
+        let start = center + vec2(-250.0, -100.0);
+        let end = center + vec2(250.0, 100.0);
+        frame(
+            &mut app,
+            &ctx,
+            vec![egui::Event::PointerMoved(start), pointer(start, true)],
+        );
+        frame(&mut app, &ctx, vec![egui::Event::PointerMoved(end)]);
+        key(&mut app, &ctx, egui::Key::Escape);
+        frame(&mut app, &ctx, vec![pointer(end, false)]);
+        assert_eq!(app.selection, selected);
+        app.canvas.symbols_selectable = false;
+        drag_box(&mut app, &ctx, start, end, egui::PointerButton::Secondary);
+        assert!(app.selection.is_empty());
+        let offset = app.canvas.offset;
+        drag_box(
+            &mut app,
+            &ctx,
+            start,
+            start + vec2(40.0, 30.0),
+            egui::PointerButton::Middle,
+        );
+        assert_ne!(app.canvas.offset, offset);
+        assert_eq!(app.session.document(), &before);
+        Ok(())
+    }
+    #[test]
+    fn text_hit_edit_move_and_explicit_link_open_keep_component_identity() -> Result<()> {
+        use pcbcraft_foundation::text::{self, TextTarget};
+        let (mut app, ctx) = app()?;
+        app.command(Command::Place {
+            kind: PartKind::Resistor,
+            at: Point::default(),
+        });
+        let symbol = app.session.document().symbols[0].id;
+        let target = TextTarget::Reference(symbol);
+        let mut appearance = target.defaults();
+        appearance.link = "https://example.com/part".into();
+        app.command(Command::SetText {
+            target,
+            content: "R100".into(),
+            appearance: appearance.clone(),
+        });
+        app.canvas.fit = false;
+        frame(&mut app, &ctx, vec![]);
+        let at = app
+            .canvas
+            .text_hits
+            .iter()
+            .find(|(t, _)| *t == target)
+            .ok_or("Missing text hit")?
+            .1
+            .center();
+        click(&mut app, &ctx, at);
+        assert_eq!(app.text_ui.draft.as_ref().map(|d| d.target), Some(target));
+        let before = app.session.document().clone();
+        let revision = app.session.revision();
+        drag_box(
+            &mut app,
+            &ctx,
+            at,
+            at + vec2(50.8, 30.48),
+            egui::PointerButton::Primary,
+        );
+        assert_eq!(app.session.revision(), revision + 1);
+        assert_ne!(
+            text::appearance(app.session.document(), target).offset,
+            Point::default()
+        );
+        assert_eq!(app.session.document().symbols, before.symbols);
+        app.history(false);
+        assert_eq!(app.session.document(), &before);
+        frame(&mut app, &ctx, vec![]);
+        for pressed in [true, false] {
+            let output = gesture_frame(
+                &mut app,
+                &ctx,
+                vec![
+                    egui::Event::PointerMoved(at),
+                    egui::Event::PointerButton {
+                        pos: at,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::CTRL,
+                    },
+                ],
+                egui::Modifiers::CTRL,
+            );
+            if !pressed {
+                assert!(output.platform_output.commands.iter().any(
+                    |c| matches!(c,egui::OutputCommand::OpenUrl(url) if url.url==appearance.link)
+                ));
+            }
+            output.drop_without_applying_deltas();
+        }
+        assert_eq!(app.session.document(), &before);
         Ok(())
     }
 }

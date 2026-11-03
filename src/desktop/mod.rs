@@ -2,6 +2,7 @@ mod canvas;
 mod controls;
 mod icons;
 mod inspector;
+mod interaction;
 mod library;
 mod nets;
 mod palette;
@@ -9,6 +10,7 @@ mod panels;
 mod ribbon;
 #[cfg(test)]
 mod tests;
+mod text_editor;
 mod theme;
 mod wire_geometry;
 mod workspace;
@@ -47,6 +49,8 @@ pub struct Options {
     pub capture_properties: bool,
     pub capture_nets: bool,
     pub capture_wire_menu: bool,
+    pub capture_text: bool,
+    pub capture_selection: bool,
     pub open: Option<PathBuf>,
 }
 enum FileResult {
@@ -57,7 +61,8 @@ enum FileResult {
 }
 pub struct App {
     session: Session,
-    selected: Option<SymbolId>,
+    selection: pcbcraft_foundation::selection::Selection,
+    text_ui: text_editor::State,
     tool: Tool,
     ribbon_tab: ribbon::Tab,
     canvas: canvas::Canvas,
@@ -106,7 +111,8 @@ impl App {
         };
         let mut app = Self {
             session,
-            selected: None,
+            selection: Default::default(),
+            text_ui: Default::default(),
             tool: Tool::Select,
             ribbon_tab: ribbon::Tab::default(),
             canvas: Default::default(),
@@ -162,6 +168,12 @@ impl App {
             }
             app.panel_ui.browser_nets = true;
         }
+        if app.options.capture_text
+            && app.options.capture.is_some()
+            && let Some(note) = app.session.document().annotations.first()
+        {
+            app.open_text(pcbcraft_foundation::text::TextTarget::Note(note.id));
+        }
         if app.options.capture_properties {
             app.open_properties();
         }
@@ -179,24 +191,44 @@ impl App {
             self.notices.remove(0);
         }
     }
+    fn selected_symbol(&self) -> Option<SymbolId> {
+        self.selection.primary_symbol()
+    }
     fn select(&mut self, id: Option<SymbolId>) {
+        self.selection.clear();
+        if let Some(id) = id {
+            self.selection.symbols.insert(id);
+        }
+        self.text_ui = Default::default();
         self.nets.selected = None;
         self.nets.wire = None;
-        if self.selected == id {
-            return;
-        }
-        self.selected = id;
-        if let Some(c) = id.and_then(|id| self.session.document().component(id)) {
+        self.refresh_selection();
+    }
+    fn set_selection(&mut self, items: pcbcraft_foundation::selection::Selection) {
+        self.selection = items;
+        self.text_ui = Default::default();
+        self.nets.selected = None;
+        self.nets.wire = None;
+        self.refresh_selection();
+        self.properties = true;
+    }
+    fn refresh_selection(&mut self) {
+        self.selection.retain(self.session.document());
+        if let Some(c) = self
+            .selected_symbol()
+            .and_then(|id| self.session.document().component(id))
+        {
             self.reference = c.reference.clone();
             self.value = c.value.clone();
         }
-    }
-    fn refresh_selection(&mut self) {
-        let id = self
-            .selected
-            .filter(|id| self.session.document().component(*id).is_some());
-        self.selected = None;
-        self.select(id);
+        if self
+            .text_ui
+            .draft
+            .as_ref()
+            .is_some_and(|d| !d.target.exists(self.session.document()))
+        {
+            self.text_ui = Default::default();
+        }
     }
     fn command(&mut self, command: Command) {
         if self.busy() || self.pending.is_some() {
@@ -227,6 +259,10 @@ impl App {
         self.canvas.drag = None;
         self.canvas.wire_drag = None;
         self.canvas.wire_start = None;
+        self.canvas.gesture = None;
+        self.nets.selected = None;
+        self.nets.wire = None;
+        self.text_ui = Default::default();
     }
     fn request(&mut self, action: Action) {
         if self.busy() {
@@ -378,6 +414,7 @@ impl App {
             self.tool = Tool::Select;
             self.canvas.drag = None;
             self.canvas.wire_drag = None;
+            self.canvas.gesture = None;
             self.canvas.wire_start = None;
             self.palette = false;
             self.library_ui.cancel_drag();
@@ -405,6 +442,9 @@ impl App {
                 self.history(true);
             }
         } else {
+            if pressed(egui::Key::T) {
+                self.add_note(self.canvas.last_world);
+            }
             if pressed(egui::Key::A) {
                 self.library = true;
             }
@@ -427,7 +467,7 @@ impl App {
             if pressed(egui::Key::Delete) || pressed(egui::Key::Backspace) {
                 self.delete_selection();
             }
-            if let Some(symbol) = self.selected
+            if let Some(symbol) = self.selected_symbol()
                 && pressed(egui::Key::R)
             {
                 self.command(Command::Rotate { symbol });
@@ -435,11 +475,17 @@ impl App {
         }
     }
     fn delete_selection(&mut self) {
+        if !self.selection.is_empty() {
+            self.command(Command::DeleteItems {
+                items: self.selection.clone(),
+            });
+            return;
+        }
         if let Some(wire) = self.nets.wire {
             self.command(Command::Disconnect { wire });
         } else if let Some(anchor) = self.nets.selected.clone() {
             self.command(Command::DeleteNet { anchor });
-        } else if let Some(symbol) = self.selected {
+        } else if let Some(symbol) = self.selected_symbol() {
             self.command(Command::Delete { symbol });
         }
     }
@@ -635,6 +681,31 @@ impl App {
 }
 impl eframe::App for App {
     fn raw_input_hook(&mut self, _ctx: &egui::Context, raw: &mut egui::RawInput) {
+        // Selection proof holds a real right-button drag until the screenshot arrives.
+        if self.options.capture_selection
+            && self.options.capture.is_some()
+            && !self.busy()
+            && self.frames >= 6
+            && self.capture_input_step < 2
+        {
+            let center = self.layout.bounds.center();
+            let pos = center
+                + if self.capture_input_step == 0 {
+                    egui::vec2(180.0, 130.0)
+                } else {
+                    egui::vec2(-180.0, -130.0)
+                };
+            raw.events.push(egui::Event::PointerMoved(pos));
+            if self.capture_input_step == 0 {
+                raw.events.push(egui::Event::PointerButton {
+                    pos,
+                    button: egui::PointerButton::Secondary,
+                    pressed: true,
+                    modifiers: egui::Modifiers::NONE,
+                });
+            }
+            self.capture_input_step += 1;
+        }
         // Dedicated inactive capture only: exercise the actual pointer/menu path.
         if self.options.capture_wire_menu
             && self.options.capture.is_some()
@@ -708,6 +779,8 @@ impl App {
         if self.options.capture.is_some()
             && !self.capture_sent
             && (!self.options.capture_wire_menu || self.canvas.context_open)
+            && (!self.options.capture_selection
+                || matches!(self.canvas.gesture, Some(interaction::Gesture::Box { .. })))
             && self.frames >= 12
             && self.started.elapsed() >= Duration::from_millis(800)
         {

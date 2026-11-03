@@ -173,13 +173,14 @@ impl App {
         }
         match action {
             RibbonAction::Symbol => self.library = true,
+            RibbonAction::Text => self.add_note(self.canvas.last_world),
             RibbonAction::Wire => {
                 self.tool = Tool::Wire;
                 self.canvas.wire_start = None;
             }
             RibbonAction::Move => self.tool = Tool::Select,
             RibbonAction::Rotate => {
-                if let Some(symbol) = self.selected {
+                if let Some(symbol) = self.selected_symbol() {
                     self.command(Command::Rotate { symbol });
                 }
             }
@@ -206,6 +207,7 @@ impl App {
 #[derive(Clone, Copy)]
 enum RibbonAction {
     Symbol,
+    Text,
     Power,
     Port,
     Wire,
@@ -239,6 +241,7 @@ impl RibbonAction {
     fn shortcut(self) -> &'static str {
         match self {
             Self::Symbol => "A",
+            Self::Text => "T",
             Self::Wire => "W",
             Self::Move => "V",
             Self::Rotate => "R",
@@ -291,10 +294,10 @@ impl RibbonAction {
             Self::Sync => Some("Schematic-to-board synchronization is not implemented yet."),
             Self::Erc => None,
             _ if app.busy() => Some("Finish the current file operation first."),
-            Self::Delete if app.selected.is_none() && app.nets.selected.is_none() => {
+            Self::Delete if app.selection.is_empty() && app.nets.selected.is_none() => {
                 Some("Select a symbol, wire or net first.")
             }
-            Self::Rotate if app.selected.is_none() => Some("Select a symbol first."),
+            Self::Rotate if app.selected_symbol().is_none() => Some("Select a symbol first."),
             _ => None,
         }
     }
@@ -333,7 +336,12 @@ const CAPTURE_GROUPS: &[RibbonGroup] = &[
                 hint: "Place a hierarchical port",
             },
         ],
-        extras: &[],
+        extras: &[RibbonTool {
+            action: RibbonAction::Text,
+            label: "Text",
+            icon: Icon::Annotate,
+            hint: "Add sheet text · T",
+        }],
     },
     RibbonGroup {
         label: "Connect",

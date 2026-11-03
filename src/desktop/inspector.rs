@@ -166,12 +166,16 @@ impl App {
             if !collapsed {
                 ui.separator();
                 ui.spacing_mut().scroll = egui::style::ScrollStyle::solid();
-                egui::ScrollArea::vertical()
-                    .id_salt("inspector_body")
-                    .min_scrolled_height(0.0)
-                    .max_height((rect.height() - 67.0).max(0.0))
-                    .auto_shrink([false, false])
-                    .show(ui, |ui| self.property_contents(ui));
+                if self.text_ui.draft.is_some() {
+                    self.text_properties(ui, (rect.height() - 67.0).max(0.0));
+                } else {
+                    egui::ScrollArea::vertical()
+                        .id_salt("inspector_body")
+                        .min_scrolled_height(0.0)
+                        .max_height((rect.height() - 67.0).max(0.0))
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| self.property_contents(ui));
+                }
             }
         });
         if self.inspector.moving()
@@ -214,6 +218,37 @@ impl App {
         }
     }
     fn property_contents(&mut self, ui: &mut egui::Ui) {
+        if self.selection.len() > 1 {
+            let t = theme::current(ui.ctx());
+            controls::section(ui, "SELECTION");
+            ui.label(
+                RichText::new(format!("{} items selected", self.selection.len()))
+                    .font(theme::semibold(t.metrics.heading)),
+            );
+            ui.label(format!(
+                "{} symbols · {} wires · {} text notes",
+                self.selection.symbols.len(),
+                self.selection.wires.len(),
+                self.selection.notes.len()
+            ));
+            ui.label("Drag a selected item to move the group. Shift adds; Ctrl toggles.");
+            if controls::action(
+                ui,
+                "Delete selection",
+                controls::ActionTone::Danger,
+                !self.busy(),
+            )
+            .clicked()
+            {
+                self.delete_selection();
+            }
+            if controls::action(ui, "Clear selection", controls::ActionTone::Secondary, true)
+                .clicked()
+            {
+                self.select(None);
+            }
+            return;
+        }
         if self.nets.selected.is_some() {
             self.net_properties(ui);
             return;
@@ -222,7 +257,7 @@ impl App {
         let doc = self.session.document().clone();
         ui.add_enabled_ui(!self.busy(), |ui| {
             let Some((symbol, c)) = self
-                .selected
+                .selected_symbol()
                 .and_then(|id| doc.component(id).map(|c| (id, c)))
             else {
                 ui.add_space(12.0);
@@ -267,6 +302,18 @@ impl App {
             });
             controls::field_row(ui, "Footprint", |ui| {
                 readonly(ui, "Not assigned");
+            });
+            ui.horizontal(|ui| {
+                if controls::action(ui, "Reference style", controls::ActionTone::Secondary, true)
+                    .clicked()
+                {
+                    self.open_text(pcbcraft_foundation::text::TextTarget::Reference(symbol));
+                }
+                if controls::action(ui, "Value style", controls::ActionTone::Secondary, true)
+                    .clicked()
+                {
+                    self.open_text(pcbcraft_foundation::text::TextTarget::Value(symbol));
+                }
             });
             controls::field_row(ui, "Rotation", |ui| {
                 let turns = doc
@@ -324,7 +371,7 @@ impl App {
         });
     }
     pub(super) fn open_properties(&mut self) {
-        if let Some(symbol) = self.selected
+        if let Some(symbol) = self.selected_symbol()
             && let Some(s) = self
                 .session
                 .document()

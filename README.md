@@ -51,7 +51,17 @@ Right-click a wire, symbol or the sheet for its
 context menu. See [wire editing](docs/wire-editing.md) for exact behavior. **V** selects, **Esc** cancels the active tool,
 **F** fits the drawing, scroll zooms and middle-drag pans. Use **Ctrl+Z / Ctrl+Shift+Z**
 for undo/redo, **Ctrl+S** to save, **Ctrl+O** to open and **S** to search commands.
-Edit reference/value in Properties and click **Apply changes**. File → Open example
+In Select mode, drag empty space with the left button, or right-drag, to box-select.
+Left-to-right selects enclosed items; right-to-left includes touched items.
+Shift adds; Ctrl toggles. Drag a selected group to move it, or Delete to remove it,
+as one undoable edit. A stationary right-click opens the context menu.
+
+**T** or **Capture → Place → Text** adds a sheet note at the last canvas position.
+Click a note, component reference/value or net label to edit its content, font,
+physical height, italic/underline, position offset and optional web link in Properties.
+Drag text to reposition it; Ctrl-click opens a saved HTTP(S) link. **Apply** saves
+one undoable edit; **Reset** reloads the current text. See [selection and text](docs/selection-and-text.md).
+Edit component reference/value in its normal Properties and click **Apply changes**. File → Open example
 loads the demo. Ribbon tabs switch the command groups below them; commands within
 **View → Panels** reopen closed panels. Properties has a close button and a drag
 grip to float or snap left/right; its **…** menu also sets position or collapse.

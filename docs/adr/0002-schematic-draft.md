@@ -47,9 +47,9 @@ adapters remain separate design work. Do not silently load richer documents here
 The four original definitions are pinned by `builtin_definitions_version = 1`
 and retained unchanged in the executable. Definition set 2 adds four original
 multi-pin generic modules. Placing one into a version 1 draft upgrades the set in
-the same transaction; undo restores the prior aggregate. The version 4 envelope
-reader accepts version 1, 2 and 3 files. Version 1 envelopes cannot contain version 2
-module/annotation/link-alias data; saves emit version 4. Version 1 drawings/terminal semantics must not
+the same transaction; undo restores the prior aggregate. The version 5 envelope
+reader accepts version 1–4 files. Version 1 envelopes cannot contain version 2
+module/annotation/link-alias data; saves emit version 5. Version 1 drawings/terminal semantics must not
 silently change. A future general library snapshot format must migrate these
 definitions explicitly. No manufacturer identity, package or footprint is implied.
 
@@ -117,3 +117,30 @@ written snapshot. Existing-file comparison detects prior external edits, but
 does not provide cross-process locking or power-loss/directory durability guarantees.
 Undo history and runtime revision/incarnation are not persisted. Recovery/autosave
 are deferred and must be added before making stronger durability promises.
+
+
+## Version 5: selection and editable text
+
+The version 5 envelope adds a durable `AnnotationId` to each note and a bounded
+`text_overrides` list addressed by typed note/reference/value/net targets.
+Notes allow up to 4096 bytes, including newlines and tabs.
+A text override contains physical height (0.25–12 mm), font enum, italic/underline,
+bounded position offset and optional HTTP(S) URL. No external fonts or URL fetching
+happen during load/render. A user action opens a URL through the desktop integration.
+Labels retain their component or explicit wire identity; strings do not create nets.
+A net appearance edit applies to all current links of that connected group.
+The current draft has no durable net-level styling entity: topology edits may
+remove a carrier; surviving connected overrides are inherited, while overrides for
+deleted carriers are pruned. Undo restores the prior aggregate.
+
+The reader migrates v1–4 notes by assigning IDs; saving v5 makes those IDs durable.
+Old envelopes reject new text IDs/appearance data. Existing bounded decoding,
+unknown-field rejection and atomic save contracts remain. This is still an
+experimental schematic schema, not a finalized electronics-project format.
+
+Selection is runtime presentation state. `MoveItems`, `DeleteItems`, `AddNote` and
+`SetText` go through the same candidate validation, revision check and history as
+other commands. Group/text drag previews bind session incarnation and revision,
+commit once on release, and cancel without mutation. Group motion retains external
+pin anchors, repairs incident authored legs and uses existing overlap normalization.
+No second document/history authority or new dependencies are introduced.

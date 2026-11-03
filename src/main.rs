@@ -13,6 +13,8 @@ fn main() -> eframe::Result {
         capture_properties: false,
         capture_nets: false,
         capture_wire_menu: false,
+        capture_text: false,
+        capture_selection: false,
         open: None,
     };
     let mut compact = false;
@@ -29,10 +31,12 @@ fn main() -> eframe::Result {
             "--capture-properties" => options.capture_properties = true,
             "--capture-nets" => options.capture_nets = true,
             "--capture-wire-menu" => options.capture_wire_menu = true,
+            "--capture-text" => options.capture_text = true,
+            "--capture-selection" => options.capture_selection = true,
             "--capture-compact" => compact = true,
             "--help" | "-h" => {
                 println!(
-                    "PCBcraft — standalone schematic draft\nUsage: pcbcraft [project.pc] [--demo] [--capture image.png] [--capture-workspace | --capture-library | --capture-panels | --capture-search | --capture-properties | --capture-nets | --capture-wire-menu] [--capture-compact] [--exit-after-capture]"
+                    "PCBcraft — standalone schematic draft\nUsage: pcbcraft [project.pc] [--demo] [--capture image.png] [--capture-workspace | --capture-library | --capture-panels | --capture-search | --capture-properties | --capture-nets | --capture-wire-menu | --capture-text | --capture-selection] [--capture-compact] [--exit-after-capture]"
                 );
                 return Ok(());
             }

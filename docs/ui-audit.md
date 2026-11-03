@@ -80,3 +80,21 @@ qualified library use, and compare the rendered result with the user's design.
 Inspect empty, selected, disabled, hover/focus and compact states; a successful
 build alone does not qualify a visual change. Preserve one command authority and
 the existing standalone boundary throughout.
+
+
+## Selection and text follow-up
+
+The November 3 selection/text pass retains shared menu, card, checkbox, field and
+action roles. Window/crossing marquees use contextual selection/accent colors,
+solid/dashed outlines and a hit count. Text Properties uses the existing movable
+card, labelled fields and primary Apply/secondary Reset; Apply remains outside the
+scrolling fields at compact sizes. Component Properties now allows room for the
+reference/value style controls. Notes, attached labels and URLs are document data;
+theme colors and panel placement remain presentation state.
+
+Native captures inspected at 1600×1000 and 1000×700:
+`work/proof/selection-text-inspector.png`, `selection-text-compact.png` and
+`selection-crossing.png`. egui pointer tests cover both selection buttons and
+existing right-click menus, while a compact inspector test checks visible Apply
+and stale/reopened draft rejection. The full suite passes 69 tests (28 headless)
+and warning-free Clippy. See [selection and text](selection-and-text.md) for scope.

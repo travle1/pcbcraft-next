@@ -190,6 +190,8 @@ pub(super) fn library_fixture() -> Result<(App, egui::Context)> {
         capture_properties: false,
         capture_nets: false,
         capture_wire_menu: false,
+        capture_text: false,
+        capture_selection: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -404,7 +406,10 @@ fn ribbon_frame(
     )
 }
 
-fn ribbon_text(output: &egui::FullOutput, label: &str) -> Result<(egui::Rect, egui::Rect)> {
+pub(super) fn ribbon_text(
+    output: &egui::FullOutput,
+    label: &str,
+) -> Result<(egui::Rect, egui::Rect)> {
     output
         .shapes
         .iter()
@@ -437,6 +442,8 @@ fn ribbon_rows_remain_aligned_and_unclipped_at_supported_sizes() -> Result<()> {
             capture_properties: false,
             capture_nets: false,
             capture_wire_menu: false,
+            capture_text: false,
+            capture_selection: false,
             open: None,
         })?;
         let ctx = egui::Context::default();
@@ -539,6 +546,8 @@ fn capture_group_menu_shares_commands_and_disables_planned_edits() -> Result<()>
         capture_properties: false,
         capture_nets: false,
         capture_wire_menu: false,
+        capture_text: false,
+        capture_selection: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -627,6 +636,8 @@ fn schematic_grid_and_fit_are_presentation_only() -> Result<()> {
         capture_properties: false,
         capture_nets: false,
         capture_wire_menu: false,
+        capture_text: false,
+        capture_selection: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -671,6 +682,8 @@ fn ribbon_pointer_targets_dispatch_the_existing_actions() -> Result<()> {
         capture_properties: false,
         capture_nets: false,
         capture_wire_menu: false,
+        capture_text: false,
+        capture_selection: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -721,7 +734,7 @@ fn ribbon_pointer_targets_dispatch_the_existing_actions() -> Result<()> {
     Ok(())
 }
 
-fn workspace_frame(
+pub(super) fn workspace_frame(
     app: &mut App,
     ctx: &egui::Context,
     events: Vec<egui::Event>,
@@ -739,7 +752,7 @@ fn workspace_frame(
     )
 }
 
-fn workspace_click(app: &mut App, ctx: &egui::Context, pos: egui::Pos2) {
+pub(super) fn workspace_click(app: &mut App, ctx: &egui::Context, pos: egui::Pos2) {
     for pressed in [true, false] {
         workspace_frame(
             app,
@@ -789,6 +802,8 @@ fn workspace_picker_dismissal_and_planned_rows_preserve_editor_state() -> Result
         capture_properties: false,
         capture_nets: false,
         capture_wire_menu: false,
+        capture_text: false,
+        capture_selection: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -799,7 +814,7 @@ fn workspace_picker_dismissal_and_planned_rows_preserve_editor_state() -> Result
     app.tool = Tool::Place(PartKind::Resistor);
     let document = app.session.document().clone();
     let revision = app.session.revision();
-    let selected = app.selected;
+    let selected = app.selected_symbol();
     let output = workspace_frame(&mut app, &ctx, vec![]);
     // Open through the icon area, not only the tiny Workspace caption.
     let opener = ribbon_text(&output, "Schematic")?.0.center() - egui::vec2(0.0, 30.0);
@@ -839,7 +854,7 @@ fn workspace_picker_dismissal_and_planned_rows_preserve_editor_state() -> Result
     );
     assert_eq!(app.session.document(), &document);
     assert_eq!(app.session.revision(), revision);
-    assert_eq!(app.selected, selected);
+    assert_eq!(app.selected_symbol(), selected);
     assert!(!app.session.dirty());
     Ok(())
 }
@@ -858,6 +873,8 @@ fn expanded_workspace_cards_keep_reference_geometry_and_readable_type() -> Resul
             capture_properties: false,
             capture_nets: false,
             capture_wire_menu: false,
+            capture_text: false,
+            capture_selection: false,
             open: None,
         })?;
         let ctx = egui::Context::default();
@@ -937,6 +954,8 @@ fn theme_publication_is_local_and_does_not_change_the_electronics_document() -> 
         capture_properties: false,
         capture_nets: false,
         capture_wire_menu: false,
+        capture_text: false,
+        capture_selection: false,
         open: None,
     })?;
     let before = app.session.document().clone();
@@ -998,6 +1017,8 @@ fn empty_workspace_display_controls_are_visible() -> Result<()> {
         capture_properties: false,
         capture_nets: false,
         capture_wire_menu: false,
+        capture_text: false,
+        capture_selection: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -1041,6 +1062,8 @@ fn desktop_save_reopen_and_failed_open_keep_session_contract() -> Result<()> {
         capture_properties: false,
         capture_nets: false,
         capture_wire_menu: false,
+        capture_text: false,
+        capture_selection: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -1092,6 +1115,8 @@ fn file_dialog_blocks_edits_and_pending_capture_survives_frames() -> Result<()> 
         capture_properties: false,
         capture_nets: false,
         capture_wire_menu: false,
+        capture_text: false,
+        capture_selection: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -1140,6 +1165,8 @@ fn dirty_project_requires_resolution_before_new_document() -> Result<()> {
         capture_properties: false,
         capture_nets: false,
         capture_wire_menu: false,
+        capture_text: false,
+        capture_selection: false,
         open: None,
     })?;
     app.command(Command::Place {
@@ -1163,7 +1190,7 @@ fn ribbon_tabs_switch_command_sets_without_opening_panels() -> Result<()> {
     let (mut app, ctx) = library_fixture()?;
     app.library = false;
     let before = app.session.document().clone();
-    let selection = app.selected;
+    let selection = app.selected_symbol();
     let panels = (app.browser, app.properties, app.filters, app.drawer);
     for (label, tab, tool) in [
         ("Analyze", ribbon::Tab::Analyze, "ERC"),
@@ -1182,7 +1209,7 @@ fn ribbon_tabs_switch_command_sets_without_opening_panels() -> Result<()> {
             (app.browser, app.properties, app.filters, app.drawer),
             panels
         );
-        assert_eq!(app.selected, selection);
+        assert_eq!(app.selected_symbol(), selection);
         assert_eq!(app.session.document(), &before);
         let output = workspace_frame(&mut app, &ctx, vec![]);
         assert!(
@@ -1388,7 +1415,7 @@ fn net_browser_selects_and_names_real_connectivity_with_undo() -> Result<()> {
     output.drop_without_applying_deltas();
     workspace_click(&mut app, &ctx, row);
     assert_eq!(app.nets.selected.as_ref(), Some(&net.anchor));
-    assert!(app.selected.is_none());
+    assert!(app.selected_symbol().is_none());
     for _ in 0..3 {
         workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
     }
@@ -1432,7 +1459,7 @@ fn canvas_context_menu_stays_open_and_deletes_the_clicked_wire() -> Result<()> {
     app.session = Session::new(Document::empty("Context menu")?)?;
     app.canvas = Default::default();
     app.canvas.fit = false;
-    app.selected = None;
+    app.selection.clear();
     app.session.apply(
         0,
         Command::DrawWire {

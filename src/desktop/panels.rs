@@ -86,10 +86,14 @@ impl Layout {
         };
         let property_height: f32 = if app.panel_ui.properties_collapsed || right_library {
             50.0
+        } else if app.text_ui.draft.is_some() {
+            600.0
+        } else if app.selection.len() > 1 {
+            260.0
         } else if app.nets.selected.is_some() {
             420.0
-        } else if app.selected.is_some() {
-            322.0
+        } else if app.selected_symbol().is_some() {
+            370.0
         } else {
             152.0
         };
@@ -358,7 +362,8 @@ impl App {
         if ui
             .add_sized(
                 [ui.available_width(), 28.0],
-                egui::Button::new("Main    ·    1 sheet").selected(self.selected.is_none()),
+                egui::Button::new("Main    ·    1 sheet")
+                    .selected(self.selected_symbol().is_none()),
             )
             .clicked()
         {
@@ -376,7 +381,7 @@ impl App {
         });
         for s in &doc.symbols {
             if let Some(c) = doc.component(s.id) {
-                let selected = self.selected == Some(s.id);
+                let selected = self.selection.symbols.contains(&s.id);
                 if ui
                     .add_enabled_ui(!self.busy(), |ui| {
                         controls::tree_row(ui, &format!("{}   {}", c.reference, c.value), selected)
@@ -506,7 +511,7 @@ impl App {
                         [ui.available_width(), 24.0],
                         egui::Button::new(label)
                             .frame(false)
-                            .selected(self.selected == Some(symbol.id)),
+                            .selected(self.selected_symbol() == Some(symbol.id)),
                     )
                     .clicked()
                 {
@@ -526,7 +531,9 @@ impl App {
         ui.horizontal(|ui| {
             let mut all = self.canvas.symbols_selectable
                 && self.canvas.pins_selectable
-                && self.canvas.nets_selectable;
+                && self.canvas.nets_selectable
+                && self.canvas.texts_selectable
+                && self.canvas.labels_selectable;
             if controls::checkbox(ui, &mut all, "All items")
                 .on_hover_text("All supported selectable item types")
                 .changed()
@@ -534,12 +541,16 @@ impl App {
                 self.canvas.symbols_selectable = all;
                 self.canvas.pins_selectable = all;
                 self.canvas.nets_selectable = all;
+                self.canvas.texts_selectable = all;
+                self.canvas.labels_selectable = all;
             }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.small_button("Reset").clicked() {
                     self.canvas.symbols_selectable = true;
                     self.canvas.pins_selectable = true;
                     self.canvas.nets_selectable = true;
+                    self.canvas.texts_selectable = true;
+                    self.canvas.labels_selectable = true;
                 }
             });
         });
@@ -567,6 +578,10 @@ impl App {
                     if *label == "Wires" {
                         controls::checkbox(ui, &mut self.canvas.nets_selectable, "Wires")
                             .on_hover_text("Select the connected net from a wire or alias stub");
+                    } else if *label == "Text" {
+                        controls::checkbox(ui, &mut self.canvas.texts_selectable, "Text");
+                    } else if *label == "Labels" {
+                        controls::checkbox(ui, &mut self.canvas.labels_selectable, "Labels");
                     } else {
                         ui.add_enabled_ui(false, |ui| {
                             controls::checkbox(ui, &mut unavailable, label)

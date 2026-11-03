@@ -25,7 +25,7 @@ struct Entry {
     icon: Icon,
     key: &'static str,
 }
-const ENTRIES: [Entry; 10] = [
+const ENTRIES: [Entry; 11] = [
     Entry {
         id: "symbol",
         name: "Place symbol",
@@ -39,6 +39,13 @@ const ENTRIES: [Entry; 10] = [
         path: "CAPTURE › CONNECT",
         icon: Icon::Wire,
         key: "W",
+    },
+    Entry {
+        id: "text",
+        name: "Add text",
+        path: "CAPTURE › PLACE",
+        icon: Icon::Annotate,
+        key: "T",
     },
     Entry {
         id: "fit",
@@ -312,6 +319,7 @@ impl App {
             self.query.clear();
             match id {
                 "symbol" => self.library = true,
+                "text" => self.add_note(self.canvas.last_world),
                 "wire" => {
                     self.tool = Tool::Wire;
                     self.canvas.wire_start = None;

@@ -27,7 +27,7 @@ Annotate and Sync, with group dropdowns. Unimplemented actions and ribbon custom
 Libraries, Manage and View select their own command groups; tab selection never
 opens a panel or edits a document. The canvas uses finer strokes/labels and bounded
 fit magnification. Fit reserves the actual panel widths, including compact windows;
-values and pin details hide below 25% zoom while references/connectivity remain. Symbols, Pins and Wires can be filtered; other selection types are
+values and pin details hide below 25% zoom while references/connectivity remain. Symbols, Pins, Wires, Labels and Text can be filtered; other selection types are
 planned. View controls grid/snap and pin/wire visibility.
 
 The parts browser replaces the old centered symbol dialog. It has searchable
@@ -71,7 +71,7 @@ uses a bounded, strictly versioned draft envelope described in
 
 ## Deliberate limits
 
-This slice has one sheet, single-unit components and single selection. Legacy links have derived orthogonal paths with pin/body avoidance. New wires
+This slice has one sheet and single-unit components. Box selection supports symbols, wires and sheet notes; mixed group movement/deletion commits atomically. See [selection and text](selection-and-text.md). Legacy links have derived orthogonal paths with pin/body avoidance. New wires
 support free endpoints, authored bends and explicit branches, with direct deletion
 and right-click actions. Select mode drags segments, corners and free junctions;
 previews commit once on release. Manual routes do not automatically avoid bodies
@@ -99,8 +99,9 @@ an explicit early milestone in [its spec](specs/ai-authoring.md), not inferred f
 the existence of a headless command enum.
 
 Undo is limited to 32 document snapshots and is not persisted. Autosave, crash
-recovery, cross-process file locking and general migrations remain work. The version 4 draft reader accepts
-versions 1, 2 and 3, preserving their symbol definitions and path/alias presentation. External-edit comparison is not a lock against a simultaneous
+recovery, cross-process file locking and general migrations remain work. The version 5 draft reader accepts
+versions 1–4, preserving symbol definitions and path/alias presentation while assigning
+legacy notes durable identities. Version 5 stores text appearance and web links. External-edit comparison is not a lock against a simultaneous
 writer between comparison and replacement. Saved drafts pin the built-in catalog
 version; they do not yet embed general library definitions/assets. Settings and
 panel layouts are currently session-local. Dark theme is implemented; full

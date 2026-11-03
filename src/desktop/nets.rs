@@ -216,6 +216,17 @@ impl App {
                 });
             }
         });
+        if controls::action(
+            ui,
+            "Text appearance…",
+            controls::ActionTone::Secondary,
+            !self.busy(),
+        )
+        .clicked()
+            && let Some(id) = net.links.first()
+        {
+            self.open_text(pcbcraft_foundation::text::TextTarget::Net(*id));
+        }
         controls::section(ui, "CONNECTED PINS");
         for pin in &net.terminals {
             let c = doc.component(pin.symbol);
