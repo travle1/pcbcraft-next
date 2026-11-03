@@ -13,3 +13,6 @@ pub mod persistence;
 pub mod session;
 
 pub mod wiring;
+
+pub mod selection;
+pub mod text;

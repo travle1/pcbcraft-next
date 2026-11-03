@@ -208,12 +208,22 @@ fn v4_rejects_invalid_geometry_and_fake_legacy_envelopes() -> Result<()> {
     let mut invalid = s.document().clone();
     invalid.wires[0].bends = Some(vec![p(1, 1)]);
     assert!(persistence::encode(&invalid).is_err());
-    // v3 pin-only drawings still read unchanged.
+    // v3 pin-only drawings retain their content while legacy notes gain identity.
     let demo = Session::demo()?;
-    let old = String::from_utf8(persistence::encode(demo.document())?)
-        .map_err(|e| e.to_string())?
-        .replace(persistence::FORMAT, "pcbcraft-schematic-draft/3");
-    assert_eq!(persistence::decode(old.as_bytes())?, *demo.document());
+    let mut expected = demo.document().clone();
+    let mut raw = serde_json::to_value(&expected).map_err(|e| e.to_string())?;
+    for note in raw["annotations"].as_array_mut().ok_or("No notes")? {
+        note.as_object_mut().ok_or("Bad note")?.remove("id");
+    }
+    let bytes = serde_json::to_vec(
+        &serde_json::json!({"format":"pcbcraft-schematic-draft/3","document":raw}),
+    )
+    .map_err(|e| e.to_string())?;
+    let decoded = persistence::decode(&bytes)?;
+    for (old, new) in expected.annotations.iter_mut().zip(&decoded.annotations) {
+        old.id = new.id;
+    }
+    assert_eq!(decoded, expected);
     Ok(())
 }
 

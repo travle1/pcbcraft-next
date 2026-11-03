@@ -5,7 +5,7 @@ use std::{
     io::{Read, Write},
     path::Path,
 };
-pub const FORMAT: &str = "pcbcraft-schematic-draft/4";
+pub const FORMAT: &str = "pcbcraft-schematic-draft/5";
 pub const MAX_BYTES: usize = 4 * 1024 * 1024;
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -29,13 +29,52 @@ pub fn decode(bytes: &[u8]) -> Result<Document> {
     if bytes.len() > MAX_BYTES {
         return Err("Draft exceeds the 4 MiB limit.".into());
     }
-    let value: Envelope =
+    let mut raw: serde_json::Value =
         serde_json::from_slice(bytes).map_err(|e| format!("Invalid draft: {e}"))?;
+    let format = raw
+        .get("format")
+        .and_then(serde_json::Value::as_str)
+        .ok_or("Missing draft format.")?
+        .to_owned();
+    if [
+        "pcbcraft-schematic-draft/1",
+        "pcbcraft-schematic-draft/2",
+        "pcbcraft-schematic-draft/3",
+        "pcbcraft-schematic-draft/4",
+    ]
+    .contains(&format.as_str())
+    {
+        if raw["document"].get("text_overrides").is_some() {
+            return Err("Text formatting requires draft version 5.".into());
+        }
+        if let Some(notes) = raw
+            .get_mut("document")
+            .and_then(|d| d.get_mut("annotations"))
+            .and_then(serde_json::Value::as_array_mut)
+        {
+            if notes.len() > 256 {
+                return Err("Too many sheet notes.".into());
+            }
+            for note in notes {
+                let object = note.as_object_mut().ok_or("Invalid sheet note.")?;
+                if object.contains_key("id") {
+                    return Err("Text identities require draft version 5.".into());
+                }
+                object.insert(
+                    "id".into(),
+                    serde_json::to_value(crate::document::AnnotationId::fresh()?)
+                        .map_err(|e| e.to_string())?,
+                );
+            }
+        }
+    }
+    let value: Envelope = serde_json::from_value(raw).map_err(|e| format!("Invalid draft: {e}"))?;
     if ![
         FORMAT,
         "pcbcraft-schematic-draft/1",
         "pcbcraft-schematic-draft/2",
         "pcbcraft-schematic-draft/3",
+        "pcbcraft-schematic-draft/4",
     ]
     .contains(&value.format.as_str())
     {
@@ -48,7 +87,12 @@ pub fn decode(bytes: &[u8]) -> Result<Document> {
     {
         return Err("Version 1 does not support version 2 data.".into());
     }
-    if value.format != FORMAT
+    if [
+        "pcbcraft-schematic-draft/1",
+        "pcbcraft-schematic-draft/2",
+        "pcbcraft-schematic-draft/3",
+    ]
+    .contains(&value.format.as_str())
         && (!value.document.junctions.is_empty()
             || value
                 .document

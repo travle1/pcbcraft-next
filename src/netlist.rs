@@ -222,6 +222,7 @@ pub fn preview_disconnect(doc: &Document, wire: WireId) -> Result<DisconnectPrev
             }
         }
     }
+    crate::text::prune(&mut next);
     next.validate()?;
     Ok(DisconnectPreview {
         document: next,

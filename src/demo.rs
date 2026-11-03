@@ -168,6 +168,7 @@ pub fn fan_controller() -> Result<Document> {
         ),
     ] {
         d.annotations.push(Annotation {
+            id: AnnotationId::fresh()?,
             at: point(x, y),
             text: text.into(),
         });

@@ -28,6 +28,7 @@ identity!(ComponentId);
 identity!(SymbolId);
 identity!(WireId);
 identity!(JunctionId);
+identity!(AnnotationId);
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -226,6 +227,7 @@ fn is_false(value: &bool) -> bool {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Annotation {
+    pub id: AnnotationId,
     pub at: Point,
     pub text: String,
 }
@@ -245,6 +247,8 @@ pub struct Document {
     pub junctions: Vec<Junction>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub annotations: Vec<Annotation>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub text_overrides: Vec<crate::text::Override>,
 }
 impl Document {
     pub fn empty(name: &str) -> Result<Self> {
@@ -258,6 +262,7 @@ impl Document {
             wires: Vec::new(),
             junctions: Vec::new(),
             annotations: Vec::new(),
+            text_overrides: Vec::new(),
         };
         doc.validate()?;
         Ok(doc)
@@ -420,12 +425,28 @@ impl Document {
                 return Err("A display label cannot describe disconnected groups.".into());
             }
         }
+        let mut text_ids = BTreeSet::new();
+        if self.annotations.iter().any(|a| !text_ids.insert(a.id)) {
+            return Err("Duplicate text identity.".into());
+        }
+        let mut targets = BTreeSet::new();
+        if self.text_overrides.len() > MAX_ITEMS * 4 {
+            return Err("Too many text overrides.".into());
+        }
+        for item in &self.text_overrides {
+            if !targets.insert(item.target) || !item.target.exists(self) {
+                return Err("Invalid or duplicate text target.".into());
+            }
+            item.appearance.validate()?;
+        }
         if self.annotations.len() > 256
             || self.annotations.iter().any(|a| {
                 !a.at.valid()
                     || a.text.is_empty()
-                    || a.text.len() > 128
-                    || a.text.chars().any(char::is_control)
+                    || a.text.len() > 4096
+                    || a.text
+                        .chars()
+                        .any(|c| c.is_control() && c != '\n' && c != '\t')
             })
         {
             return Err("Invalid sheet annotation.".into());

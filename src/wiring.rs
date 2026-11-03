@@ -348,6 +348,7 @@ pub fn preview_edit(doc: &Document, edit: &WireEdit) -> Result<Document> {
                     *w = old.clone();
                 }
             }
+            crate::text::prune(&mut next);
             next.validate()?;
             return Ok(next);
         }
@@ -473,6 +474,7 @@ pub fn preview_edit(doc: &Document, edit: &WireEdit) -> Result<Document> {
         }
     }
     heal_overlaps(doc, &mut next)?;
+    crate::text::prune(&mut next);
     next.validate()?;
     Ok(next)
 }

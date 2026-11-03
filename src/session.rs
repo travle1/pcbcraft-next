@@ -3,6 +3,23 @@ use crate::document::*;
 
 #[derive(Clone, Debug)]
 pub enum Command {
+    AddNote {
+        at: Point,
+        text: String,
+    },
+    SetText {
+        target: crate::text::TextTarget,
+        content: String,
+        appearance: crate::text::Appearance,
+    },
+    DeleteItems {
+        items: crate::selection::Selection,
+    },
+    MoveItems {
+        items: crate::selection::Selection,
+        delta: Point,
+        routes: Vec<crate::wiring::Projection>,
+    },
     Place {
         kind: PartKind,
         at: Point,
@@ -107,6 +124,22 @@ impl Session {
         let mut next = self.doc.clone();
         let mut created = None;
         match command {
+            Command::AddNote { at, text } => next.annotations.push(Annotation {
+                id: AnnotationId::fresh()?,
+                at,
+                text,
+            }),
+            Command::SetText {
+                target,
+                content,
+                appearance,
+            } => crate::text::edit(&mut next, target, content, appearance)?,
+            Command::DeleteItems { items } => crate::selection::delete(&mut next, &items)?,
+            Command::MoveItems {
+                items,
+                delta,
+                routes,
+            } => next = crate::selection::moved(&next, &items, delta, &routes)?,
             Command::Place { kind, at } => {
                 if kind.is_block() {
                     next.builtin_definitions_version = 2;
@@ -235,6 +268,7 @@ impl Session {
         if repair {
             crate::wiring::repair_moved_endpoints(&self.doc, &mut next)?;
         }
+        crate::text::prune(&mut next);
         next.validate()?;
         if next != self.doc {
             self.undo.push(std::mem::replace(&mut self.doc, next));

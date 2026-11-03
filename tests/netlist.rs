@@ -186,11 +186,20 @@ fn removing_cycle_link_does_not_split_and_v2_read_preserves_aliases() -> Result<
     for w in &mut legacy.wires {
         w.draw_path = false;
     }
-    let text = String::from_utf8(persistence::encode(&legacy)?).map_err(|e| e.to_string())?;
-    let decoded = persistence::decode(
-        text.replace(persistence::FORMAT, "pcbcraft-schematic-draft/2")
-            .as_bytes(),
-    )?;
+    let mut raw = serde_json::to_value(&legacy).map_err(|e| e.to_string())?;
+    if let Some(notes) = raw["annotations"].as_array_mut() {
+        for note in notes {
+            note.as_object_mut().ok_or("Invalid note")?.remove("id");
+        }
+    }
+    let bytes = serde_json::to_vec(&serde_json::json!({
+        "format": "pcbcraft-schematic-draft/2", "document": raw
+    }))
+    .map_err(|e| e.to_string())?;
+    let mut decoded = persistence::decode(&bytes)?;
+    for (old, migrated) in legacy.annotations.iter_mut().zip(&mut decoded.annotations) {
+        old.id = migrated.id;
+    }
     assert_eq!(decoded, legacy);
     Ok(())
 }
