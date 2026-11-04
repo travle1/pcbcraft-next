@@ -49,7 +49,7 @@ and retained unchanged in the executable. Definition set 2 adds four original
 multi-pin generic modules. Placing one into a version 1 draft upgrades the set in
 the same transaction; undo restores the prior aggregate. The version 5 envelope
 reader accepts version 1–4 files. Version 1 envelopes cannot contain version 2
-module/annotation/link-alias data; legacy single-sheet saves emitted version 5; the desktop now emits project version 6 (below). Version 1 drawings/terminal semantics must not
+module/annotation/link-alias data; legacy single-sheet saves emitted version 5; the desktop now emits project version 7 (below). Version 1 drawings/terminal semantics must not
 silently change. A future general library snapshot format must migrate these
 definitions explicitly. No manufacturer identity, package or footprint is implied.
 
@@ -148,7 +148,7 @@ No second document/history authority or new dependencies are introduced.
 
 ## Version 6: complete schematic projects
 
-The desktop now uses `pcbcraft-project-draft/6` and whole-project IO. The project
+The desktop now uses `pcbcraft-project-draft/7` and whole-project IO. The project
 aggregate contains sheet definitions, an explicit occurrence tree, parent sheet
 symbols and stable interface ports. Wires may terminate at component pins,
 junctions, child ports or parent sheet pins. One Session owns the aggregate and
@@ -160,3 +160,17 @@ or multi-sheet v6 input rather than lose data. Whole-project saves retain the
 existing 4 MiB bound, external-byte-change check and atomic replacement behavior.
 This experimental strict JSON schema still does not settle the final native EDA
 container, and adds no KiCad, recovery, layout or manufacturing compatibility.
+
+## Page geometry and text boxes
+
+Project draft 7 and single-sheet draft 6 add optional per-definition `page`
+(size preset/orientation; omitted default is A3 landscape) and note appearance
+`box_size` (nanometre wrap width/minimum height). Both use the Electronics session
+and are undoable. Box dimensions are bounded to 0.5–500 mm and only apply to notes.
+Text grows vertically to preserve content; the page itself never clips geometry.
+
+Readers still accept project draft 6 and single-sheet drafts 1–5. Migration leaves
+positions and identities intact; old files receive the current default page guide.
+New page/box data cannot be smuggled into old format envelopes. Unknown page sizes,
+invalid dimensions and unsupported fields fail validation. Grid/snap spacing and
+guide visibility remain session-local view state; manufacturing output is unrelated.

@@ -6,9 +6,11 @@ save authorities at runtime. Layout and cross-view rendering remain future work.
 
 ## Use the editor
 
-- **Manage → Sheets → New sheet** creates a flat sheet at project level.
-- **Manage → Sheets → Subsheet** creates a child of the active sheet and a
-  corresponding sheet symbol in its parent. Creation opens the child.
+- **Capture → Sheets → New sheet** (also under Manage) creates a flat sheet at project level.
+- **Capture → Sheets → Subsheet** (also under Manage) configures a child block.
+  **Place on sheet** starts a cursor preview; click in the parent to create it.
+  Further clicks create more blocks with unique suffixed names. Stay in the parent;
+  right-click/Esc finishes, then double-click a block to open its child.
 - The **Project / Sheets / sheet context menus** expose the same creation actions;
   a sheet context menu also offers rename, interface ports and reviewed deletion.
 - In either creation dialog, choose a new empty definition or reuse an existing
@@ -20,9 +22,10 @@ save authorities at runtime. Layout and cross-view rendering remain future work.
   siblings; children nest beneath their parent. Camera and component selection
   are retained per occurrence during the current session. The breadcrumb and
   sheet count track the active occurrence.
-- **Capture → Place → Port** adds a named interface port at the last canvas
-  position. Add its input/output/bidirectional/passive direction, then wire the
-  port anchor using **W**, just like a component pin. Direction is recorded;
+- **Capture → Place → Port** configures a named interface port and direction.
+  **Place on sheet** starts its preview; click to place, repeat as needed, and
+  right-click/Esc to finish. Names gain a numeric suffix for additional ports.
+  Wire the port anchor using **W**, just like a component pin. Direction is recorded;
   it does not imply ERC has run.
 - Parent sheet symbols expose matching port anchors automatically. Wire their
   pins in the parent to connect parent and child circuits. Adding, renaming,
@@ -103,8 +106,8 @@ not KiCad/SPICE interchange or an electrical validation report.
 
 ## Persistence, limits and acceptance
 
-The desktop now saves `pcbcraft-project-draft/6`, with a complete project envelope.
-The bounded v1–5 single-sheet reader migrates old files; legacy single-sheet APIs
+The desktop now saves `pcbcraft-project-draft/7`, with a complete project envelope, persisted page presets and optional text-box dimensions.
+The bounded single-sheet v1–6 and project v6 readers migrate old files; legacy single-sheet APIs
 reject hierarchy/multiple-sheet files instead of silently dropping content. Strict
 validation rejects dangling mappings, missing occurrences, cycles, duplicate branch
 names/IDs, unsupported fields and invalid coordinates. Limits are 64 definitions,
@@ -126,3 +129,17 @@ annotation, global labels, buses, ERC, KiCad hierarchy interchange or board layo
 Sheet/port moves currently use their own dedicated selection/drag controls; they
 are not included in component/wire/text group moves. These bounds are intentional,
 not hidden claims of full hierarchical EDA compatibility.
+
+## Page and placement contracts
+
+A4, A3 (default), A2 and Letter page presets plus orientation belong to the sheet
+**definition**. View → Page changes them through the project session, with stale
+revision checks and undo. The frame is centered at the document origin and never
+moves/clips content. Old files receive the new default guide without asserting
+that they previously had A3 intent. Guide visibility, camera and grid are view state.
+
+Choosing a placement command, moving its preview or cancelling does not create
+parts, ports or child sheets. Each canvas click is one undoable transaction. Undo,
+reopen or a different sheet/revision invalidates pending sheet-object placement.
+Fresh child definitions stay independent; explicitly reused definitions stay shared.
+Flat sheet creation has no canvas object to position and opens the new sheet directly.

@@ -15,3 +15,9 @@ rsvg-convert -w 256 -h 256 assets/original/pcbcraft.svg -o assets/original/pcbcr
 The native icon keeps its brand colors. The in-app icon follows semantic theme
 roles. Browser symbol categories/items use `place-symbol.svg`, the same glyph as
 the Capture ribbon; the app mark does not stand in for an electrical symbol.
+
+`subsheet.svg` is an original linked parent/child sheet glyph for the Capture and
+Manage ribbons. It uses the existing semantic icon colors and root project license.
+
+`text.svg` is an original T inside a dashed text frame, used for text-box placement.
+It shares the same semantic theme colors and original-project licensing.

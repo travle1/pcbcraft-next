@@ -177,3 +177,41 @@ shared theme/control roles remain in use.
 
 An original layered-board/P mark replaces the chip in the title bar and supplies
 the native OS window icon. See [original asset provenance](../assets/original/README.md).
+
+## Page composition, deliberate placement and ribbon controls
+
+The user's density correction supersedes the compact-demo arrangement above.
+Reviewed their actual `schematic-proximity-guide.png` and `schematic-sheet-boundary.png`
+pixels, plus the read-only `proximity_guide.py` and `sheet_boundary_view.py` recipes.
+The circuit now has wider group spacing inside a fixed A3 landscape guide.
+Dashed edges use a semantic theme role; Always/Automatic/Off behavior is independent
+of saved page size and electrical validity. Auto reveals nearby edge segments while
+placing/dragging. Page edges are clipped before dash tessellation at high zoom.
+
+Capture now keeps Port and Text in Place, with New sheet/Subsheet in an adjacent
+Sheets group. At compact widths, planned Power/Bus/Label/Rules/BOM tools remain
+in their group menus instead of squeezing working labels. View has a Grid group:
+visibility, snap and spacing presets. Zoom percentage sits beside the navigation
+controls, with no grid/snap cluster in the bottom-right status corner.
+
+Symbols, ports, subsheets and text preview under the cursor; click/release commits,
+right-click/Esc cancels, repeated clicks keep placement active. New flat sheets
+open directly. Subsheet blocks stay in the parent until explicitly opened. Text
+uses a text cursor and dashed box while dragging; its width and minimum height
+are saved and editable in Properties. Taller text grows rather than disappearing.
+The original text/subsheet glyphs and existing registered family grid master are
+used instead of a list icon or board-layout icon.
+
+Native captures reviewed at `work/proof/page-{schematic,compact,view,view-compact,
+text-placement,library,commands}.png` cover 1600×1000/1000×700, the dedicated Grid
+controls and real text placement preview. The two extra capture flags are
+`--capture-view` and `--capture-text-placement`; the latter injects a primary-pointer
+drag into the inactive proof window, without creating a document note. These are
+real rendered UI captures, not composited mockups. README captures are refreshed.
+
+Validation: 94 desktop/core tests, 38 headless tests, formatting, Cargo check/build
+and Clippy. New contracts cover page migration/shared definitions/undo, raw wheel
+anchor and no idle tail, bounded guide painting, ribbon/dialog dispatch, repeated
+placement/cancellation/stale drafts, box persistence and real pointer sizing,
+and grid spacing/snap. Curated demo text/wire clearance passes at both sizes.
+This is not a performance benchmark, electrical validation or a general arranger.

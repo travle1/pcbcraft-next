@@ -36,7 +36,7 @@ version 3: Controller24, DigitalTemperatureSensor, Oscillator and Header6. Exist
 catalog version 1/2 definitions retain their geometry and pin identities. Placing
 a newer type upgrades the document's catalog version in the same undo transaction.
 Older files remain readable; older applications cannot open catalog-3 documents.
-The native project envelope remains version 6.
+The native project envelope is now version 7; legacy version 6 remains readable.
 
 Local routes are authored orthogonal segments with explicit junctions. Remote
 signals/power use explicit alias edges; equal text alone never establishes a net.
@@ -46,7 +46,7 @@ Net names prefer a sufficiently long horizontal run; GND names sit below it.
 Reference/value positions for vertical components leave more space from rails.
 
 Measured render tests check reference/value clearance from authored wires at
-1000×700 and 1600×1000, plus text-to-text clearance at 1600×1000. Notes also clear the authored wires. Fit-sheet is an
+1000×700 and 1600×1000, plus text-to-text clearance at 1600×1000. Notes also clear the authored wires. Fit-page is an
 overview: net names, values and pin detail appear from 25% zoom, avoiding crowded
 minimum-size labels at compact widths. These checks
 protect this curated example, not arbitrary user drawings. General automatic
@@ -56,3 +56,9 @@ Opening a new example uses this composition. Existing saved projects keep their
 own placements and text settings. The renderer still supplies bounded display
 routes for un-authored links; authored routes follow the manual wire editor's
 behavior. See [wire editing](wire-editing.md).
+
+The current composition uses an A3 landscape page with a quiet dashed boundary.
+Functional groups have wider gaps and shorter local clusters around the controller;
+the page supplies a stable composition frame instead of packing parts to the window.
+The input values and sensor pull-up reference have explicit clearance offsets.
+F fits content; Shift+F fits the page. Existing saved placements are unchanged.

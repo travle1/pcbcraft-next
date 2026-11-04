@@ -10,8 +10,8 @@ a visible wire, a free endpoint/junction, or empty sheet to begin. Clicking empt
 sheet adds an orthogonal leg/corner. **Space** flips the next elbow orientation;
 **Backspace** removes the last preview corner. Clicking a pin or wire finishes and
 connects. **Enter** or double-click finishes with a free endpoint. **Esc** cancels
-the unfinished wire and returns to Select; right-click cancels the preview while
-leaving the wire tool available. Nothing is saved until the wire is finished.
+the unfinished wire and returns to Select; right-click does the same without
+opening a context menu. Nothing is saved until the wire is finished.
 
 Ending on a segment splits that edge and inserts an explicit junction. Starting
 there creates a branch when finished, not when the first click happens. Ordinary crossings do not join nets. Deliberately drawing or dragging a

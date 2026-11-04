@@ -56,11 +56,12 @@ See the [AI authoring spec and acceptance tasks](docs/specs/ai-authoring.md#next
 ## What works today
 
 - **Schematic editing:** place, move, rotate and inspect twelve built-in symbol
-  types; select groups; edit styled notes, references, values and web links.
+  types with repeat placement; select groups; size text boxes and edit styled
+  notes, references, values and web links.
 - **Editable wiring:** start from pins, wires or empty space; add bends and
   branches; drag segments/corners; delete connections and heal compatible overlaps.
 - **Sheets and hierarchy:** flat sheets, reusable subsheets, interface ports,
-  nested navigation and occurrence-qualified connectivity.
+  nested navigation, page guides and occurrence-qualified connectivity.
 - **Net inspection:** highlight connected terminals, rename nets, review connection
   removal and copy a JSON connectivity report.
 - **Native projects:** one project-wide history and experimental `.pc` save/open,

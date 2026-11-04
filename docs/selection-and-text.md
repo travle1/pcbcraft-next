@@ -29,8 +29,13 @@ remote aliases. Clicking their displayed labels still edits the explicit net.
 ## Text and links
 
 Press **T**, use **Capture → Place → Text**, command search **Add text**, or
-right-click empty sheet space → **Add text**. The shortcut/ribbon use the last
-canvas position; the context menu uses its invocation point. New notes open Properties.
+right-click empty sheet space → **Place text**. These enter placement mode, with
+a text cursor and dashed preview. Drag to set the box size or click to place a
+48 × 18 mm box. Release commits one note and its dimensions atomically and opens
+Properties. Repeat placement until right-click or Esc; cancelling creates nothing.
+The inspector exposes box width and minimum height. Text wraps to width and grows
+vertically when needed, so it is never silently clipped. Existing unboxed notes
+retain their prior presentation. Box size/formatting use the same save/undo authority.
 
 Click a sheet note, component reference/value, or displayed net label to edit it.
 The component inspector also offers **Reference style / Value style**; net Properties
@@ -52,8 +57,9 @@ Ctrl-click on a saved web link takes precedence over Ctrl-toggle selection.
 
 Reference uniqueness, name/connectivity consistency, bounded content, physical size
 and coordinate limits are validated before commit. Text inspector drafts reject
-stale revisions or reopened sessions. New native **v5** saves text IDs, appearance
-and links; v1–4 files remain readable. See [ADR 0002](adr/0002-schematic-draft.md).
+stale revisions or reopened sessions. Native project draft 7 / single-sheet draft 6
+save box dimensions as well as text IDs, appearance and links. Project draft 6
+and older single-sheet drafts remain readable. See [ADR 0002](adr/0002-schematic-draft.md).
 
 ## Limits and verification
 

@@ -163,7 +163,7 @@ broader component/terminal/pad contracts, atomic proposals/idempotency and full
 project asset/library storage; native encoding evolution and .pc associations;
 first KiCad/manufacturing profiles; multi-board MVP limit; density and reference-
 machine budgets. The existing Rust package/desktop target, IDs/quantity bounds and
-experimental version 6 project format are implemented subsets, not open first steps.
+experimental version 7 project format are implemented subsets, not open first steps.
 Standalone deployment and PCBcraft session ownership are decided. PCBcraft launch
 is verified; an independent upstream UI-library extraction is not.
 

@@ -5,8 +5,8 @@ fan-controller example. They are not FigCraft concept images, SolidCraft screens
 or an AI-generated design. The example is an editing illustration, not an
 electrically validated reference circuit.
 
-Captured November 3, 2026 on Linux from desktop code at
-`c4dd083baaf0b3505f80560c1f2249fc5115e73d` (egui/eframe 0.36.2).
+Captured on Linux from desktop code at
+`a405c1209a189aa78f23c08948f328b0f675b5b7` (egui/eframe 0.36.2).
 The three PNGs are unmodified 1600 × 1000 app captures. The GIF retains that size
 and uses a shared 256-color palette. No UI or circuit content was composited.
 
@@ -20,7 +20,9 @@ and uses a shared 256-color palette. No UI or circuit content was composited.
 The GIF is a **tour of captured states**, not a recording of pointer motion or
 completed edits. The main README keeps the animation in an expandable section and
 links all static alternatives. The frames were visually reviewed, and duration,
-dimensions and decoding checked. Total image size is approximately 1.7 MB.
+dimensions and decoding checked. The captures include the roomier A3 page composition, dashed page guide, and
+Capture sheet/text tools. Supplemental native Grid and text-placement captures
+are recorded in the [UI audit](../ui-audit.md).
 
 SolidCraft's [README at the reference pin](https://github.com/tangency-labs/solidcraft/blob/c553365a2197a689e749389a6fbf707a38df9b61/README.md)
 informed the product introduction, real-app media, caption and build/status layout.

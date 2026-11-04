@@ -293,3 +293,19 @@ exact c553365 source modules, narrow adaptations, licenses and replacement plan.
 PCBcraft owns the electronics command list, state and workspace composition.
 This adds another explicitly attributed UI-source adaptation, not a whole-app
 copy or a new dependency. No KiCad implementation or preserved GPL fork was read.
+
+## Page, placement and navigation follow-up
+
+Reviewed the user's `designs/schematic-proximity-guide.png` and
+`designs/schematic-sheet-boundary.png` pixels, and their `proximity_guide.py` /
+`sheet_boundary_view.py` source recipes read-only. The quiet dashed guide, optional
+proximity mode and independent drawing page inform original PCBcraft implementation.
+No user design was edited or executed.
+
+Read SolidCraft's [navigation.rs at c553365](https://github.com/tangency-labs/solidcraft/blob/c553365a2197a689e749389a6fbf707a38df9b61/crates/ui-egui/src/navigation.rs)
+for immediate raw wheel input/units and viewport navigation references. PCBcraft's
+2D pointer-anchor math, bounded page model, placement drafts and text-box editing
+are original code using existing egui APIs; no SolidCraft application dependency
+or new crate was added. Grid uses the already registered/licensed `grid.svg` master;
+text and subsheet glyphs are original. Existing font/control notices still apply.
+The preserved fork and KiCad implementation were not consulted.

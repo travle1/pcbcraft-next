@@ -106,7 +106,7 @@ an explicit early milestone in [its spec](specs/ai-authoring.md), not inferred f
 the existence of a headless command enum.
 
 Undo is limited to 32 whole-project snapshots and is not persisted. Autosave, crash
-recovery, cross-process file locking and general migrations remain work. The version 6 project reader migrates
+recovery, cross-process file locking and general migrations remain work. The version 7 project reader migrates
 versions 1–5, preserving symbol definitions and path/alias presentation while assigning
 legacy notes durable identities. Version 5 stores text appearance and web links. External-edit comparison is not a lock against a simultaneous
 writer between comparison and replacement. Saved drafts pin the built-in catalog
@@ -162,3 +162,18 @@ The loose wire-edge count and permanent scroll instruction footer are removed.
 Only the existing Main sheet is real: **New sheet / New subsheet** are disabled
 with explanations. No multi-sheet schema or hierarchical connectivity is claimed.
 See [sheet workflow prerequisites](sheet-workflows.md).
+
+## Page, placement and grid follow-up
+
+Capture exposes New sheet/Subsheet in Sheets, and Port/Text in Place. Symbol, port,
+subsheet and text tools preview under the cursor and repeat until right-click/Esc.
+Subsheet blocks stay in the parent while placing; flat sheets still open directly.
+Text supports dragging out a box, saved wrap width/minimum height, and undoable
+creation/resizing. Preview movement/cancellation is not a document mutation.
+
+View contains a dedicated Grid group with spacing presets, visibility and Snap,
+plus saved page size/orientation and session-local dashed guide modes. Grid/snap
+readouts were removed from the status corner; zoom is beside navigation. Navigation
+uses immediate raw wheel deltas anchored at the pointer. Authored wire paths skip
+unneeded obstacle collection. These are targeted improvements, not a benchmark or
+a general schematic arranger. The original demo now uses more space within A3.
