@@ -186,7 +186,7 @@ impl App {
             RibbonAction::Port => {
                 self.start_sheet_dialog(super::sheets::Kind::Port(None), self.active_sheet())
             }
-            RibbonAction::Text => self.add_note(self.canvas.last_world),
+            RibbonAction::Text => self.tool = Tool::Text,
             RibbonAction::Wire => {
                 self.tool = Tool::Wire;
                 self.canvas.wire_start = None;

@@ -321,7 +321,10 @@ impl App {
             let hint = if busy {
                 "Finish the file operation before placing parts.".to_owned()
             } else if let Tool::Place(kind) = self.tool {
-                format!("Click the sheet to place {}. Esc cancels.", kind.name())
+                format!(
+                    "Click to place {} repeatedly. Right-click or Esc finishes.",
+                    kind.name()
+                )
             } else if compact {
                 "Drag a part onto the sheet. Float for larger previews.".to_owned()
             } else {

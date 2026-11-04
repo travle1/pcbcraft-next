@@ -993,12 +993,14 @@ impl App {
                             ui.horizontal(|ui| {
                                 let text = match self.tool {
                                     Tool::Place(k) => {
-                                        format!("Place {} · click the sheet", k.name())
+                                        format!("Place {} · click to repeat · right-click/Esc to finish", k.name())
                                     }
                                     Tool::Wire if self.canvas.wire_start.is_some() => {
                                         "Wire · click for bend · connect to pin/wire · Enter finish".into()
                                     }
                                     Tool::Wire => "Wire · click anywhere to start · click a wire to branch".into(),
+                                    Tool::SheetPlacement => "Place sheet object · click to repeat · right-click/Esc to finish".into(),
+                                    Tool::Text => "Place text · click to repeat · right-click/Esc to finish".into(),
                                     Tool::Pan => "Pan · drag the sheet".into(),
                                     Tool::Select => String::new(),
                                 };
@@ -1012,6 +1014,7 @@ impl App {
                                     self.tool = Tool::Select;
                                     self.canvas.wire_start = None;
                                     self.canvas.drag = None;
+                                    self.sheets.cancel_drag();
                                 }
                             });
                         });

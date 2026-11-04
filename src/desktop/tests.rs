@@ -1938,3 +1938,41 @@ fn demo_full_size_text_has_clearance_from_other_labels() -> Result<()> {
     assert!(collisions.is_empty(), "{}", collisions.join("\n"));
     Ok(())
 }
+
+#[test]
+fn symbol_placement_repeats_and_secondary_click_only_cancels() -> Result<()> {
+    let (mut app, ctx) = library_fixture()?;
+    app.library = false;
+    workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    let center = app.layout.bounds.center();
+    let n = app.document().symbols.len();
+    let before = app.session.project().clone();
+    app.tool = Tool::Place(PartKind::Resistor);
+    workspace_frame(&mut app, &ctx, vec![egui::Event::PointerMoved(center)])
+        .drop_without_applying_deltas();
+    assert_eq!(app.session.project(), &before);
+    workspace_click(&mut app, &ctx, center);
+    workspace_click(&mut app, &ctx, center + egui::vec2(45.0, 45.0));
+    assert_eq!(app.document().symbols.len(), n + 2);
+    assert_eq!(app.tool, Tool::Place(PartKind::Resistor));
+    let revision = app.session.revision();
+    for pressed in [true, false] {
+        workspace_frame(
+            &mut app,
+            &ctx,
+            vec![egui::Event::PointerButton {
+                pos: center,
+                button: egui::PointerButton::Secondary,
+                pressed,
+                modifiers: egui::Modifiers::NONE,
+            }],
+        )
+        .drop_without_applying_deltas();
+    }
+    assert_eq!(app.tool, Tool::Select);
+    assert_eq!(app.session.revision(), revision);
+    assert!(!egui::Popup::is_any_open(&ctx));
+    app.history(false);
+    assert_eq!(app.document().symbols.len(), n + 1);
+    Ok(())
+}

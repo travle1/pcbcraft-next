@@ -26,12 +26,14 @@ use pcbcraft_foundation::{
 };
 use std::{path::PathBuf, sync::mpsc, time::Duration};
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Tool {
     Select,
     Pan,
     Wire,
     Place(PartKind),
+    SheetPlacement,
+    Text,
 }
 #[derive(Clone, Copy)]
 enum Action {
@@ -468,7 +470,7 @@ impl App {
             }
         } else {
             if pressed(egui::Key::T) {
-                self.add_note(self.canvas.last_world);
+                self.tool = Tool::Text;
             }
             if pressed(egui::Key::A) {
                 self.library = true;

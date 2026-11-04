@@ -367,7 +367,7 @@ impl App {
                 "sheet.port" => {
                     self.start_sheet_dialog(super::sheets::Kind::Port(None), self.active_sheet())
                 }
-                "text" => self.add_note(self.canvas.last_world),
+                "text" => self.tool = Tool::Text,
                 "wire" => {
                     self.tool = Tool::Wire;
                     self.canvas.wire_start = None;

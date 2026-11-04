@@ -8,6 +8,8 @@ use pcbcraft_foundation::{
     session::Command,
 };
 use std::collections::{BTreeMap, BTreeSet};
+#[path = "sheet_placement.rs"]
+mod placement;
 
 #[derive(Default)]
 pub(super) struct State {
@@ -15,6 +17,7 @@ pub(super) struct State {
     pub folded: BTreeSet<SheetOccurrenceId>,
     cameras: BTreeMap<SheetOccurrenceId, (f32, egui::Vec2, bool, Selection)>,
     pub dialog: Option<Dialog>,
+    placement: Option<placement::Placement>,
     pub selected: Option<Object>,
     drag: Option<Drag>,
 }
@@ -26,6 +29,7 @@ pub(super) enum Object {
 impl State {
     pub fn cancel_drag(&mut self) {
         self.drag = None;
+        self.placement = None;
         self.selected = None;
     }
 }
@@ -37,6 +41,7 @@ struct Drag {
     incarnation: ProjectId,
     revision: u64,
 }
+#[derive(Clone, Copy)]
 pub(super) enum Kind {
     Page,
     Create { parent: Option<SheetOccurrenceId> },
@@ -45,6 +50,7 @@ pub(super) enum Kind {
     Port(Option<PortId>),
     DeletePort(PortId),
 }
+#[derive(Clone)]
 pub(super) struct Dialog {
     page: pcbcraft_foundation::page::Page,
     kind: Kind,
@@ -94,6 +100,7 @@ impl App {
         self.canvas.gesture = None;
         self.canvas.clear_context();
         self.sheets.drag = None;
+        self.sheets.placement = None;
         self.sheets.selected = None;
         self.selection.clear();
         self.text_ui = Default::default();
@@ -284,7 +291,7 @@ impl App {
                         for sheet in self.session.project().definitions() { ui.selectable_value(&mut d.existing, Some(sheet.sheet_id), &sheet.name); }
                     });
                     ui.add_space(8.0);
-                    ui.label(RichText::new(if d.existing.is_some() { "Reusing a definition shares its drawing. Each occurrence keeps distinct physical component identities." } else if matches!(d.kind, Kind::Create { parent: Some(_) }) { "Creates a sheet symbol in the parent and opens the child. Add interface ports in the child to connect its parent pins." } else { "Creates an independent sheet at project level. Local net names do not connect sheets." }).small().color(t.ui.muted));
+                    ui.label(RichText::new(if d.existing.is_some() { "Reusing a definition shares its drawing. Each occurrence keeps distinct physical component identities." } else if matches!(d.kind, Kind::Create { parent: Some(_) }) { "Choose placement, then click in the parent to place each subsheet. Right-click or Esc finishes. Double-click a placed block to open its child." } else { "Creates an independent sheet at project level. Local net names do not connect sheets." }).small().color(t.ui.muted));
                 }
                 if matches!(d.kind, Kind::Port(_)) {
                     ui.add_space(12.0); controls::section(ui, "ELECTRICAL DIRECTION");
@@ -296,10 +303,17 @@ impl App {
             ui.add_space(12.0); ui.separator();
             ui.horizontal(|ui| {
                 if controls::action(ui, "Cancel", controls::ActionTone::Secondary, true).clicked() { close = true; }
-                let label = if destructive { "Delete" } else if matches!(d.kind, Kind::Create { .. }) { "Create sheet" } else { "Apply" };
+                let label = if destructive { "Delete" } else if matches!(d.kind, Kind::Create { parent: Some(_) } | Kind::Port(None)) { "Place on sheet" } else if matches!(d.kind, Kind::Create { .. }) { "Create sheet" } else { "Apply" };
                 if controls::action(ui, label, if destructive { controls::ActionTone::Danger } else { controls::ActionTone::Primary }, !self.busy()).clicked() { apply = true; }
             });
         });
+        if apply && matches!(d.kind, Kind::Create { parent: Some(_) } | Kind::Port(None)) {
+            match self.begin_sheet_placement(&d) {
+                Ok(()) => close = true,
+                Err(error) => d.error = Some(error.to_string()),
+            }
+            apply = false;
+        }
         if apply {
             let command = match d.kind {
                 Kind::Page => project::Command::SetPage {
@@ -763,9 +777,80 @@ mod tests {
         let d = app.sheets.dialog.as_mut().ok_or("Missing dialog")?;
         d.name = name.into();
         d.existing = existing;
-        click_text(app, ctx, "Create sheet")?;
+        if parent.is_some() {
+            click_text(app, ctx, "Place on sheet")?;
+            app.commit_sheet_placement(Point::default());
+            let child = app
+                .session
+                .project()
+                .occurrences
+                .iter()
+                .find(|o| o.parent == parent && o.name == name)
+                .ok_or("New child")?
+                .id;
+            app.sheets.cancel_drag();
+            app.activate_sheet(child);
+        } else {
+            click_text(app, ctx, "Create sheet")?;
+        }
         assert!(app.sheets.dialog.is_none());
         Ok(app.active_sheet())
+    }
+    #[test]
+    fn port_preview_repeats_cancels_and_rejects_changes_during_placement() -> Result<()> {
+        let (mut app, ctx) = library_fixture()?;
+        app.library = false;
+        settle(&mut app, &ctx);
+        let before = app.session.project().clone();
+        let center = app.layout.bounds.center();
+        click_text(&mut app, &ctx, "Port")?;
+        click_text(&mut app, &ctx, "Place on sheet")?;
+        assert_eq!(app.tool, Tool::SheetPlacement);
+        workspace_frame(&mut app, &ctx, vec![egui::Event::PointerMoved(center)])
+            .drop_without_applying_deltas();
+        assert_eq!(app.session.project(), &before);
+        workspace_click(&mut app, &ctx, center);
+        workspace_click(&mut app, &ctx, center + egui::vec2(35.0, 35.0));
+        assert_eq!(app.document().ports.len(), 2);
+        assert_eq!(app.document().ports[0].name, "SIGNAL");
+        assert_eq!(app.document().ports[1].name, "SIGNAL_2");
+        assert_ne!(app.document().ports[0].at, app.document().ports[1].at);
+        let placed = app.session.project().clone();
+        for pressed in [true, false] {
+            workspace_frame(
+                &mut app,
+                &ctx,
+                vec![egui::Event::PointerButton {
+                    pos: center,
+                    button: egui::PointerButton::Secondary,
+                    pressed,
+                    modifiers: egui::Modifiers::NONE,
+                }],
+            )
+            .drop_without_applying_deltas();
+        }
+        assert_eq!(app.tool, Tool::Select);
+        assert!(app.sheets.placement.is_none());
+        assert_eq!(app.session.project(), &placed);
+        assert!(!egui::Popup::is_any_open(&ctx));
+        app.history(false);
+        assert_eq!(app.document().ports.len(), 1);
+        // A concurrent edit invalidates the pending placement, without extra edits.
+        click_text(&mut app, &ctx, "Port")?;
+        app.sheets.dialog.as_mut().ok_or("dialog")?.name = "OTHER".into();
+        click_text(&mut app, &ctx, "Place on sheet")?;
+        app.session.apply(
+            app.session.revision(),
+            Command::AddNote {
+                at: Point::default(),
+                text: "Concurrent edit".into(),
+            },
+        )?;
+        let changed = app.session.project().clone();
+        settle(&mut app, &ctx);
+        assert_eq!(app.tool, Tool::Select);
+        assert_eq!(app.session.project(), &changed);
+        Ok(())
     }
     #[test]
     fn capture_sheet_tools_and_view_page_setup_use_real_project_commands() -> Result<()> {
@@ -791,8 +876,21 @@ mod tests {
             .ok_or("Missing subsheet dialog")?;
         assert!(matches!(d.kind, Kind::Create { parent: Some(id) } if id == flat));
         d.name = "Sensor".into();
-        click_text(&mut app, &ctx, "Create sheet")?;
-        let child = app.active_sheet();
+        let before_placement = app.session.project().clone();
+        click_text(&mut app, &ctx, "Place on sheet")?;
+        assert_eq!(app.session.project(), &before_placement);
+        let center = app.layout.bounds.center();
+        workspace_click(&mut app, &ctx, center);
+        assert_eq!(app.active_sheet(), flat);
+        let child = app
+            .session
+            .project()
+            .occurrences
+            .iter()
+            .find(|o| o.name == "Sensor")
+            .ok_or("placed child")?
+            .id;
+        app.activate_sheet(child);
         assert_eq!(
             app.session
                 .project()
@@ -960,7 +1058,10 @@ mod tests {
             .as_mut()
             .ok_or("Port action did not open")?
             .name = "IN".into();
-        click_text(&mut app, &ctx, "Apply")?;
+        click_text(&mut app, &ctx, "Place on sheet")?;
+        assert!(app.document().ports.is_empty());
+        let center = app.layout.bounds.center();
+        workspace_click(&mut app, &ctx, center);
         assert_eq!(app.document().ports.len(), 1);
         let port_id = app.document().ports[0].id;
         app.activate_sheet(root);

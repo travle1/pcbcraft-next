@@ -59,7 +59,6 @@ struct CanvasContext {
     anchor: Option<Endpoint>,
     symbol: Option<SymbolId>,
     text: Option<TextTarget>,
-    at: Point,
     target: Anchor,
     incarnation: ProjectId,
     revision: u64,
@@ -314,7 +313,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
         doc.page,
         canvas,
         pointer,
-        matches!(app.tool, Tool::Place(_))
+        matches!(app.tool, Tool::Place(_) | Tool::SheetPlacement | Tool::Text)
             || app.canvas.drag.is_some()
             || app.canvas.wire_start.is_some()
             || app.canvas.wire_drag.is_some(),
@@ -864,6 +863,16 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
             );
             ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
         }
+        if app.tool == Tool::Text {
+            painter.text(
+                app.canvas.screen(app.canvas.last_world, canvas),
+                Align2::LEFT_BOTTOM,
+                "New text",
+                FontId::proportional((24.0 * app.canvas.zoom).max(9.0)),
+                t.canvas.selection,
+            );
+            ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
+        }
         if app.tool == Tool::Wire {
             ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
             let target = wire_target(app, &doc, canvas, pos, pin_hit.as_ref(), hit_wire.as_ref());
@@ -936,6 +945,20 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
         }
         return;
     }
+    app.paint_sheet_placement(ui, canvas, pointer);
+    if input_enabled
+        && response.secondary_clicked()
+        && matches!(
+            app.tool,
+            Tool::Place(_) | Tool::SheetPlacement | Tool::Text | Tool::Wire
+        )
+    {
+        app.tool = Tool::Select;
+        app.sheets.cancel_drag();
+        app.canvas.wire_start = None;
+        app.canvas.clear_context();
+        return;
+    }
     if app.sheet_objects(ui, &response, &doc, canvas, input_enabled) {
         return;
     }
@@ -962,7 +985,6 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                     .rev()
                     .find(|(_, r)| r.expand(3.0).contains(pos))
                     .map(|(t, _)| *t),
-                at: app.canvas.world(pos, canvas),
                 target: wire_target(app, &doc, canvas, pos, pin_hit.as_ref(), hit_wire.as_ref()),
                 incarnation: app.session.incarnation,
                 revision: app.session.revision(),
@@ -1112,12 +1134,12 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                         app.library = true;
                         ui.close();
                     }
-                    if MenuItem::new("Add text", Icon::Annotate)
+                    if MenuItem::new("Place text", Icon::Annotate)
                         .shortcut("T")
                         .show(ui)
                         .clicked()
                     {
-                        app.add_note(context.at);
+                        app.tool = Tool::Text;
                         ui.close();
                     }
                     if MenuItem::new("Fit design", Icon::Fit)
@@ -1185,8 +1207,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                     kind,
                     at: app.canvas.last_world,
                 });
-                app.tool = Tool::Select;
             }
+            Tool::Text => app.add_note(app.canvas.last_world),
+            Tool::SheetPlacement => app.commit_sheet_placement(app.canvas.last_world),
             Tool::Wire => {
                 if let Some(pos) = pointer {
                     let target =
@@ -1980,6 +2003,9 @@ mod tests {
             .ok_or("Pointer did not place symbol")?
             .clone();
         assert_eq!(symbol.at, Point::default());
+        assert_eq!(app.tool, Tool::Place(PartKind::Resistor));
+        // Finish placement before beginning a selection drag.
+        app.tool = Tool::Select;
         let placed = app.document().clone();
         let revision = app.session.revision();
         frame(&mut app, &ctx, vec![pointer(center, true)]);
