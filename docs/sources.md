@@ -1,5 +1,22 @@
 # Source register
 
+## Direct MCP implementation (November 4, 2026)
+
+Original PCBcraft session/proposal, protocol, local bridge and review code. No
+SolidCraft engine/source was imported and no dependency was added. Existing
+licensed theme/controls and the original symbol painter are reused. Read the
+user's `designs/ai-review.png` pixels again for proposal/preview/Apply interactions.
+The design and reference checkouts remain unchanged.
+
+Protocol behavior was checked against official MCP 2025-06-18
+[lifecycle](https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle),
+[stdio transport](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)
+and [tools](https://modelcontextprotocol.io/specification/2025-06-18/server/tools)
+specifications. The installed Python MCP SDK 1.27.1 was used as a real external
+client, not added as a project dependency. [Implementation and evidence](mcp.md).
+No KiCad implementation or preserved GPL EDA source/notes/fixtures were inspected.
+
+
 ## Roadmap, community and credit conventions (November 3, 2026)
 
 Reviewed the [Tangency Labs repository index](https://github.com/orgs/tangency-labs/repositories?type=all)

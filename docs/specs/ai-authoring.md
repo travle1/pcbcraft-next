@@ -1,11 +1,10 @@
 # AI-assisted authoring and readable schematic arrangement
 
-Status: first-class product requirement, November 3, 2026. This is an implementation
-contract and next-slice plan, not an available Assistant, MCP server or arranger.
-The current app has none of those three. It has a headless Electronics session,
-single-command validation/undo, flat/hierarchical sheets and occurrence-qualified
-connectivity reports to build on. The [README](../../README.md#ai-and-mcp) exposes
-this implementation gap prominently; a headless command core is not an MCP server.
+Status: first-class product requirement with an implemented first slice, November 4,
+2026. [Live MCP implementation](../mcp.md) now covers atomic schematic proposals,
+request receipts, live stdio tools, guidance and desktop review. Bounded ordered-grid
+placement and orthogonal connection routing are available; the full SA1 arranger
+and in-app model/provider conversation described below remain planned.
 Read [runtime contracts](host-runtime.md), [domain](domain.md),
 [UI](workspace-ui.md) and [implementation status](../implementation-status.md).
 
@@ -77,7 +76,7 @@ Use the same layered approach with EDA-specific content:
    MCP supplies tools/context, not a model or conversation protocol. Qualify one
    initial adapter and protocol revision before claiming any provider works.
 
-Proposed tool responsibilities (names provisional, none currently exposed):
+Full target tool responsibilities (implemented subset and exact names: [MCP tools](../mcp.md#tools-and-bounds)):
 
 | Responsibility | Contract |
 | --- | --- |
@@ -207,9 +206,10 @@ unknown pin capability, preserve the fixed supply and undo in one step.
 | AI3 | Bundle PCBcraft guides and qualify one real agent/provider through AI1+AI2, then consume SA1 | Inspect → propose connections → arrange → report checks → preview → apply → save/reopen → undo; no unsupported ERC/PCB/simulation promises |
 
 This is an early capture milestone, before broad layout/manufacturing/simulation;
-it is not postponed until the rest of the app is complete. AI0 is the first code
-slice. No dependency addition, provider configuration, agent launch or code work
-is performed merely by this document. No new crate per task is required.
+it is not postponed until the rest of the app is complete. AI0 and AI1 now have an implemented bounded profile; AI2 has external-agent review
+and AI3 has versioned guidance and SDK qualification. Full provider chat and SA1
+acceptance are still open. No new dependency, provider configuration, agent launch
+or upstream issue was needed. No new crate per task is required.
 
 Original fixtures include fan-controller-style signal paths, high-fanout power,
 feedback, multiple terminal branches, long labels, a locked part, selected-region
@@ -220,6 +220,7 @@ against capabilities, and report supported check coverage independently.
 
 Protocol reference: official [MCP tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools)
 and [resources](https://modelcontextprotocol.io/specification/2026-07-28/server/resources).
-The inspected SolidCraft direct backend requests protocol 2025-06-18; that is
-observed upstream behavior, not a PCBcraft version choice. Qualify the selected
-client/server versions and transport before adding a dependency or claiming parity.
+PCBcraft now explicitly supports stdio protocol 2025-06-18, tested with Python MCP
+SDK 1.27.1. Other clients, transports and later revisions require qualification.
+The implementation uses existing serde/std facilities; no SolidCraft engine or
+new dependency was introduced.

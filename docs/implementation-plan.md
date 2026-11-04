@@ -49,8 +49,9 @@ geometry cannot block the standalone window or basic domain model.
 
 Current schematic follow-up: explicit-link net compilation, naming, reviewed
 disconnect/undo and a JSON report are implemented; see [net workflows](net-workflows.md).
-The user's next priority is first-class AI-assisted capture: AI0 atomic proposals,
-then live MCP/Assistant plus authored paths and a deterministic arranger. The
+First-class AI-assisted capture now has a bounded AI0/AI1 implementation and
+initial review UI/guidance; see [MCP setup and limits](mcp.md). Next work expands
+arrangement, schematic operations and in-app provider conversation. The
 [AI authoring spec](specs/ai-authoring.md) owns AI0–AI3 and SA0–SA1 task scopes,
 source evidence and acceptance; these are early work, not deferred until PCB/3D.
 An external connectivity adapter remains separate. Settle component/pad mapping

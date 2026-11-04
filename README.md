@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>A native workspace for electronics design.</strong><br>
-  Schematic capture today. PCB layout, 3D and AI-assisted authoring on the roadmap.
+  Schematic capture and live MCP authoring. PCB layout and 3D on the roadmap.
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@ built around an editable electronics project and a shared command/undo core.
 The goal is to move naturally between schematic capture, board layout, 3D review
 and manufacturing, whether designing by hand or working with an AI agent.
 
-**Early development:** the schematic editor runs today. AI/MCP, PCB layout, 3D,
+**Early development:** the schematic editor runs today. Live MCP can inspect and propose schematic edits. PCB layout, 3D,
 ERC/DRC, simulation and manufacturing are planned, not working features.
 
 ![PCBcraft schematic workspace showing the fan-controller example, project browser, grouped ribbon and component properties](docs/screenshots/schematic.png)
@@ -29,29 +29,26 @@ symbols; it is an illustrative draft, not an electrically validated reference de
 
 ## AI and MCP
 
-**AI-assisted design is a core product requirement.** The planned in-app Assistant
-and external Model Context Protocol (MCP) clients will use the same Electronics
-session as manual tools: the same components, connections, validation and undo.
+**AI-assisted design uses the same live Electronics session as manual tools.**
+External MCP clients can inspect sheets, components, pins and nets, then prepare
+connected edits for review in the app. Apply commits the entire proposal with
+one-step undo, revision checks and protection against duplicated retries.
 
-The intended workflow is **inspect → propose → preview → apply → undo**:
+The workflow is **inspect → propose → preview → apply → undo**. The **AI / MCP**
+panel provides Before/Proposed views, operation details, Apply/Discard and tool
+activity. External apply requires an explicit setting; review in the app is the
+default. The initial tools also offer ordered grid arrangement and bounded
+orthogonal routes. They do not provide full automatic layout or electrical checking.
 
-- Give the agent selected parts, sheets, terminals and actual connectivity, with
-  versioned EDA guidance and an honest list of supported operations/checks.
-- Propose component and connection changes as one reviewable transaction.
-- Arrange selected circuitry with deterministic placement/routing constraints,
-  preserving electrical intent and locked geometry instead of guessing coordinates.
-- Apply an accepted proposal to the live editor, with one-step undo and protection
-  against stale previews or repeated requests.
+Build both executables with `cargo build --locked --bins`, open **AI / MCP**,
+choose **Enable local MCP**, and **Copy client config** into your MCP client.
+The stdio adapter connects to that exact window; it does not edit a second copy
+of the design. See [MCP setup, tools and limits](docs/mcp.md).
 
-**Current status:** the headless session, typed editing operations, revision checks,
-undo and occurrence-aware connectivity exist. **The MCP server, live-session bridge,
-Assistant connection, atomic multi-command proposals and automatic arranger do not.**
-There is no MCP launch command or client configuration to use yet.
-
-The next AI implementation milestone is atomic prepare/apply with retry protection,
-then an MCP bridge to the running app and a visible proposal review. This is early
-schematic work, ahead of broad layout/manufacturing features.
-See the [AI authoring spec and acceptance tasks](docs/specs/ai-authoring.md#next-bounded-implementation-sequence-and-acceptance).
+**Available now:** a Linux-qualified MCP stdio bridge, ten tools, bundled guidance,
+atomic schematic proposals and live review. **Still ahead:** in-app model chat,
+full circuit arrangement, external part libraries and ERC. The original generic
+symbols are not verified manufacturer pinouts. No AI account is needed for manual editing.
 
 ## What works today
 
@@ -82,7 +79,7 @@ or an AI-generated circuit. Static views: [schematic](docs/screenshots/schematic
 
 </details>
 
-**Still ahead:** live AI/MCP authoring, ERC/DRC, PCB layout and cross-probing UI,
+**Still ahead:** in-app AI conversation, full automatic arrangement, ERC/DRC, PCB layout and cross-probing UI,
 3D, simulation, external libraries, KiCad interchange and manufacturing outputs.
 Unavailable workspace/tools are marked accordingly. `.pc` is provisional;
 autosave and crash recovery are not implemented. See the detailed
@@ -91,7 +88,8 @@ autosave and crash recovery are not implemented. See the detailed
 ## Roadmap
 
 The next priority is AI-assisted schematic capture alongside editing reliability:
-atomic proposals, live MCP, visible review and readable arrangement. Libraries,
+broader AI tools, in-app conversation and more capable readable arrangement.
+Atomic proposals, live MCP and a first review panel now work. Libraries,
 ERC, the first board/DRC/cross-probing workflow, SolidCore-backed 3D, KiCad
 interchange and manufacturing build on that foundation. UI quality and recovery
 are part of each milestone.

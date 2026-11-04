@@ -46,7 +46,8 @@ ask a model to guess all coordinates or silently change connectivity for neatnes
 Arrangement and electrical changes are separate operations with separate checks.
 See the [AI authoring contract](specs/ai-authoring.md), including actual SolidCraft
 prompt/skill/MCP findings and the bounded next implementation sequence. These
-facilities are not implemented by the current draft.
+broader facilities remain goals; the current [MCP slice](mcp.md) implements the
+live bridge, atomic proposals, review and bounded placement/routing helpers.
 
 ## KiCad support
 

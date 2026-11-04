@@ -3,6 +3,17 @@
 November 3, 2026. This records implemented behavior, distinct from the complete
 [framework plan](framework.md). See [README](../README.md) for launch and controls.
 
+## Live AI / MCP authoring (November 4, 2026)
+
+Implemented directly in PCBcraft: atomic candidate prepare/apply/discard, bounded
+idempotent receipts, live app-session bridge and a standalone stdio MCP executable.
+Ten tools expose catalog/pin data, selection, sheets and nets plus schematic edit
+proposals. The AI / MCP panel reviews Before/Proposed, operations and checks;
+user Apply shares normal GUI Undo. External apply is an explicit session setting.
+Ordered grid placement and bounded orthogonal connections are initial helpers,
+not a full automatic arranger. [Setup, verification and exact limits](mcp.md).
+In-app model chat, ERC and broader provider/large-project qualification remain ahead.
+
 ## What works
 
 PCBcraft owns an egui/eframe 0.36.2 executable and window. The composition follows
@@ -97,8 +108,8 @@ ERC/DRC, simulation, PCB/layout/3D and split view, footprints, multiunit support
 ECO/cross-probing, variants, manufacturing and KiCad adapters remain planned.
 No checks are reported as passed. No SolidCore API is needed by this 2D slice;
 the future geometry boundary remains SolidCore-first, with no Truck fallback.
-Assistant/MCP/CLI edit transports, atomic multi-command proposals, retry idempotency
-and general schematic arrangement are not implemented yet. Bounded manual wire
+MCP transport, atomic multi-command proposals and retry idempotency now work.
+In-app model conversation and general schematic arrangement remain unimplemented. Bounded manual wire
 authoring and repositioning are now available. The demo
 has curated coordinates/routes and supply aliases. Catalog version 3 adds four
 original symbol types while preserving all version 1/2 geometry. First-class AI authoring is now
@@ -142,11 +153,14 @@ in local ignored `work/proof/` record actual desktop rendering.
 
 W0 has a real standalone consumer/build proof. W1/D0/F0/H0 have a schematic-only
 vertical slice; they are **not complete** against the broader three-view milestone.
-F1 identity/transaction/library contracts still need expansion before hierarchy,
-external definitions, job proposals or MCP are built against them.
+F1 identity/library contracts still need expansion for external definitions,
+advanced hierarchy and background jobs. The bounded MCP profile uses current
+sheet/identity contracts and the new session-owned transaction path.
 
-Next bounded slice: AI0 atomic prepare/apply batches and request guards, followed
-by a live MCP bridge and Assistant proposal UI. Authored paths/junctions now have a bounded manual editing slice;
+Next bounded slices: expand AI arrangement and schematic tools, qualify an
+in-app provider conversation, and add background preparation for large projects.
+Atomic proposals, request guards, live MCP and the first review UI now work.
+Authored paths/junctions have a bounded manual editing slice;
 a deterministic arranger remains accompanying capture work; these support manual
 and AI authoring together. External netlist adapters remain a separate task. Introduce
 electrical pin types and a small, explicitly covered ERC profile. In parallel

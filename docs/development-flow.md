@@ -35,8 +35,8 @@ conventions; no hook or bot has been installed. License/source provenance is sep
 Use the canonical [implementation plan](implementation-plan.md) for task IDs,
 dependency DAG, allowed areas and gates. Standalone launch, schematic editing,
 whole-project save and flat/hierarchical sheets now work. The full W1/H0 three-view
-workflow, broader library contracts and jobs remain open. The next AI slice is AI0
-atomic proposals, followed by the live MCP/Assistant tasks. The earlier SolidCraft
+workflow, broader library contracts and jobs remain open. AI0 atomic proposals and the first live MCP/review slice now work; the next AI
+work expands arrangement, provider conversation and qualification. See [MCP](mcp.md). The earlier SolidCraft
 startup remains reference evidence only; no SolidCraft app/CLI prerequisite or
 agent launch is implied.
 

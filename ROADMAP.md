@@ -21,25 +21,26 @@ authored wires and branches, editable text/links, net inspection and a JSON
 connectivity report. Flat/hierarchical sheets, reused sheet definitions and explicit
 ports share one project-wide undo history and experimental `.pc` save/open.
 The desktop has a grouped ribbon, command search and movable Parts/Properties panels.
-Eight original generic symbols work offline; the fan-controller example is an
+Twelve original generic symbols work offline; the fan-controller example is an
 editing illustration, not an electrically validated design.
 
-This is a foundation, not completed schematic capture. There is no MCP server,
-connected Assistant, ERC/DRC, board editor, 3D renderer, simulation, KiCad adapter
-or manufacturing exporter yet. Cross-probe identity hooks exist; layout highlighting
+Live MCP now supports inspection, atomic proposals, a review panel and shared Undo.
+This is a foundation, not completed schematic capture. In-app model chat, ERC/DRC,
+board editing, 3D, simulation, KiCad interchange and manufacturing remain ahead. Cross-probe identity hooks exist; layout highlighting
 does not. See [current limits](docs/implementation-status.md#deliberate-limits).
 
 ## Next: AI-assisted capture and dependable schematic editing
 
 | Priority | Outcome | Completion evidence |
 | --- | --- | --- |
-| Atomic proposals (**AI0**, first implementation slice) | Prepare and preview a coherent set of component/connection edits, then apply it once | Stale/invalid proposals leave zero changes; retried requests do not duplicate edits; one Undo restores the whole project |
-| Live MCP and Assistant (**AI1–AI3**) | An external agent and the in-app review panel inspect and edit the live Electronics session | One qualified client completes inspect → propose → review → apply → save/reopen → undo; GUI and agent see the same revision; unsupported checks remain explicit |
+| Atomic proposals (**AI0**, implemented bounded profile) | Prepare and preview a coherent set of component/connection edits, then apply it once | Stale/invalid proposals leave zero changes; retried requests do not duplicate edits; one Undo restores the whole project |
+| Live MCP and Assistant (**AI1 implemented; AI2/AI3 partial**) | An external agent and the in-app review panel inspect and edit the live Electronics session | One qualified client completes inspect → propose → review → apply → save/reopen → undo; GUI and agent see the same revision; unsupported checks remain explicit |
 | Readable arrangement (**SA0–SA1**) | Arrange a selected circuit into aligned functional groups with orthogonal routes and clear labels | Original 8–20-part fixtures preserve terminal membership, locks and outside geometry; impossible constraints return findings instead of silently changing the circuit |
 | Capture reliability and polish | Better manual wiring, selection, hierarchy/text interaction, keyboard access and persistent workspace settings; autosave/recovery | Reproduction tests for edits and recovery; reviewed full/compact/scaled UI; no loss of connections, IDs or user work |
 
-Manual authored paths are already implemented; the arranger and prepared layout
-constraints are not. The [AI authoring contract](docs/specs/ai-authoring.md) owns
+Manual paths, ordered grid placement and bounded orthogonal connection routing
+are implemented. The full SA1 arranger and prepared layout constraints remain ahead.
+See [MCP implementation and limits](docs/mcp.md). The [AI authoring contract](docs/specs/ai-authoring.md) owns
 those task definitions. AI work starts here, not after the board toolset is complete.
 Readable manual design must remain useful without an account or agent.
 
