@@ -249,3 +249,13 @@ over HTTPS, rendered its 31 symbols and downloaded a valid complete `.pc` projec
 with no page errors or failed asset requests. Earlier hosted setup failed because
 a platform-only fetch omitted archives required by offline Cargo metadata; fetching
 all locked archives fixed that setup without changing the selected browser graph.
+
+
+## Library-management planning
+
+A [product-spec draft](specs/library-management.md) now covers the default starter,
+project-owned definitions, source/profile flexibility, reviewable changes and
+proposed L0–L4 gates. This is documentation, not implemented external libraries,
+qualified manufacturer parts, footprint support or a new native file version.
+Its [research record](library-management-research.md) includes evidence limits
+and an excluded-search-result exposure with affected implementation still paused.

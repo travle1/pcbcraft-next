@@ -11,6 +11,25 @@ Historical entries below record provenance and prior exposure; they do not autho
 new use of excluded material. Record qualified reuse with its exact source,
 revision/version, license option, scope, modifications and retained notices.
 
+## Library-management product-spec research (November 4, 2026)
+
+The [draft specification](specs/library-management.md) elaborates PCBcraft's existing
+requirements/domain/persistence contracts, publisher user manuals and scoped
+historical user-report excerpts. [Research evidence and limits](library-management-research.md)
+record the actual URLs, failed full-page retrievals and the distinction between
+reported friction and established behavior. No external library data, fixtures,
+application dependencies or implementation code were imported for this task.
+
+A broad initial search returned excluded KiCad implementation excerpts from a
+GitLab result for `eeschema/project_rescue.cpp` and a Fossies result for
+`eeschema/dialogs/dialog_symbol_remap.cpp`. No implementation page was opened.
+The assistant disclosed the exposure, stopped that search path and set its
+results aside. The research record describes the scope without copying code.
+Affected KiCad resolution/rescue/remapping/import or source-derived implementation
+remains paused pending source-boundary review; this product spec does not resolve
+or waive that boundary. Do not send the excluded results to another agent or use
+this documentation as a substitute implementation reference.
+
 ## Assistant conversation and ACP (November 4, 2026)
 
 The bounded conversation state, worker seam, snapshot-bound review-only dispatch,

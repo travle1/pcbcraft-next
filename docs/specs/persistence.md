@@ -118,6 +118,11 @@ preserves; shared ZIP bytes alone establish no semantic compatibility.
 
 ## Dependencies, assets and path safety
 
+The [library management draft](library-management.md#project-snapshots-caching-and-sharing)
+defines proposed used-definition capture, portability exceptions and source/cache
+ownership. Its first slice must respect the current draft limits until a
+versioned persistence change is qualified.
+
 Embed used definitions and required resolved assets through the native project
 resource manifest, potentially reusing independently extracted container utilities. Reuse content addressing, deduplication, bounded reads and
 package handling; avoid base64-duplicating large assets into every component.

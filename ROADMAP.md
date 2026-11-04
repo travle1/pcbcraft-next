@@ -55,12 +55,14 @@ must still complete the full acceptance workflow before AI3 is considered qualif
 
 These are dependency-related workstreams, not a requirement to finish every item
 in one row before investigating the next. Library/identity contracts and check
-coverage precede features that depend on them. Narrow geometry and interchange
-qualification can proceed independently when their interfaces are settled.
+coverage precede features that depend on them. The library-management draft now
+sets out a useful starter, portable exact used definitions and configurable
+local/team/public workflows; it remains a proposal for review. Narrow geometry
+and interchange qualification can proceed independently when their interfaces are settled.
 
 | Area | Planned capability | First useful acceptance gate |
 | --- | --- | --- |
-| Libraries and component selection | Durable component/symbol/footprint identities, explicit terminal-to-pad mappings, pinned project snapshots, offline assets, local/team/public sources and reviewable upgrades | Reopen a project with its used definitions offline; preview a library update, diagnose pin/pad incompatibility and undo it; retain provenance and local overrides |
+| [Libraries and component selection](docs/specs/library-management.md) | Durable component/symbol/footprint identities, explicit terminal-to-pad mappings, pinned project snapshots, offline assets, local/team/public sources and reviewable upgrades | Reopen a project with its used definitions offline; preview a library update, diagnose pin/pad incompatibility and undo it; retain provenance and local overrides |
 | Electrical checking | Pin electrical types, power/drive intent, intentional NC, hierarchical connectivity, then buses and multiunit breadth | Original fixtures explain known ERC violations and unknown coverage; derived results are revision-bound; structural validation is never presented as a passed electrical check |
 | First board workflow | Stackup/layers/outline, footprint placement, tracks/vias, ratsnest, basic rules/DRC and reviewed schematic-to-board changes | A small original two-layer board can be edited, checked, saved/reopened and reconciled without losing associations; schematic/layout selections cross-probe through stable occurrence identities |
 | 3D and mechanical review | SolidCore-backed board/layer geometry, component models and aligned selection across schematic/layout/3D | Asymmetric top/bottom fixtures verify origins, rotation, mirroring and layer heights; absent optional models are reported; geometry never owns electrical identity |

@@ -19,6 +19,7 @@ The user's FigCraft designs determine the workspace composition and visual langu
 | Read | Authority |
 | --- | --- |
 | [Requirements](requirements.md) | User goals and constraints |
+| [Library management draft](specs/library-management.md) | Default starter experience, portable used parts, source workflows and reviewed upgrades; proposed L0–L4 gates |
 | [Domain](specs/domain.md) | Authoritative electrical, schematic, library and board data; IDs, units and rules |
 | [Standalone runtime and library reuse](specs/host-runtime.md) | Commands, transactions, events, cross-probing, jobs, UI and geometry adapters |
 | [AI-assisted authoring](specs/ai-authoring.md) | First-class Assistant/MCP, versioned EDA guidance, circuit proposals and deterministic readable schematic arrangement |
