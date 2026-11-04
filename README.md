@@ -6,6 +6,7 @@
 </p>
 
 <p align="center">
+  <a href="https://travle1.github.io/pcbcraft-next/?demo=1">Try in browser</a> ·
   <a href="#run-it">Run it</a> ·
   <a href="#ai-and-mcp">AI &amp; MCP</a> ·
   <a href="ROADMAP.md">Roadmap</a> ·

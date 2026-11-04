@@ -1,5 +1,8 @@
 # Browser build
 
+[Open PCBcraft](https://travle1.github.io/pcbcraft-next/) or
+[open the example](https://travle1.github.io/pcbcraft-next/?demo=1).
+
 The browser target uses the same schematic editor, Electronics session, commands,
 undo history and `.pc` codecs as the native application. It runs entirely in the
 browser; hosting serves static files. The desktop executable remains independent.
@@ -90,3 +93,12 @@ round-trip file to ignored `work/proof/`. Set `PCBCRAFT_CHROMIUM_PATH` to use an
 existing Chromium executable. Current qualification is Chromium on Linux at
 1600×1000 and 1000×700 with WebGL; other browsers, mobile/touch workflows and
 future 3D work are not qualified by this slice.
+
+
+The first hosted deployment published `def3a977777743d063a2d5d8720999bbb506418d`
+with tag `web-preview-20261104-def3a97`. The [successful run](https://github.com/travle1/pcbcraft-next/actions/runs/41908735674)
+built with Rust 1.95.0. A fresh Chromium browser loaded the public HTTPS site,
+rendered the original 31-symbol example and downloaded a valid complete `.pc`
+project without page errors or failed asset requests. The site uses workflow
+publishing with HTTPS enforced; its environment permits explicit `web-preview-*`
+tags. The hosted build does not replace the local interaction tests above.

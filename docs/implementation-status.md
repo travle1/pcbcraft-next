@@ -226,7 +226,7 @@ and `.pc` download replace native filesystem IO; native process/socket transport
 and window controls are excluded. The default native build remains available.
 The browser Assistant copies actual sheet data without claiming a live bridge.
 The [browser guide](../web/README.md) describes build commands, bounds and the
-manual Pages workflow. No hosted deployment has been performed for this slice.
+explicit Pages workflow. The first hosted deployment is recorded below.
 
 Downloads retain dirty state because the application cannot confirm a durable
 save. Import errors/cancellation keep the existing session; files larger than
@@ -241,5 +241,11 @@ complete-project download/re-import, cancelled/invalid/oversized imports, actual
 clipboard request data, tab-leaving protection and full/compact rendering. No
 JavaScript page errors were recorded. Native regression checks passed all 131
 tests, with 66 passing without default features; native and wasm-target Clippy
-passed with warnings denied. Local Rust was 1.98.1. The manual hosted workflow's
-Rust 1.95.0 environment has not been run, and no live Pages site was qualified.
+passed with warnings denied. Local Rust was 1.98.1. The subsequent hosted build
+also passed with Rust 1.95.0: [Pages run 41908735674](https://github.com/travle1/pcbcraft-next/actions/runs/41908735674)
+published commit `def3a977777743d063a2d5d8720999bbb506418d`. A fresh Chromium
+browser loaded the [public example](https://travle1.github.io/pcbcraft-next/?demo=1)
+over HTTPS, rendered its 31 symbols and downloaded a valid complete `.pc` project
+with no page errors or failed asset requests. Earlier hosted setup failed because
+a platform-only fetch omitted archives required by offline Cargo metadata; fetching
+all locked archives fixed that setup without changing the selected browser graph.
