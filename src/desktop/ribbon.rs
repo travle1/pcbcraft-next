@@ -155,8 +155,8 @@ impl App {
         });
     }
     fn ribbon_tools(&mut self, ui: &mut egui::Ui) {
-        // At the minimum window width, reduce only inter-group padding. Labels
-        // keep their normal size; larger text uses the existing horizontal scroll.
+        // Narrow windows retain readable working tools and expose planned tools
+        // through group menus. Larger text can use the horizontal scroll.
         let compact = ui.available_width() < 920.0;
         for (index, group) in self.ribbon_tab.groups().iter().enumerate() {
             if index > 0 {
@@ -208,7 +208,20 @@ impl App {
             RibbonAction::Snap => self.canvas.snap = !self.canvas.snap,
             RibbonAction::Pins => self.canvas.pins_visible = !self.canvas.pins_visible,
             RibbonAction::Wires => self.canvas.wires_visible = !self.canvas.wires_visible,
-            RibbonAction::Fit => self.canvas.fit = true,
+            RibbonAction::Fit => {
+                self.canvas.fit = true;
+                self.canvas.fit_page = false;
+            }
+            RibbonAction::FitPage => {
+                self.canvas.fit = true;
+                self.canvas.fit_page = true;
+            }
+            RibbonAction::PageSetup => {
+                self.start_sheet_dialog(super::sheets::Kind::Page, self.active_sheet())
+            }
+            RibbonAction::GuideAlways => self.canvas.page_guide = super::page::Guide::Always,
+            RibbonAction::GuideAuto => self.canvas.page_guide = super::page::Guide::Auto,
+            RibbonAction::GuideOff => self.canvas.page_guide = super::page::Guide::Off,
             RibbonAction::Save => self.save(false),
             RibbonAction::Undo => self.history(false),
             RibbonAction::Redo => self.history(true),
@@ -245,6 +258,11 @@ enum RibbonAction {
     Pins,
     Wires,
     Fit,
+    FitPage,
+    PageSetup,
+    GuideAlways,
+    GuideAuto,
+    GuideOff,
     Save,
     Undo,
     Redo,
@@ -262,6 +280,7 @@ impl RibbonAction {
             Self::Rotate => "R",
             Self::Delete => "Del",
             Self::Fit => "F",
+            Self::FitPage => "Shift+F",
             Self::Save => "Ctrl+S",
             Self::Undo => "Ctrl+Z",
             Self::Redo => "Ctrl+Shift+Z",
@@ -271,6 +290,9 @@ impl RibbonAction {
 
     fn selected(self, app: &App) -> bool {
         match self {
+            Self::GuideAlways => app.canvas.page_guide == super::page::Guide::Always,
+            Self::GuideAuto => app.canvas.page_guide == super::page::Guide::Auto,
+            Self::GuideOff => app.canvas.page_guide == super::page::Guide::Off,
             Self::Browser => app.browser,
             Self::Properties => app.properties,
             Self::Filters => app.filters,
@@ -297,7 +319,11 @@ impl RibbonAction {
             | Self::Snap
             | Self::Pins
             | Self::Wires
-            | Self::Fit => None,
+            | Self::Fit
+            | Self::FitPage
+            | Self::GuideAlways
+            | Self::GuideAuto
+            | Self::GuideOff => None,
             Self::Power => Some("Power symbols are not implemented yet."),
             Self::Port => None,
             Self::Bus => Some("Buses are not implemented yet."),
@@ -332,6 +358,20 @@ struct RibbonGroup {
     tools: &'static [RibbonTool],
     extras: &'static [RibbonTool],
 }
+const SHEET_TOOLS: &[RibbonTool] = &[
+    tool(
+        RibbonAction::NewSheet,
+        "New sheet",
+        Icon::Sheet,
+        "Add an independent flat sheet",
+    ),
+    tool(
+        RibbonAction::NewSubsheet,
+        "Subsheet",
+        Icon::Subsheet,
+        "Add a child sheet in the active sheet",
+    ),
+];
 const CAPTURE_GROUPS: &[RibbonGroup] = &[
     RibbonGroup {
         label: "Place",
@@ -348,12 +388,12 @@ const CAPTURE_GROUPS: &[RibbonGroup] = &[
                 icon: Icon::Power,
                 hint: "Place a power symbol",
             },
-            RibbonTool {
-                action: RibbonAction::Port,
-                label: "Port",
-                icon: Icon::Port,
-                hint: "Place a hierarchical port",
-            },
+            tool(
+                RibbonAction::Port,
+                "Port",
+                Icon::Port,
+                "Add an explicit hierarchical interface port",
+            ),
         ],
         extras: &[RibbonTool {
             action: RibbonAction::Text,
@@ -361,6 +401,11 @@ const CAPTURE_GROUPS: &[RibbonGroup] = &[
             icon: Icon::Annotate,
             hint: "Add sheet text · T",
         }],
+    },
+    RibbonGroup {
+        label: "Sheets",
+        tools: SHEET_TOOLS,
+        extras: &[],
     },
     RibbonGroup {
         label: "Connect",
@@ -526,26 +571,7 @@ const LIBRARY_GROUPS: &[RibbonGroup] = &[RibbonGroup {
 const MANAGE_GROUPS: &[RibbonGroup] = &[
     RibbonGroup {
         label: "Sheets",
-        tools: &[
-            tool(
-                RibbonAction::NewSheet,
-                "New sheet",
-                Icon::Sheet,
-                "Add an independent flat sheet",
-            ),
-            tool(
-                RibbonAction::NewSubsheet,
-                "Subsheet",
-                Icon::Sheet,
-                "Add a child sheet in the active sheet",
-            ),
-            tool(
-                RibbonAction::Port,
-                "Port",
-                Icon::Port,
-                "Add an explicit hierarchical interface port",
-            ),
-        ],
+        tools: SHEET_TOOLS,
         extras: &[],
     },
     RibbonGroup {
@@ -636,13 +662,50 @@ const VIEW_GROUPS: &[RibbonGroup] = &[
         extras: &[],
     },
     RibbonGroup {
-        label: "Navigate",
+        label: "Page",
         tools: &[tool(
-            RibbonAction::Fit,
-            "Fit sheet",
-            Icon::Zoom,
-            "Fit schematic · F",
+            RibbonAction::PageSetup,
+            "Page setup",
+            Icon::Sheet,
+            "Sheet size and orientation",
         )],
+        extras: &[
+            tool(
+                RibbonAction::GuideAlways,
+                "Guide: always",
+                Icon::Sheet,
+                "Always show subtle page edges",
+            ),
+            tool(
+                RibbonAction::GuideAuto,
+                "Guide: automatic",
+                Icon::Sheet,
+                "Show nearby edges during placement",
+            ),
+            tool(
+                RibbonAction::GuideOff,
+                "Guide: off",
+                Icon::Sheet,
+                "Hide page edges",
+            ),
+        ],
+    },
+    RibbonGroup {
+        label: "Navigate",
+        tools: &[
+            tool(
+                RibbonAction::Fit,
+                "Fit design",
+                Icon::Zoom,
+                "Fit circuit content · F",
+            ),
+            tool(
+                RibbonAction::FitPage,
+                "Fit page",
+                Icon::Sheet,
+                "Fit the complete page · Shift+F",
+            ),
+        ],
         extras: &[],
     },
 ];
@@ -670,7 +733,16 @@ fn tool_group(
     let t = theme::current(ui.ctx());
     let m = t.metrics.ribbon();
     let padding = if compact { 8.0 } else { 12.0 };
-    let count = group.tools.len();
+    // Narrow windows keep working actions readable. Planned commands remain in
+    // each group menu, rather than shrinking labels or clipping the final groups.
+    let visible = |tool: &&RibbonTool| {
+        !compact
+            || !matches!(
+                tool.action,
+                RibbonAction::Power | RibbonAction::Bus | RibbonAction::Rules | RibbonAction::Bom
+            )
+    };
+    let count = group.tools.iter().filter(visible).count();
     let width = count as f32 * m.tool_width + count.saturating_sub(1) as f32 * 2.0 + padding;
     let (rect, _) =
         ui.allocate_exact_size(egui::vec2(width, m.group_height()), egui::Sense::hover());
@@ -686,7 +758,7 @@ fn tool_group(
     );
     child.spacing_mut().item_spacing.x = 2.0;
     let mut picked = None;
-    for tool in group.tools {
+    for tool in group.tools.iter().filter(visible) {
         let reason = tool.action.disabled_reason(app);
         if tool_button(
             &mut child,

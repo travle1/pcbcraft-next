@@ -14,6 +14,8 @@ pub struct Canvas {
     pub zoom: f32,
     pub offset: Vec2,
     pub fit: bool,
+    pub fit_page: bool,
+    pub(super) page_guide: super::page::Guide,
     pub grid: bool,
     pub snap: bool,
     pub symbols_selectable: bool,
@@ -68,6 +70,8 @@ impl Default for Canvas {
             zoom: 1.0,
             offset: Vec2::ZERO,
             fit: true,
+            fit_page: true,
+            page_guide: Default::default(),
             grid: true,
             snap: true,
             symbols_selectable: true,
@@ -239,8 +243,24 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                 .min(app.layout.navigation.top() - 60.0)
                 .max(visible.top() + 80.0);
         }
-        app.canvas.fit_document(&doc, visible);
+        if app.canvas.fit_page {
+            app.canvas.fit_page_bounds(doc.page, visible);
+        } else {
+            app.canvas.fit_document(&doc, visible);
+        }
         app.canvas.offset += visible.center() - canvas.center();
+    }
+    let pointer = response.hover_pos().filter(|_| input_enabled);
+    if let Some(pos) = pointer.filter(|_| !app.busy()) {
+        app.canvas
+            .navigate(&ui.input(|i| i.events.clone()), pos, canvas);
+        app.canvas.last_world = app.canvas.world(pos, canvas);
+    }
+    if input_enabled
+        && (response.dragged_by(egui::PointerButton::Middle)
+            || (app.tool == Tool::Pan && response.dragged()))
+    {
+        app.canvas.offset += ui.input(|i| i.pointer.delta());
     }
     let painter = ui.painter().with_clip_rect(full);
     painter.rect_filled(full, 0.0, t.canvas.background);
@@ -289,6 +309,16 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
     } else {
         canvas.left()
     };
+    app.canvas.paint_page(
+        &painter,
+        doc.page,
+        canvas,
+        pointer,
+        matches!(app.tool, Tool::Place(_))
+            || app.canvas.drag.is_some()
+            || app.canvas.wire_start.is_some()
+            || app.canvas.wire_drag.is_some(),
+    );
     let mut heading = egui::text::LayoutJob::simple_singleline(
         path.clone(),
         FontId::proportional(14.0),
@@ -322,24 +352,6 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
         t.ui.muted,
     );
 
-    let pointer = response.hover_pos().filter(|_| input_enabled);
-    if let Some(pos) = pointer {
-        app.canvas.last_world = app.canvas.world(pos, canvas);
-        if !app.busy() {
-            let scroll = ui.input(|i| i.smooth_scroll_delta.y);
-            if scroll.abs() > 0.1 {
-                let before = (pos - canvas.center() - app.canvas.offset) / app.canvas.zoom;
-                app.canvas.zoom = (app.canvas.zoom * (scroll * 0.002).exp()).clamp(0.1, 4.0);
-                app.canvas.offset = pos - canvas.center() - before * app.canvas.zoom;
-            }
-        }
-    }
-    if input_enabled
-        && (response.dragged_by(egui::PointerButton::Middle)
-            || (app.tool == Tool::Pan && response.dragged()))
-    {
-        app.canvas.offset += ui.input(|i| i.pointer.delta());
-    }
     let mut hit = None;
     let mut pin_hit = None;
     let mut nearest_pin = 10.0;
@@ -506,39 +518,39 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                 let net_owned = app.nets.snapshot.containing(&wire.from).cloned();
                 let net = net_owned.as_ref();
                 let anchor = net.map_or_else(|| wire.from.clone(), |n| n.anchor.clone());
-                let mut obstacles = bodies.clone();
-                for symbol in &doc.symbols {
-                    if let Some(c) = doc.component(symbol.id) {
-                        for p in c.kind.pins() {
-                            let pin = PinRef {
-                                symbol: symbol.id,
-                                terminal: p.id.into(),
-                            };
-                            if net.is_some_and(|n| n.terminals.contains(&pin)) {
-                                continue;
-                            }
-                            if let Some(at) = app.canvas.pin(&doc, &pin) {
-                                obstacles.push(Rect::from_center_size(
-                                    app.canvas.screen(at, canvas),
-                                    Vec2::splat(gap * 0.3),
-                                ));
-                            }
-                        }
-                    }
-                }
-                let mut clear = obstacles.clone();
-                clear.extend(
-                    occupied
-                        .iter()
-                        .filter(|(n, _)| *n != anchor)
-                        .map(|(_, r)| *r),
-                );
                 let points = if let Some(bends) = &wire.bends {
                     let mut points = vec![a];
                     points.extend(bends.iter().map(|p| app.canvas.screen(*p, canvas)));
                     points.push(b);
                     Some(points)
                 } else {
+                    let mut obstacles = bodies.clone();
+                    for symbol in &doc.symbols {
+                        if let Some(c) = doc.component(symbol.id) {
+                            for p in c.kind.pins() {
+                                let pin = PinRef {
+                                    symbol: symbol.id,
+                                    terminal: p.id.into(),
+                                };
+                                if net.is_some_and(|n| n.terminals.contains(&pin)) {
+                                    continue;
+                                }
+                                if let Some(at) = app.canvas.pin(&doc, &pin) {
+                                    obstacles.push(Rect::from_center_size(
+                                        app.canvas.screen(at, canvas),
+                                        Vec2::splat(gap * 0.3),
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                    let mut clear = obstacles.clone();
+                    clear.extend(
+                        occupied
+                            .iter()
+                            .filter(|(n, _)| *n != anchor)
+                            .map(|(_, r)| *r),
+                    );
                     wire_geometry::route(a, da, b, db, &clear, gap)
                         .or_else(|| wire_geometry::route(a, da, b, db, &obstacles, gap))
                 };
@@ -743,7 +755,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                     align: Align2::LEFT_BOTTOM,
                     content: &c.reference,
                     size: (t.schematic.reference_size * app.canvas.zoom)
-                        .clamp(if app.canvas.zoom >= 0.25 { 9.0 } else { 6.0 }, 22.0),
+                        .clamp(if app.canvas.zoom >= 0.25 { 9.0 } else { 4.0 }, 22.0),
                     color: if selected {
                         t.canvas.selection
                     } else {
@@ -1108,12 +1120,13 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                         app.add_note(context.at);
                         ui.close();
                     }
-                    if MenuItem::new("Fit sheet", Icon::Fit)
+                    if MenuItem::new("Fit design", Icon::Fit)
                         .shortcut("F")
                         .show(ui)
                         .clicked()
                     {
                         app.canvas.fit = true;
+                        app.canvas.fit_page = false;
                         ui.close();
                     }
                 }

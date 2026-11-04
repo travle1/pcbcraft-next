@@ -9,6 +9,7 @@ mod demo;
 pub mod document;
 pub mod error;
 pub mod netlist;
+pub mod page;
 pub mod persistence;
 pub mod probe;
 pub mod project;

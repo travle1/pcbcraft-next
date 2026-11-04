@@ -5,8 +5,8 @@ use std::{
     io::{Read, Write},
     path::Path,
 };
-pub const PROJECT_FORMAT: &str = "pcbcraft-project-draft/6";
-pub const FORMAT: &str = "pcbcraft-schematic-draft/5";
+pub const PROJECT_FORMAT: &str = "pcbcraft-project-draft/7";
+pub const FORMAT: &str = "pcbcraft-schematic-draft/6";
 pub const MAX_BYTES: usize = 4 * 1024 * 1024;
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -35,7 +35,9 @@ pub fn decode(bytes: &[u8]) -> Result<Document> {
     }
     let mut raw: serde_json::Value =
         serde_json::from_slice(bytes).map_err(|e| format!("Invalid draft: {e}"))?;
-    if raw.get("format").and_then(serde_json::Value::as_str) == Some(PROJECT_FORMAT) {
+    if [Some(PROJECT_FORMAT), Some("pcbcraft-project-draft/6")]
+        .contains(&raw.get("format").and_then(serde_json::Value::as_str))
+    {
         let project = decode_project(bytes)?;
         if project.occurrences.len() != 1
             || !project.main.ports.is_empty()
@@ -82,9 +84,13 @@ pub fn decode(bytes: &[u8]) -> Result<Document> {
             }
         }
     }
+    if format != FORMAT && raw["document"].get("page").is_some() {
+        return Err("Page settings require schematic draft version 6.".into());
+    }
     let value: Envelope = serde_json::from_value(raw).map_err(|e| format!("Invalid draft: {e}"))?;
     if ![
         FORMAT,
+        "pcbcraft-schematic-draft/5",
         "pcbcraft-schematic-draft/1",
         "pcbcraft-schematic-draft/2",
         "pcbcraft-schematic-draft/3",
@@ -200,8 +206,20 @@ pub fn decode_project(bytes: &[u8]) -> Result<crate::project::Project> {
     }
     let raw: serde_json::Value =
         serde_json::from_slice(bytes).map_err(|e| format!("Invalid project: {e}"))?;
-    if raw.get("format").and_then(serde_json::Value::as_str) != Some(PROJECT_FORMAT) {
+    if ![Some(PROJECT_FORMAT), Some("pcbcraft-project-draft/6")]
+        .contains(&raw.get("format").and_then(serde_json::Value::as_str))
+    {
         return crate::project::Project::from_document(decode(bytes)?);
+    }
+    if raw["format"] == "pcbcraft-project-draft/6" {
+        let project = &raw["project"];
+        if project["main"].get("page").is_some()
+            || project["sheets"]
+                .as_array()
+                .is_some_and(|sheets| sheets.iter().any(|s| s.get("page").is_some()))
+        {
+            return Err("Page settings require project version 7.".into());
+        }
     }
     let envelope: ProjectEnvelope =
         serde_json::from_value(raw).map_err(|e| format!("Invalid project: {e}"))?;

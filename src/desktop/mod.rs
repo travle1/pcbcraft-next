@@ -5,6 +5,7 @@ mod inspector;
 mod interaction;
 mod library;
 mod nets;
+mod page;
 mod palette;
 mod panels;
 mod ribbon;
@@ -481,6 +482,7 @@ impl App {
             }
             if pressed(egui::Key::F) {
                 self.canvas.fit = true;
+                self.canvas.fit_page = ctx.input(|i| i.modifiers.shift);
             }
             if pressed(egui::Key::S) {
                 self.palette = true;

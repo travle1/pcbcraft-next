@@ -931,21 +931,22 @@ impl App {
                                 .on_hover_text("Zoom out")
                                 .clicked()
                             {
-                                self.canvas.zoom = (self.canvas.zoom / 1.2).max(0.1);
+                                self.canvas.zoom = (self.canvas.zoom / 1.2).max(0.025);
                             }
                             if ui
-                                .add_sized([88.0, 30.0], egui::Button::new("Fit sheet"))
-                                .on_hover_text("Fit schematic · F")
+                                .add_sized([88.0, 30.0], egui::Button::new("Fit page"))
+                                .on_hover_text("Fit page · Shift+F. Fit circuit content with F.")
                                 .clicked()
                             {
                                 self.canvas.fit = true;
+                                self.canvas.fit_page = true;
                             }
                             if ui
                                 .add_sized([32.0, 30.0], egui::Button::new("+"))
                                 .on_hover_text("Zoom in")
                                 .clicked()
                             {
-                                self.canvas.zoom = (self.canvas.zoom * 1.2).min(4.0);
+                                self.canvas.zoom = (self.canvas.zoom * 1.2).min(8.0);
                             }
                             ui.separator();
                             if ui
@@ -968,7 +969,7 @@ impl App {
                             egui::Popup::menu(&response).show(|ui| {
                                 ui.label("Zoom");
                                 ui.add(
-                                    egui::Slider::new(&mut self.canvas.zoom, 0.1..=4.0)
+                                    egui::Slider::new(&mut self.canvas.zoom, 0.025..=8.0)
                                         .logarithmic(true)
                                         .custom_formatter(|zoom, _| {
                                             format!("{:.0}%", zoom * 100.0)

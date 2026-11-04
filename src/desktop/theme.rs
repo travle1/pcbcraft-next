@@ -23,6 +23,7 @@ pub struct UiColors {
 }
 #[derive(Clone, Copy, Debug)]
 pub struct CanvasColors {
+    pub page_edge: Color32,
     pub background: Color32,
     pub grid: Color32,
     pub grid_major: Color32,
@@ -139,6 +140,7 @@ impl Default for Theme {
             },
             // Original EDA roles: electrical meaning is independent of UI accent.
             canvas: CanvasColors {
+                page_edge: rgb(83, 97, 116),
                 background: rgb(46, 52, 64),
                 grid: rgb(51, 57, 68),
                 grid_major: rgb(56, 62, 73),

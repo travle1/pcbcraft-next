@@ -489,3 +489,101 @@ fn stale_cycles_wrong_scope_and_malformed_mappings_fail_without_mutation() -> Re
     assert!(s.project().terminal_target(&node).is_none());
     Ok(())
 }
+
+#[test]
+fn page_setup_is_shared_definition_data_atomic_undoable_and_round_trips() -> Result<()> {
+    use pcbcraft_foundation::page::{Page, Size};
+    let mut s = Session::new(Document::empty("Pages")?)?;
+    let root = s.project().root;
+    let a = create(&mut s, "Channel A", Some(root), None)?;
+    place(&mut s, a)?;
+    let id = s.project().document(a).ok_or("sheet")?.sheet_id;
+    let b = create(&mut s, "Channel B", Some(root), Some(id))?;
+    let before = s.project().clone();
+    let revision = s.revision();
+    let page = Page {
+        size: Size::A4,
+        portrait: true,
+    };
+    s.project_command(
+        revision,
+        project::Command::SetPage {
+            occurrence: a,
+            page,
+        },
+    )?;
+    for occurrence in [a, b] {
+        let d = s.project().document(occurrence).ok_or("sheet")?;
+        assert_eq!(d.page, page);
+        assert_eq!(
+            d.symbols,
+            before.document(occurrence).ok_or("sheet")?.symbols
+        );
+    }
+    assert_eq!(s.project().main.page, Page::default());
+    let after = s.project().clone();
+    assert!(
+        s.project_command(
+            revision,
+            project::Command::SetPage {
+                occurrence: root,
+                page
+            }
+        )
+        .is_err()
+    );
+    assert_eq!(&after, s.project());
+    let bytes = persistence::encode_project(s.project())?;
+    assert_eq!(persistence::decode_project(&bytes)?, after);
+    s.undo()?;
+    assert_eq!(&before, s.project());
+    s.redo()?;
+    assert_eq!(&after, s.project());
+    Ok(())
+}
+
+#[test]
+fn legacy_pages_default_without_moving_content_and_reject_mislabeled_new_data() -> Result<()> {
+    use pcbcraft_foundation::page::{Page, Size};
+    let mut session = Session::new(Document::empty("Legacy")?)?;
+    session.apply(
+        session.revision(),
+        Command::Place {
+            kind: PartKind::Resistor,
+            at: Point {
+                x: 250_000_000,
+                y: 0,
+            },
+        },
+    )?;
+    let d = session.document().clone();
+    // A drawing page is not a clipping or electrical validity boundary.
+    let p = project::Project::from_document(d.clone())?;
+    let mut raw: serde_json::Value =
+        serde_json::from_slice(&persistence::encode_project(&p)?).map_err(|e| e.to_string())?;
+    raw["format"] = "pcbcraft-project-draft/6".into();
+    let bytes =
+        |v: &serde_json::Value| serde_json::to_vec(v).map_err(|e| Error::Invalid(e.to_string()));
+    assert_eq!(persistence::decode_project(&bytes(&raw)?)?, p);
+    let page = Page {
+        size: Size::Letter,
+        portrait: false,
+    };
+    raw["project"]["main"]["page"] = serde_json::to_value(page).map_err(|e| e.to_string())?;
+    assert!(persistence::decode_project(&bytes(&raw)?).is_err());
+    raw["format"] = persistence::PROJECT_FORMAT.into();
+    let loaded = persistence::decode_project(&bytes(&raw)?)?;
+    assert_eq!(loaded.main.page, page);
+    assert_eq!(loaded.main.symbols, d.symbols);
+    raw["project"]["main"]["page"]["size"] = "unknown".into();
+    assert!(persistence::decode_project(&bytes(&raw)?).is_err());
+    let mut raw: serde_json::Value =
+        serde_json::from_slice(&persistence::encode(&d)?).map_err(|e| e.to_string())?;
+    raw["format"] = "pcbcraft-schematic-draft/5".into();
+    assert_eq!(persistence::decode(&bytes(&raw)?)?, d);
+    raw["document"]["page"] = serde_json::to_value(page).map_err(|e| e.to_string())?;
+    assert!(persistence::decode(&bytes(&raw)?).is_err());
+    raw["format"] = persistence::FORMAT.into();
+    assert_eq!(persistence::decode(&bytes(&raw)?)?.page, page);
+    Ok(())
+}

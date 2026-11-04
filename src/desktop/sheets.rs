@@ -38,6 +38,7 @@ struct Drag {
     revision: u64,
 }
 pub(super) enum Kind {
+    Page,
     Create { parent: Option<SheetOccurrenceId> },
     Rename,
     Delete,
@@ -45,6 +46,7 @@ pub(super) enum Kind {
     DeletePort(PortId),
 }
 pub(super) struct Dialog {
+    page: pcbcraft_foundation::page::Page,
     kind: Kind,
     occurrence: SheetOccurrenceId,
     name: String,
@@ -82,6 +84,7 @@ impl App {
             self.sheets.active = None;
             self.reset_sheet_transients();
             self.canvas.fit = true;
+            self.canvas.fit_page = true;
         }
     }
     fn reset_sheet_transients(&mut self) {
@@ -124,6 +127,7 @@ impl App {
             self.refresh_selection();
         } else {
             self.canvas.fit = true;
+            self.canvas.fit_page = true;
             self.canvas.offset = egui::Vec2::ZERO;
         }
     }
@@ -172,6 +176,11 @@ impl App {
             format!("Removes {} sheet occurrences, {} physical component occurrences and {} wire occurrences.", self.session.project().occurrences.len() - next.occurrences.len(), before.0 - after.0, before.1 - after.1)
         });
         self.sheets.dialog = Some(Dialog {
+            page: self
+                .session
+                .project()
+                .document(occurrence)
+                .map_or(pcbcraft_foundation::page::Page::default(), |d| d.page),
             kind,
             occurrence,
             name,
@@ -238,6 +247,7 @@ impl App {
         let mut apply = false;
         let mut close = false;
         let title = match d.kind {
+            Kind::Page => "Sheet page",
             Kind::Create { parent: None } => "New flat sheet",
             Kind::Create { .. } => "New hierarchical subsheet",
             Kind::Rename => "Rename sheet",
@@ -250,7 +260,17 @@ impl App {
         let response = egui::Modal::new("sheet_edit".into()).frame(t.panel_frame().inner_margin(20)).show(ctx, |ui| {
             ui.set_width(420.0); ui.label(RichText::new(title).font(theme::semibold(18.0)));
             ui.label(RichText::new(self.session.project().path(d.occurrence)).color(t.ui.muted)); ui.add_space(12.0);
-            if destructive {
+            if matches!(d.kind,Kind::Page) {
+                controls::section(ui,"PAGE SIZE");
+                ui.horizontal(|ui| { for size in pcbcraft_foundation::page::Size::ALL { ui.selectable_value(&mut d.page.size,size,size.label()); } });
+                ui.add_space(12.0);
+                controls::section(ui,"ORIENTATION");
+                ui.horizontal(|ui| { ui.selectable_value(&mut d.page.portrait,false,"Landscape"); ui.selectable_value(&mut d.page.portrait,true,"Portrait"); });
+                let (w,h)=d.page.dimensions_nm();
+                ui.label(format!("{} × {} mm",w as f64 / 1e6,h as f64 / 1e6));
+                ui.add_space(12.0);
+                ui.label(RichText::new("The dashed page edge guides composition. Changing it never moves or clips circuitry. Shared sheet occurrences use the same page.").small().color(t.ui.muted));
+            } else if destructive {
                 if let Some(impact) = &d.impact { ui.label(RichText::new(impact).strong()); ui.add_space(8.0); }
                 ui.label("This removes the sheet or port and its attached connections. Child sheets are removed from this branch; definitions used elsewhere remain.");
                 ui.colored_label(t.ui.warning, "Editing a shared definition affects every occurrence of that definition. Undo restores the entire change.");
@@ -282,6 +302,10 @@ impl App {
         });
         if apply {
             let command = match d.kind {
+                Kind::Page => project::Command::SetPage {
+                    occurrence: d.occurrence,
+                    page: d.page,
+                },
                 Kind::Create { parent } => project::Command::Create {
                     name: d.name.trim().into(),
                     parent,
@@ -315,6 +339,10 @@ impl App {
             match result {
                 Ok(effect) => {
                     close = true;
+                    if matches!(d.kind, Kind::Page) {
+                        self.canvas.fit = true;
+                        self.canvas.fit_page = true;
+                    }
                     if let Some(id) = effect.created {
                         self.panel_ui.sheets_folded = false;
                         self.panel_ui.project_folded = false;
@@ -738,6 +766,67 @@ mod tests {
         click_text(app, ctx, "Create sheet")?;
         assert!(app.sheets.dialog.is_none());
         Ok(app.active_sheet())
+    }
+    #[test]
+    fn capture_sheet_tools_and_view_page_setup_use_real_project_commands() -> Result<()> {
+        let (mut app, ctx) = library_fixture()?;
+        app.library = false;
+        let root = app.active_sheet();
+        click_text(&mut app, &ctx, "New sheet")?;
+        let d = app
+            .sheets
+            .dialog
+            .as_mut()
+            .ok_or("Missing flat-sheet dialog")?;
+        assert!(matches!(d.kind, Kind::Create { parent: None }));
+        d.name = "Power".into();
+        click_text(&mut app, &ctx, "Create sheet")?;
+        let flat = app.active_sheet();
+        assert_ne!(flat, root);
+        click_text(&mut app, &ctx, "Subsheet")?;
+        let d = app
+            .sheets
+            .dialog
+            .as_mut()
+            .ok_or("Missing subsheet dialog")?;
+        assert!(matches!(d.kind, Kind::Create { parent: Some(id) } if id == flat));
+        d.name = "Sensor".into();
+        click_text(&mut app, &ctx, "Create sheet")?;
+        let child = app.active_sheet();
+        assert_eq!(
+            app.session
+                .project()
+                .occurrence(child)
+                .ok_or("child")?
+                .parent,
+            Some(flat)
+        );
+        click_text(&mut app, &ctx, "View")?;
+        click_text(&mut app, &ctx, "Page setup")?;
+        assert!(matches!(
+            app.sheets.dialog.as_ref().ok_or("page dialog")?.kind,
+            Kind::Page
+        ));
+        let before = app.session.project().clone();
+        click_text(&mut app, &ctx, "A4")?;
+        click_text(&mut app, &ctx, "Portrait")?;
+        click_text(&mut app, &ctx, "Apply")?;
+        assert_eq!(
+            app.document().page,
+            pcbcraft_foundation::page::Page {
+                size: pcbcraft_foundation::page::Size::A4,
+                portrait: true,
+            }
+        );
+        assert!(app.sheets.dialog.is_none());
+        assert!(app.canvas.fit_page);
+        app.history(false);
+        assert_eq!(app.session.project(), &before);
+        click_text(&mut app, &ctx, "Fit design")?;
+        assert!(!app.canvas.fit_page);
+        click_text(&mut app, &ctx, "Fit page")?;
+        assert!(app.canvas.fit_page);
+        Ok(())
     }
     #[test]
     fn sheet_dialog_browser_scoped_edit_camera_history_and_save_reopen() -> Result<()> {

@@ -108,6 +108,10 @@ pub struct Project {
 }
 #[derive(Clone, Debug)]
 pub enum Command {
+    SetPage {
+        occurrence: SheetOccurrenceId,
+        page: crate::page::Page,
+    },
     /// None parent creates a flat sheet; Some creates a sheet symbol in that occurrence's definition.
     Create {
         name: String,
@@ -409,6 +413,15 @@ impl Project {
     pub(crate) fn edit(&mut self, command: Command) -> Result<Effect> {
         let mut effect = Effect::default();
         match command {
+            Command::SetPage { occurrence, page } => {
+                let definition = self
+                    .occurrence(occurrence)
+                    .ok_or("Sheet no longer exists.")?
+                    .definition;
+                self.definition_mut(definition)
+                    .ok_or("Sheet no longer exists.")?
+                    .page = page;
+            }
             Command::Create {
                 name,
                 parent,

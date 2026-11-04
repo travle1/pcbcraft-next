@@ -278,6 +278,8 @@ pub struct Annotation {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Document {
+    #[serde(default, skip_serializing_if = "crate::page::Page::is_default")]
+    pub page: crate::page::Page,
     pub id: ProjectId,
     pub sheet_id: SheetId,
     pub name: String,
@@ -300,6 +302,7 @@ pub struct Document {
 impl Document {
     pub fn empty(name: &str) -> Result<Self> {
         let doc = Self {
+            page: Default::default(),
             id: ProjectId::fresh()?,
             sheet_id: SheetId::fresh()?,
             name: name.into(),

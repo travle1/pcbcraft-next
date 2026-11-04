@@ -468,6 +468,7 @@ fn ribbon_rows_remain_aligned_and_unclipped_at_supported_sizes() -> Result<()> {
         let caption_y = ribbon_text(&output, "Place")?.0.center().y;
         for (caption, tool) in [
             ("Place", "Symbol"),
+            ("Sheets", "Subsheet"),
             ("Connect", "Wire"),
             ("Modify", "Move"),
             ("Inspect", "ERC"),
@@ -505,9 +506,27 @@ fn ribbon_rows_remain_aligned_and_unclipped_at_supported_sizes() -> Result<()> {
         }
         let mut previous_x = 0.0;
         for label in [
-            "Symbol", "Power", "Port", "Wire", "Bus", "Label", "Move", "Rotate", "Mirror", "Rules",
-            "ERC", "Annotate", "BOM", "Sync",
+            "Symbol",
+            "Power",
+            "Port",
+            "New sheet",
+            "Subsheet",
+            "Wire",
+            "Bus",
+            "Label",
+            "Move",
+            "Rotate",
+            "Mirror",
+            "Rules",
+            "ERC",
+            "Annotate",
+            "BOM",
+            "Sync",
         ] {
+            if width == 1000.0 && ["Power", "Bus", "Rules", "BOM"].contains(&label) {
+                assert!(ribbon_text(&output, label).is_err());
+                continue;
+            }
             let (text, clip) = ribbon_text(&output, label)?;
             assert!(clip.contains_rect(text), "Clipped command: {label}");
             assert!(
@@ -1178,7 +1197,7 @@ fn ribbon_tabs_switch_command_sets_without_opening_panels() -> Result<()> {
         ("Analyze", ribbon::Tab::Analyze, "ERC"),
         ("Libraries", ribbon::Tab::Libraries, "Parts"),
         ("Manage", ribbon::Tab::Manage, "Save"),
-        ("View", ribbon::Tab::View, "Fit sheet"),
+        ("View", ribbon::Tab::View, "Fit page"),
         ("Capture", ribbon::Tab::Capture, "Symbol"),
     ] {
         let output = workspace_frame(&mut app, &ctx, vec![]);
@@ -1909,7 +1928,7 @@ fn demo_full_size_text_has_clearance_from_other_labels() -> Result<()> {
         for (other, s) in app.canvas.text_hits.iter().skip(i + 1) {
             if r.shrink(0.7).intersects(s.shrink(0.7)) {
                 collisions.push(format!(
-                    "{} / {}",
+                    "{target:?} {} {r:?} / {other:?} {} {s:?}",
                     target.content(app.document()).unwrap_or_default(),
                     other.content(app.document()).unwrap_or_default()
                 ));

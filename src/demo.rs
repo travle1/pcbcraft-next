@@ -12,37 +12,44 @@ pub fn fan_controller() -> Result<Document> {
     // Authored local circuits around a central controller, following the user's
     // FigCraft composition. Routes and text are native editable document data.
     let parts = [
-        ("J1", Connector, "12 V input", -108, -64, 1),
+        ("J1", Connector, "12 V input", -116, -84, 1),
         ("U1", Controller24, "Generic MCU · 3.3 V", 0, 12, 0),
-        ("U2", Regulator, "12 V → 3.3 V", -64, -65, 0),
-        ("C1", Capacitor, "10 µF", -88, -64, 1),
-        ("C2", Capacitor, "4.7 µF", -40, -64, 1),
-        ("C3", Capacitor, "100 nF", -16, -64, 1),
-        ("C7", Capacitor, "100 nF", 8, -42, 1),
-        ("R5", Resistor, "10k", -40, -38, 1),
-        ("C5", Capacitor, "100 nF", -40, -22, 1),
-        ("R10", Resistor, "100k", -104, -38, 1),
-        ("R11", Resistor, "22k", -104, -18, 1),
-        ("J2", Connector, "0–3.3 V setpoint", -100, 0, 2),
-        ("J4", Connector, "Mode select", -80, 16, 2),
-        ("R3", Resistor, "10k", -118, 10, 1),
-        ("Y1", Oscillator, "8 MHz", -74, 42, 0),
-        ("C6", Capacitor, "100 nF", -108, 42, 1),
-        ("J5", Header6, "SWD debug", -84, 78, 0),
-        ("J6", Header6, "UART console", -24, 78, 0),
-        ("J3", FanConnector, "12 V · 4-wire fan", 100, -14, 0),
-        ("R1", Resistor, "10k", 64, -34, 1),
-        ("R2", Resistor, "100 Ω", 64, -8, 0),
-        ("R4", Resistor, "1k", 60, 8, 0),
-        ("D1", Led, "Status LED", 88, 8, 0),
-        ("U3", DigitalTemperatureSensor, "I²C temperature", 96, 42, 0),
-        ("C4", Capacitor, "100 nF", 120, 24, 1),
-        ("R8", Resistor, "4.7k", 56, 32, 1),
-        ("R9", Resistor, "4.7k", 68, 32, 1),
-        ("J7", Header6, "I²C display", 96, 80, 0),
-        ("C8", Capacitor, "10 µF", 66, 80, 1),
-        ("R7", Resistor, "1k", 22, 78, 0),
-        ("D2", Led, "Activity", 46, 78, 0),
+        ("U2", Regulator, "12 V → 3.3 V", -72, -85, 0),
+        ("C1", Capacitor, "10 µF", -96, -84, 1),
+        ("C2", Capacitor, "4.7 µF", -48, -84, 1),
+        ("C3", Capacitor, "100 nF", -24, -84, 1),
+        ("C7", Capacitor, "100 nF", 8, -50, 1),
+        ("R5", Resistor, "10k", -48, -42, 1),
+        ("C5", Capacitor, "100 nF", -48, -26, 1),
+        ("R10", Resistor, "100k", -120, -38, 1),
+        ("R11", Resistor, "22k", -120, -18, 1),
+        ("J2", Connector, "0–3.3 V setpoint", -112, 4, 2),
+        ("J4", Connector, "Mode select", -92, 24, 2),
+        ("R3", Resistor, "10k", -134, 16, 1),
+        ("Y1", Oscillator, "8 MHz", -86, 54, 0),
+        ("C6", Capacitor, "100 nF", -124, 54, 1),
+        ("J5", Header6, "SWD debug", -100, 94, 0),
+        ("J6", Header6, "UART console", -28, 94, 0),
+        ("J3", FanConnector, "12 V · 4-wire fan", 116, -18, 0),
+        ("R1", Resistor, "10k", 80, -40, 1),
+        ("R2", Resistor, "100 Ω", 80, -12, 0),
+        ("R4", Resistor, "1k", 72, 12, 0),
+        ("D1", Led, "Status LED", 104, 12, 0),
+        (
+            "U3",
+            DigitalTemperatureSensor,
+            "I²C temperature",
+            112,
+            54,
+            0,
+        ),
+        ("C4", Capacitor, "100 nF", 144, 40, 1),
+        ("R8", Resistor, "4.7k", 72, 44, 1),
+        ("R9", Resistor, "4.7k", 84, 44, 1),
+        ("J7", Header6, "I²C display", 112, 96, 0),
+        ("C8", Capacitor, "10 µF", 80, 96, 1),
+        ("R7", Resistor, "1k", 28, 94, 0),
+        ("D2", Led, "Activity", 56, 94, 0),
     ];
     for (reference, kind, value, x, y, turns) in parts {
         let component = ComponentId::fresh()?;
@@ -128,43 +135,58 @@ pub fn fan_controller() -> Result<Document> {
         (("J1", "1"), ("C1", "1"), Some("+12V"), vec![]),
         (("C1", "1"), ("U2", "1"), None, vec![]),
         (("J1", "2"), ("C1", "2"), None, vec![]),
-        (("C1", "2"), ("U2", "2"), None, vec![(-76, -59)]),
+        (("C1", "2"), ("U2", "2"), None, vec![(-84, -79)]),
         (("U2", "3"), ("C2", "1"), Some("+3V3"), vec![]),
         (("C2", "1"), ("C3", "1"), None, vec![]),
-        (("J2", "1"), ("U1", "4"), Some("SETPOINT"), vec![]),
+        (
+            ("J2", "1"),
+            ("U1", "4"),
+            Some("SETPOINT"),
+            vec![(-72, 4), (-72, 0)],
+        ),
         (
             ("J4", "1"),
             ("U1", "8"),
             Some("MODE"),
-            vec![(-52, 16), (-52, 8)],
+            vec![(-58, 24), (-58, 8)],
         ),
         (
             ("Y1", "3"),
             ("U1", "10"),
             Some("CLK"),
-            vec![(-44, 42), (-44, 16)],
+            vec![(-46, 54), (-46, 16)],
         ),
-        (("U1", "6"), ("J3", "3"), Some("TACH"), vec![]),
-        (("U1", "5"), ("R2", "1"), Some("PWM"), vec![]),
+        (
+            ("U1", "6"),
+            ("J3", "3"),
+            Some("TACH"),
+            vec![(48, -12), (48, -16)],
+        ),
+        (
+            ("U1", "5"),
+            ("R2", "1"),
+            Some("PWM"),
+            vec![(56, -8), (56, -12)],
+        ),
         (("R2", "2"), ("J3", "4"), None, vec![]),
         (
             ("U1", "7"),
             ("R4", "1"),
             Some("STATUS"),
-            vec![(36, 4), (36, 8)],
+            vec![(40, 4), (40, 12)],
         ),
         (("R4", "2"), ("D1", "1"), None, vec![]),
         (
             ("U1", "16"),
             ("U3", "3"),
             Some("SDA"),
-            vec![(44, 28), (44, 38)],
+            vec![(48, 28), (48, 50)],
         ),
         (
             ("U1", "17"),
             ("U3", "4"),
             Some("SCL"),
-            vec![(36, 32), (36, 46)],
+            vec![(40, 32), (40, 58)],
         ),
         (("R7", "2"), ("D2", "1"), None, vec![]),
     ] {
@@ -175,8 +197,8 @@ pub fn fan_controller() -> Result<Document> {
         ("R5", "2"),
         ("C5", "1"),
         ("U1", "9"),
-        (-40, -32),
-        &[(-28, -32), (-28, -12)],
+        (-48, -36),
+        &[(-30, -36), (-30, -12)],
         "NRST",
     )?;
     branch(
@@ -184,8 +206,8 @@ pub fn fan_controller() -> Result<Document> {
         ("R10", "2"),
         ("R11", "1"),
         ("U1", "3"),
-        (-104, -28),
-        &[(-52, -28), (-52, -8)],
+        (-120, -28),
+        &[(-62, -28), (-62, -8)],
         "VIN_SENSE",
     )?;
     // Split each signal at the physical tap, preserving a single shared vertex.
@@ -194,7 +216,7 @@ pub fn fan_controller() -> Result<Document> {
         ("U1", "6"),
         ("J3", "3"),
         ("R1", "2"),
-        (64, -12),
+        (80, -16),
         &[],
     )?;
     tap(
@@ -202,15 +224,15 @@ pub fn fan_controller() -> Result<Document> {
         ("J4", "1"),
         ("U1", "8"),
         ("R3", "2"),
-        (-64, 16),
-        &[(-118, 24), (-64, 24)],
+        (-76, 24),
+        &[(-134, 32), (-76, 32)],
     )?;
     tap(
         &mut d,
         ("U1", "16"),
         ("U3", "3"),
         ("R8", "2"),
-        (56, 38),
+        (72, 50),
         &[],
     )?;
     tap(
@@ -218,22 +240,22 @@ pub fn fan_controller() -> Result<Document> {
         ("U1", "17"),
         ("U3", "4"),
         ("R9", "2"),
-        (68, 46),
+        (84, 58),
         &[],
     )?;
     // Each heading is local to its circuit; it does not expand fit to distant margins.
     for (x, y, label) in [
-        (-110, -76, "Power supply"),
-        (-110, -50, "Input monitor"),
-        (-48, -55, "Reset & decoupling"),
-        (-90, -10, "Manual control"),
-        (-88, 29, "Clock source"),
-        (52, -51, "Fan interface"),
-        (50, 20, "Temperature sensor"),
-        (-110, 63, "SWD debug"),
-        (-46, 63, "UART console"),
-        (16, 63, "Activity"),
-        (70, 67, "Display connector"),
+        (-126, -100, "Power supply"),
+        (-132, -54, "Input monitor"),
+        (-58, -62, "Reset & decoupling"),
+        (-110, -6, "Manual control"),
+        (-108, 40, "Clock source"),
+        (64, -60, "Fan interface"),
+        (64, 30, "Temperature sensor"),
+        (-126, 78, "SWD debug"),
+        (-50, 78, "UART console"),
+        (20, 78, "Activity"),
+        (88, 80, "Display connector"),
     ] {
         let id = AnnotationId::fresh()?;
         d.annotations.push(Annotation {
@@ -260,6 +282,23 @@ pub fn fan_controller() -> Result<Document> {
         appearance.offset = point(-12, 0);
         d.text_overrides.push(Override { target, appearance });
     }
+    // Keep values clear of the shared input return rail, including page overview.
+    for reference in ["J1", "C1"] {
+        let target = TextTarget::Value(pin(&d, reference, "1")?.symbol);
+        let mut appearance = target.defaults();
+        appearance.height_nm = 3_000_000;
+        appearance.offset = if reference == "C1" {
+            point(6, 9)
+        } else {
+            point(0, 5)
+        };
+        d.text_overrides.push(Override { target, appearance });
+    }
+    let target = TextTarget::Reference(pin(&d, "R9", "1")?.symbol);
+    let mut appearance = target.defaults();
+    appearance.height_nm = 3_000_000;
+    appearance.offset = point(0, -6);
+    d.text_overrides.push(Override { target, appearance });
     d.validate()?;
     Ok(d)
 }

@@ -25,7 +25,7 @@ struct Entry {
     icon: Icon,
     key: &'static str,
 }
-const ENTRIES: [Entry; 14] = [
+const ENTRIES: [Entry; 16] = [
     Entry {
         id: "symbol",
         name: "Place symbol",
@@ -43,15 +43,15 @@ const ENTRIES: [Entry; 14] = [
     Entry {
         id: "sheet.new",
         name: "New flat sheet",
-        path: "MANAGE › SHEETS",
+        path: "CAPTURE › SHEETS",
         icon: Icon::Sheet,
         key: "",
     },
     Entry {
         id: "sheet.child",
         name: "New hierarchical subsheet",
-        path: "MANAGE › SHEETS",
-        icon: Icon::Sheet,
+        path: "CAPTURE › SHEETS",
+        icon: Icon::Subsheet,
         key: "",
     },
     Entry {
@@ -70,7 +70,7 @@ const ENTRIES: [Entry; 14] = [
     },
     Entry {
         id: "fit",
-        name: "Fit schematic",
+        name: "Fit design",
         path: "VIEW › NAVIGATION",
         icon: Icon::Zoom,
         key: "F",
@@ -122,6 +122,20 @@ const ENTRIES: [Entry; 14] = [
         name: "Show ERC availability",
         path: "ANALYZE · CHECKS NOT IMPLEMENTED",
         icon: Icon::Erc,
+        key: "",
+    },
+    Entry {
+        id: "fit.page",
+        name: "Fit page",
+        path: "VIEW › NAVIGATE",
+        icon: Icon::Sheet,
+        key: "Shift+F",
+    },
+    Entry {
+        id: "page.setup",
+        name: "Sheet page setup",
+        path: "VIEW › PAGE",
+        icon: Icon::Sheet,
         key: "",
     },
 ];
@@ -358,7 +372,17 @@ impl App {
                     self.tool = Tool::Wire;
                     self.canvas.wire_start = None;
                 }
-                "fit" => self.canvas.fit = true,
+                "fit" => {
+                    self.canvas.fit = true;
+                    self.canvas.fit_page = false;
+                }
+                "fit.page" => {
+                    self.canvas.fit = true;
+                    self.canvas.fit_page = true;
+                }
+                "page.setup" => {
+                    self.start_sheet_dialog(super::sheets::Kind::Page, self.active_sheet())
+                }
                 "undo" => self.history(false),
                 "redo" => self.history(true),
                 "save" => self.save(false),

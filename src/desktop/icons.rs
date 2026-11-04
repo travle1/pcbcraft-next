@@ -11,6 +11,7 @@ pub enum Icon {
     Home,
     Folder,
     Sheet,
+    Subsheet,
     Zoom,
     Close,
     Pan,
@@ -60,6 +61,10 @@ impl Icon {
             Self::Close => svg!("close"),
             Self::Pan => svg!("pan"),
             Self::Rotate => svg!("spin"),
+            Self::Subsheet => (
+                "subsheet",
+                include_str!("../../assets/original/subsheet.svg"),
+            ),
             Self::Symbol => (
                 "place-symbol",
                 include_str!("../../assets/original/place-symbol.svg"),
