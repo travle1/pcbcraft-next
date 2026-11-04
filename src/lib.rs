@@ -19,3 +19,7 @@ pub mod wiring;
 
 pub mod selection;
 pub mod text;
+
+pub mod authoring;
+pub mod bridge;
+pub mod mcp;

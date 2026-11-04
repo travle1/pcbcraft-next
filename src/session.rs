@@ -80,6 +80,7 @@ pub struct Session {
     redo: Vec<crate::project::Project>,
     revision: u64,
     pub incarnation: ProjectId,
+    pub(crate) authoring: crate::authoring::State,
 }
 impl Session {
     pub fn new(doc: Document) -> Result<Self> {
@@ -94,6 +95,7 @@ impl Session {
             redo: Vec::new(),
             revision: 0,
             incarnation: ProjectId::fresh()?,
+            authoring: Default::default(),
         })
     }
     /// Legacy convenience accessor for the primary definition, never the GUI active sheet.
@@ -131,7 +133,7 @@ impl Session {
         }
         Ok(())
     }
-    fn commit(&mut self, next: crate::project::Project) -> Result<()> {
+    pub(crate) fn commit(&mut self, next: crate::project::Project) -> Result<()> {
         next.validate()?;
         if next != self.doc {
             let revision = self
@@ -168,18 +170,23 @@ impl Session {
         occurrence: SheetOccurrenceId,
         command: Command,
     ) -> Result<Option<SymbolId>> {
-        if expected != self.revision {
-            return Err(Error::StaleRevision {
-                expected,
-                actual: self.revision,
-            });
-        }
+        self.check_revision(expected)?;
+        let mut project = self.doc.clone();
+        let created = Self::edit_candidate(&mut project, occurrence, command)?;
+        self.commit(project)?;
+        Ok(created)
+    }
+    /// Shared GUI/proposal editing implementation; candidate changes never commit history.
+    pub(crate) fn edit_candidate(
+        project: &mut crate::project::Project,
+        occurrence: SheetOccurrenceId,
+        command: Command,
+    ) -> Result<Option<SymbolId>> {
         let repair = matches!(
             &command,
             Command::Move { .. } | Command::Rotate { .. } | Command::SetProperties { .. }
         );
-        let before = self
-            .doc
+        let before = project
             .document(occurrence)
             .ok_or("Sheet no longer exists.")?;
         let mut next = before.clone();
@@ -343,11 +350,10 @@ impl Session {
         crate::text::prune(&mut next);
         next.validate()?;
         let definition = next.sheet_id;
-        let mut project = self.doc.clone();
         *project
             .definition_mut(definition)
             .ok_or("Missing sheet definition.")? = next;
-        self.commit(project)?;
+        project.validate()?;
         Ok(created)
     }
     pub fn undo(&mut self) -> Result<()> {
