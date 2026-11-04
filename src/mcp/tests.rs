@@ -1,5 +1,68 @@
 use super::*;
 #[test]
+fn connected_arrangement_is_discoverable_and_uses_normal_proposal_history() -> Result<()> {
+    let mut s = Session::new(Document::empty("Original MCP arrangement")?)?;
+    let context = Context {
+        active_sheet: s.project().root,
+        selection: json!({}),
+        allow_apply: true,
+    };
+    let invoke = |s: &mut Session, name: &str, args: Value| {
+        dispatch(
+            s,
+            &context,
+            Call {
+                name: name.into(),
+                arguments: args,
+            },
+        )
+        .map_err(|e| Error::Invalid(e.message))
+    };
+    let capabilities = invoke(&mut s, "inspect_project", json!({}))?;
+    assert_eq!(
+        capabilities["capabilities"]["connected_grid_arrangement"],
+        true
+    );
+    let tools = schema::tools();
+    let tool = tools
+        .iter()
+        .find(|t| t["name"] == "prepare_edit")
+        .ok_or("Missing tool")?;
+    let variants = tool["inputSchema"]["properties"]["operations"]["items"]["oneOf"]
+        .as_array()
+        .ok_or("Missing operations")?;
+    assert!(
+        variants
+            .iter()
+            .any(|op| op["properties"]["op"]["const"] == "arrange_connected")
+    );
+    let point = |x: i64, y: i64| json!({"x":x*GRID_NM,"y":y*GRID_NM});
+    let args = json!({"expected":s.snapshot(),"sheet":context.active_sheet,"summary":"Place and arrange a connected pair","operations":[
+        {"op":"place","key":"a","kind":"resistor","at":point(0,-40)},
+        {"op":"place","key":"b","kind":"led","at":point(80,-40)},
+        {"op":"connect","from":{"symbol":{"local":"a"},"terminal":"2"},"to":{"symbol":{"local":"b"},"terminal":"1"}},
+        {"op":"arrange_connected","symbols":[{"local":"a"},{"local":"b"}],"locked":[],"region":{"min":point(-20,-20),"max":point(80,20)},"origin":point(0,0),"columns":2,"spacing":point(40,40)}
+    ]});
+    let mut bad = args.clone();
+    bad["operations"][3]["region"]["unexpected"] = json!(true);
+    assert!(invoke(&mut s, "prepare_edit", bad).is_err());
+    assert!(s.proposals().is_empty());
+    let proposal = invoke(&mut s, "prepare_edit", args)?;
+    assert_eq!(s.revision(), 0);
+    let handle = serde_json::from_value(proposal["handle"].clone()).map_err(|e| e.to_string())?;
+    let candidate = s.proposal_project(handle)?.clone();
+    let apply = json!({"request_id":"connected-grid","expected":s.snapshot(),"handle":handle});
+    invoke(&mut s, "apply_edit", apply.clone())?;
+    assert_eq!(s.project(), &candidate);
+    invoke(&mut s, "apply_edit", apply)?;
+    assert_eq!(s.revision(), 1);
+    s.undo()?;
+    assert!(s.document().symbols.is_empty());
+    assert!(s.document().wires.is_empty());
+    Ok(())
+}
+
+#[test]
 fn lifecycle_notifications_errors_and_capabilities() {
     let mut p = Protocol::default();
     let mut calls = 0;

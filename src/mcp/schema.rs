@@ -43,7 +43,8 @@ fn operations() -> Value {
         operation("disconnect",json!({"wire":id()}),&["wire"]),
         operation("rename_net",json!({"anchor":terminal(),"name":text}),&["anchor","name"]),
         operation("note",json!({"at":point(),"text":text}),&["at","text"]),
-        operation("arrange",json!({"symbols":{"type":"array","minItems":1,"maxItems":64,"items":symbol()},"origin":point(),"columns":{"type":"integer","minimum":1,"maximum":8},"spacing":point()}),&["symbols","origin","columns","spacing"])
+        operation("arrange",json!({"symbols":{"type":"array","minItems":1,"maxItems":64,"items":symbol()},"origin":point(),"columns":{"type":"integer","minimum":1,"maximum":8},"spacing":point()}),&["symbols","origin","columns","spacing"]),
+        operation("arrange_connected",json!({"symbols":{"type":"array","minItems":1,"maxItems":20,"items":symbol()},"locked":{"type":"array","maxItems":20,"items":symbol(),"description":"Distinct symbols within the selection whose position/orientation must stay fixed. Their grid slots remain reserved. Proposal-local, not persisted locks."},"region":object(json!({"min":point(),"max":point()}),&["min","max"]),"origin":point(),"columns":{"type":"integer","minimum":1,"maximum":8},"spacing":point()}),&["symbols","locked","region","origin","columns","spacing"])
     ]}})
 }
 pub fn tools() -> Vec<Value> {
