@@ -36,7 +36,9 @@ jobs:
           tar -xzf wasm-bindgen.tar.gz --strip-components=1
           echo "$pcbcraft_tools" >> "$GITHUB_PATH"
       - name: Fetch locked browser dependencies
-        run: cargo +1.95.0 fetch --locked --target wasm32-unknown-unknown
+        # cargo metadata loads package metadata before filtering its platform graph.
+        # Fetch all locked archives so the offline notices hook also works on a clean runner.
+        run: cargo +1.95.0 fetch --locked
       - name: Build static application and notices
         env:
           RUSTUP_TOOLCHAIN: 1.95.0

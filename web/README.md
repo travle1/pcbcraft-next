@@ -12,7 +12,7 @@ Use Rust 1.95+, Python 3 and the pinned browser build tools:
 rustup target add wasm32-unknown-unknown
 cargo install trunk --version 0.21.14 --locked
 cargo install wasm-bindgen-cli --version 0.2.130 --locked
-cargo fetch --locked --target wasm32-unknown-unknown
+cargo fetch --locked
 trunk serve
 ```
 
