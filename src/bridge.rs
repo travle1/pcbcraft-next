@@ -105,7 +105,14 @@ impl Bridge {
         self.directory.path().join("connection.json")
     }
     pub fn next(&self) -> Option<Pending> {
+        if self.stop.load(Ordering::Acquire) {
+            return None;
+        }
         self.requests.try_recv().ok()
+    }
+    /// Revoke this bridge immediately; callers may finish joining its IO worker off-thread.
+    pub fn stop(&self) {
+        self.stop.store(true, Ordering::Release);
     }
 }
 impl Drop for Bridge {
@@ -130,6 +137,9 @@ fn receive(
         .map_err(|_| failure("invalid_input", "Invalid bridge envelope"))?;
     if envelope.token != token {
         return Err(failure("unauthorized", "Invalid instance token"));
+    }
+    if stop.load(Ordering::Acquire) {
+        return Err(failure("disconnected", "Bridge stopped; no request queued"));
     }
     let (response, rx) = mpsc::sync_channel(1);
     let deadline = Instant::now() + TIMEOUT;

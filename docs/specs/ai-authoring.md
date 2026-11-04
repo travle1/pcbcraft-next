@@ -3,8 +3,9 @@
 Status: first-class product requirement with an implemented first slice, November 4,
 2026. [Live MCP implementation](../mcp.md) now covers atomic schematic proposals,
 request receipts, live stdio tools, guidance and desktop review. Bounded ordered-grid
-placement and orthogonal connection routing are available; the full SA1 arranger
-and in-app model/provider conversation described below remain planned.
+placement, a constrained connected-grid profile and orthogonal routing are available; the full SA1 arranger
+remain planned. The in-app ACP v1 conversation adapter now has scripted-peer
+qualification; a named real agent/provider remains to be qualified. [Current slice](../assistant.md).
 Read [runtime contracts](host-runtime.md), [domain](domain.md),
 [UI](workspace-ui.md) and [implementation status](../implementation-status.md).
 
@@ -159,8 +160,11 @@ checked; electrical checks not implemented**, never a green "circuit valid" badg
 Authored bends, free endpoints and explicit junctions are now persisted and editable;
 manual wire segments/corners/branches can be moved or deleted with undo. The current
 project envelope carries these paths across sheet occurrences. Legacy links may
-still use derived display routes. Locks, functional groups, layout profiles and
-prepared arrangement constraints still need bounded schema/version contracts.
+still use derived display routes. The `arrange_connected` operation now supports
+proposal-local locks/region limits and deterministic internal pin-to-pin rerouting
+for a bounded catalog-only profile; see [exact limits](../mcp.md#placement-routes-and-remaining-work).
+Persisted locks, functional groups, broader layout profiles and branch-aware
+prepared constraints still need bounded schema/version contracts.
 Build the arranger on the authored geometry instead of a parallel display-only
 model. This is 2D schematic geometry, independent of PCB copper routing or a
 mechanical CAD kernel. See [wire editing](../wire-editing.md) and
@@ -174,12 +178,23 @@ for context chips, proposed-change summary, visual preview and Apply/Discard.
 The latter is an older light rendering: reuse its interaction hierarchy, with the
 current SolidCraft dark tokens. Both actual images were inspected, unchanged.
 
-Provide a movable/dockable Assistant panel with connection/model state, explicit
+Use the bottom-right Assistant launcher to open a right-edge panel spanning the
+workspace height, with collapse and bounded width resize. Overlay the right rail
+without moving Properties/filters or reframing the canvas. The panel carries connection/model state, explicit
 selected-context chips, optional view attachment, prompt composer, Stop and tool
 activity. It must not replace Browser or reset the camera. Distinguish Inspect,
 Propose and an eventual explicitly enabled scoped auto-apply mode. Default design
 generation presents a proposal; the user need not approve each micro-operation.
 Unavailable connection controls clearly state their status.
+
+The current slice provides a bounded draft, suggestions and current sheet/selection
+context. A configured ACP v1 agent enables Send/streaming/Stop and bounded visible
+history. Without one, Copy request provides a brief to paste into an external app.
+The original scripted peer qualifies protocol/UI behavior, not a real provider.
+In-app tools use a private snapshot-bound bridge and always require user Apply/Discard;
+external apply permission does not extend to them. Proposal review presents
+actual part/connection differences and pinned Apply/Discard; configuration and raw
+tool activity belong to secondary setup/diagnostics surfaces.
 
 Preview overlays use separate proposed/removed/changed geometry and a Before/After
 control. Show added parts/connections, topology changes, unresolved assumptions,
@@ -207,9 +222,10 @@ unknown pin capability, preserve the fixed supply and undo in one step.
 
 This is an early capture milestone, before broad layout/manufacturing/simulation;
 it is not postponed until the rest of the app is complete. AI0 and AI1 now have an implemented bounded profile; AI2 has external-agent review
-and AI3 has versioned guidance and SDK qualification. Full provider chat and SA1
-acceptance are still open. No new dependency, provider configuration, agent launch
-or upstream issue was needed. No new crate per task is required.
+and a scripted-peer-tested ACP conversation adapter; AI3 has versioned guidance
+and MCP SDK qualification. Real agent/provider qualification and full SA1 acceptance
+are still open. No new dependency, real agent/model launch or upstream issue was
+needed. No new crate per task is required.
 
 Original fixtures include fan-controller-style signal paths, high-fanout power,
 feedback, multiple terminal branches, long labels, a locked part, selected-region

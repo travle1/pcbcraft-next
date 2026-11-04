@@ -34,19 +34,30 @@ External MCP clients can inspect sheets, components, pins and nets, then prepare
 connected edits for review in the app. Apply commits the entire proposal with
 one-step undo, revision checks and protection against duplicated retries.
 
-The workflow is **inspect → propose → preview → apply → undo**. The **AI / MCP**
+The workflow is **inspect → propose → preview → apply → undo**. The **Assistant**
 panel provides Before/Proposed views, operation details, Apply/Discard and tool
-activity. External apply requires an explicit setting; review in the app is the
+activity in a separate diagnostics view. It shows actual part/connection changes
+and keeps Apply/Discard visible while reviewing. A request draft includes the
+current sheet and selection. A configured ACP agent enables **Send**, streamed
+replies, Stop and conversation history. The adapter has scripted-peer qualification;
+real agents/providers remain to be qualified. Without an in-app agent,
+**Copy request** copies a brief to paste into your AI app.
+External apply requires an explicit setting; review in the app is the
 default. The initial tools also offer ordered grid arrangement and bounded
 orthogonal routes. They do not provide full automatic layout or electrical checking.
+Connected selections also have a bounded grid profile with fixed symbols, region
+limits and internal pin-to-pin rerouting; see [its limits](docs/mcp.md#placement-routes-and-remaining-work).
 
-Build both executables with `cargo build --locked --bins`, open **AI / MCP**,
-choose **Enable local MCP**, and **Copy client config** into your MCP client.
+Build both executables with `cargo build --locked --bins`, expand **Assistant**
+at the bottom right, choose **… → Connect an AI app… → External MCP app**, then
+**Enable local connection** and **Copy configuration** into your MCP client.
 The stdio adapter connects to that exact window; it does not edit a second copy
 of the design. See [MCP setup, tools and limits](docs/mcp.md).
 
 **Available now:** a Linux-qualified MCP stdio bridge, ten tools, bundled guidance,
-atomic schematic proposals and live review. **Still ahead:** in-app model chat,
+atomic schematic proposals, live review and an initial ACP conversation adapter.
+See [Assistant setup and qualification limits](docs/assistant.md).
+**Still ahead:** real agent/provider qualification,
 full circuit arrangement, external part libraries and ERC. The original generic
 symbols are not verified manufacturer pinouts. No AI account is needed for manual editing.
 
@@ -79,7 +90,7 @@ or an AI-generated circuit. Static views: [schematic](docs/screenshots/schematic
 
 </details>
 
-**Still ahead:** in-app AI conversation, full automatic arrangement, ERC/DRC, PCB layout and cross-probing UI,
+**Still ahead:** real agent/provider qualification, full automatic arrangement, ERC/DRC, PCB layout and cross-probing UI,
 3D, simulation, external libraries, KiCad interchange and manufacturing outputs.
 Unavailable workspace/tools are marked accordingly. `.pc` is provisional;
 autosave and crash recovery are not implemented. See the detailed
@@ -173,6 +184,12 @@ use its private-follow-up process or the [security policy](SECURITY.md).
 commit credit, including tool/model co-authors and review-only assistance.
 
 ## License
+
+PCBcraft is starting over with an independent implementation in this repository.
+The preserved GPL fork remains separate and is not being relicensed or ported.
+Contributors and agents must follow the
+[independent implementation and source policy](docs/source-policy.md), which
+excludes KiCad implementation sources and the old fork's code and derived material.
 
 Original contributions are available under [MIT](LICENSE-MIT) OR
 [Apache-2.0](LICENSE-APACHE). Reused family artwork, controls and font retain their

@@ -1,5 +1,66 @@
 # Source register
 
+## Required source boundary
+
+Read the [independent implementation and source policy](source-policy.md) before
+implementation or source research. PCBcraft is starting over with independently
+written code, not relicensing or porting the preserved GPL fork. KiCad implementation
+and the fork's code, source-derived notes/fixtures, translations and AI rewrites
+are excluded, including when supplied through searches, tools or other agents.
+Historical entries below record provenance and prior exposure; they do not authorize
+new use of excluded material. Record qualified reuse with its exact source,
+revision/version, license option, scope, modifications and retained notices.
+
+## Assistant conversation and ACP (November 4, 2026)
+
+The bounded conversation state, worker seam, snapshot-bound review-only dispatch,
+ACP stdio adapter and scripted peer are original PCBcraft implementation/test code.
+They use existing std, serde/serde_json and tempfile facilities; no dependency,
+provider SDK or new asset was imported. Read the official ACP v1
+[initialization](https://agentclientprotocol.com/protocol/v1/initialization),
+[session setup](https://agentclientprotocol.com/protocol/v1/session-setup) and
+[prompt-turn](https://agentclientprotocol.com/protocol/v1/prompt-turn) contracts.
+The latest published v1 is the selected bounded protocol; v2 draft and
+provider-specific extensions are not claimed as supported.
+
+Read SolidCraft's `agent_chat/backend.rs` and selected ACP connection/bridge
+functions at c553365 as architectural references for caller-owned context,
+private live tools and a provider boundary. No whole backend/chat/UI implementation
+was copied. Existing licensed card/action/theme adapters remain in use, with the
+same replacement boundary; the upstream extraction is deferred. Normal launches
+start no agent. Qualification uses an original scripted process, not a real model
+or account; [behavior and remaining limits](assistant.md) distinguish these.
+No KiCad/old-fork implementation, derived notes or fixtures were consulted.
+
+## Assistant placement correction (November 4, 2026)
+
+Inspected the user's actual schematic-overview and AI-review images plus the
+read-only `assistant_drawer_behavior.py` recipe. FigCraft specifies the bottom-right
+launcher and vertical expansion. Read pinned SolidCraft `ui_kit/assistant_entry.rs`
+and `agent_chat/panel.rs` at c553365 for right-edge full-height bounds, adjacent
+tool space, card clipping and resize behavior. The narrow adaptation uses the
+existing shared card/controls; [provenance and replacement boundary](panel-controls-provenance.md)
+cover the imported unchanged Assistant SVG and retained licenses. User designs,
+reference checkout and the preserved fork are unchanged; no app/engine dependency
+or provider backend was introduced.
+
+The user's subsequent review supersedes tool-space reservation: Assistant overlays
+the right rail and leaves Properties/filters in place. Re-read the actual FigCraft
+images and `assistant_drawer_behavior.py` for current-sheet/selection context,
+draft/suggested-request behavior and review hierarchy. The new contextual clipboard
+brief, candidate summary and secondary configuration/diagnostics are original
+PCBcraft work; direct in-app model conversation is still unavailable.
+
+## Connected-grid arrangement (November 4, 2026)
+
+Original PCBcraft operation, constraints, route filtering and synthetic fixtures,
+extending the existing candidate/session and catalog routing code. No external
+implementation, asset or dependency was imported. The native file schema is
+unchanged; locks and region limits belong to a proposal. Existing licensed UI
+controls and symbol painting provide review, with the current theme roles.
+The preserved fork, KiCad implementation, user designs and reference checkout
+were not used as implementation sources or modified. [Behavior and limits](mcp.md#placement-routes-and-remaining-work).
+
 ## Direct MCP implementation (November 4, 2026)
 
 Original PCBcraft session/proposal, protocol, local bridge and review code. No
@@ -230,8 +291,9 @@ should start fresh with approved sources and the target repository's rules.
 | [SolidCraft PR #8206](https://github.com/tangency-labs/solidcraft/pull/8206) | Parts-library reuse; last checked open/unmerged at head `401f89c3b011d678473e5eb379f34cfc85b140e3`; recheck availability |
 | [KiCad format specifications](https://dev-docs.kicad.org/en/file-formats/) and [manuals](https://docs.kicad.org/) | Independent compatibility behavior; do not follow implementation-source links |
 
-No dependencies or external fixtures are bundled. When adding one, record exact
-source/revision/license/use and preserve notices. The older fork's historical
+At the initial guidance-only stage, no dependencies or external fixtures were
+bundled. Later qualified imports are recorded above and in the asset register.
+When adding one, record exact source/revision/license/use and preserve notices. The older fork's historical
 attribution is not copied into this project. Dependencies' public licenses do
 not supersede their contribution policies.
 

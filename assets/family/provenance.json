@@ -241,5 +241,14 @@
     "sha256": "bd37b1e0b489d6c17c6071f18ab0503e546714f1d9ed1f63836e60ff470ec89f",
     "license": "MIT OR Apache-2.0",
     "author": "SolidCraft contributors"
+  },
+  {
+    "path": "assets/family/icons/assistant.svg",
+    "source": "assets/icons/ui/design/svg/flat/assistant.svg",
+    "repository": "https://github.com/tangency-labs/solidcraft",
+    "revision": "c553365a2197a689e749389a6fbf707a38df9b61",
+    "sha256": "980e62b8dc1209b2adb9c6e662842d292667188cd6963a05a1e209a1aa1fc6fa",
+    "license": "MIT OR Apache-2.0",
+    "author": "SolidCraft contributors"
   }
 ]

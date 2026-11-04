@@ -55,6 +55,14 @@ library is qualified, implement only the bounded PCBcraft adapter needed by
 [AI0–AI3](specs/ai-authoring.md), with an explicit replacement boundary; no whole
 agent-chat copy or independent provider framework. This request has not been sent.
 
+The bounded [ACP conversation adapter](assistant.md) now supplies this seam within
+PCBcraft using existing std/serde facilities. Conversation state, stdio IO and
+session-owned tool dispatch are separate modules. It was written independently
+from official ACP v1 documentation, with SolidCraft's provider/bridge boundary
+inspected as an architectural reference. Replace the protocol/backend layer with
+a qualified independent family library when available; do not grow it into a
+provider framework or resume the deferred extraction without task authority.
+
 
 The later [bounded panel/control adaptation](panel-controls-provenance.md) provides
 a concrete extraction candidate: an engine-independent fixed outer card, typed

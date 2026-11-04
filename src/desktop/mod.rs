@@ -650,11 +650,6 @@ impl App {
                             ui.ctx()
                                 .send_viewport_cmd(egui::ViewportCommand::Minimized(true));
                         }
-                        if controls::action(ui, "AI / MCP", controls::ActionTone::Secondary, true)
-                            .clicked()
-                        {
-                            self.ai.open = !self.ai.open;
-                        }
                         ui.label(RichText::new("SCHEMATIC DRAFT").small().color(t.ui.muted));
                         let r = ui.allocate_response(ui.available_size(), egui::Sense::drag());
                         if r.drag_started() {
@@ -801,6 +796,7 @@ impl App {
             || self.sheets.dialog.is_some();
         self.poll(&ctx);
         self.poll_mcp();
+        self.poll_assistant(&ctx);
         self.ensure_sheet();
         self.refresh_nets();
         self.shortcuts(&ctx);
@@ -832,8 +828,8 @@ impl App {
                 canvas::show(self, ui, input_enabled);
             });
         self.panels(&ctx);
-        self.dialogs(&ctx);
         self.ai_panel(&ctx);
+        self.dialogs(&ctx);
         self.more_properties(&ctx);
         self.net_dialogs(&ctx);
         self.sheet_dialog(&ctx);
@@ -843,6 +839,7 @@ impl App {
         self.frames = self.frames.saturating_add(1);
         if self.options.capture.is_some()
             && !self.capture_sent
+            && self.ai.capture_ready()
             && (!self.options.capture_wire_menu || self.canvas.context_open)
             && (!self.options.capture_selection
                 || matches!(self.canvas.gesture, Some(interaction::Gesture::Box { .. })))

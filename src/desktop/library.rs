@@ -71,6 +71,10 @@ pub(super) struct PartDrag {
 
 impl App {
     pub(super) fn parts_library(&mut self, ctx: &egui::Context) {
+        if self.ai.open && self.library_ui.dock == Dock::Right {
+            self.library_ui.rect = Rect::NOTHING;
+            return;
+        }
         if !self.library {
             self.library_ui.was_open = false;
             return;

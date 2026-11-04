@@ -270,6 +270,16 @@ pub(super) fn action(
     tone: ActionTone,
     enabled: bool,
 ) -> egui::Response {
+    action_width(ui, label, tone, enabled, 72.0)
+}
+
+pub(super) fn action_width(
+    ui: &mut egui::Ui,
+    label: &str,
+    tone: ActionTone,
+    enabled: bool,
+    width: f32,
+) -> egui::Response {
     let t = theme::current(ui.ctx());
     ui.scope(|ui| {
         let (fill, ink) = match tone {
@@ -311,7 +321,8 @@ pub(super) fn action(
         ui.visuals_mut().override_text_color = Some(ink);
         ui.add_enabled(
             enabled,
-            egui::Button::new(label).min_size(vec2(72.0, t.metrics.control_height.max(28.0))),
+            egui::Button::new(label)
+                .min_size(vec2(width.max(72.0), t.metrics.control_height.max(28.0))),
         )
     })
     .inner
@@ -347,6 +358,40 @@ pub(super) fn card<R>(
                 .inner
         })
         .inner
+}
+
+/// FigCraft's labeled bottom-right entry, using the shared panel/button roles.
+pub(super) fn assistant_entry(ui: &mut egui::Ui, size: egui::Vec2) -> egui::Response {
+    let t = theme::current(ui.ctx());
+    let (rect, _) = ui.allocate_exact_size(size, Sense::hover());
+    let response = ui.interact(rect, "assistant_entry_toggle".into(), Sense::click());
+    let frame = t.panel_frame().corner_radius(12);
+    // Frame::paint takes content bounds; keep its paint inside the target as well.
+    let content = rect.shrink2(frame.total_margin().sum() * 0.5);
+    ui.painter().add(frame.paint(content));
+    if response.hovered() || response.has_focus() {
+        ui.painter().rect_filled(rect.shrink(1.0), 12, t.ui.hover);
+    }
+    Icon::Assistant.image(20.0, ui.ctx()).paint_at(
+        ui,
+        Rect::from_center_size(rect.left_center() + vec2(22.0, 0.0), vec2(20.0, 20.0)),
+    );
+    ui.painter().text(
+        rect.left_center() + vec2(44.0, 0.0),
+        Align2::LEFT_CENTER,
+        "Assistant",
+        egui::FontId::proportional(t.metrics.body),
+        t.ui.text,
+    );
+    let c = rect.right_center() - vec2(20.0, 0.0);
+    ui.painter().add(egui::Shape::line(
+        vec![c + vec2(-4.0, 2.0), c + vec2(0.0, -2.0), c + vec2(4.0, 2.0)],
+        Stroke::new(1.3, t.ui.muted),
+    ));
+    response.widget_info(|| {
+        egui::WidgetInfo::labeled(egui::WidgetType::Button, true, "Expand Assistant")
+    });
+    response
 }
 
 pub(super) fn text_input(edit: egui::TextEdit<'_>) -> egui::TextEdit<'_> {

@@ -6,6 +6,7 @@ use std::hash::{Hash, Hasher};
 #[derive(Clone, Copy)]
 pub enum Icon {
     Save,
+    Assistant,
     Undo,
     Redo,
     Home,
@@ -53,6 +54,7 @@ impl Icon {
             };
         }
         match self {
+            Self::Assistant => svg!("assistant"),
             Self::Grid => svg!("grid"),
             Self::Text => ("text", include_str!("../../assets/original/text.svg")),
             Self::Save => svg!("save"),

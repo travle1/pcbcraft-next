@@ -2,7 +2,9 @@
 
 PCBcraft now implements a local MCP adapter directly against its own Electronics
 session. SolidCraft is neither a dependency nor a process to launch. This is an
-initial, bounded schematic-authoring implementation, not a connected model/chat UI.
+initial, bounded schematic-authoring implementation. The separate
+[in-app Assistant](assistant.md) now has an ACP v1 adapter with scripted-peer
+qualification; real agent/provider qualification remains open.
 
 ## Start and connect
 
@@ -13,12 +15,25 @@ cargo build --offline --locked --bins
 ./target/debug/pcbcraft --demo
 ```
 
-Open **AI / MCP** in the top bar, choose **Enable local MCP**, then **Copy client
-config**. Paste that configuration into your MCP client's server settings. The
+Expand **Assistant** at the bottom right of the workspace, choose **… → Connect
+an AI app…**, expand **External MCP app**, then **Enable local connection** and
+**Copy configuration**. Assistant opens along the
+workspace's full height on the right; its header chevron collapses it back to the
+launcher. Paste the configuration into your MCP client's server settings. The
 configuration uses `pcbcraft-mcp --connect /tmp/pcbcraft-mcp-…/connection.json` and
 points to this exact window. It is regenerated after disabling/re-enabling or
 restarting the app. No client settings or credentials are modified automatically.
 The app may also be launched with `--mcp` to enable its local bridge explicitly.
+
+Assistant overlays the right rail. Properties and selection filters retain their
+positions and return unchanged when Assistant collapses. The main panel contains
+the current sheet/selection, suggested requests, a bounded draft field and review.
+**Copy request** copies the text and live context for pasting into the AI app;
+it does not send a message or run a model. Drafts survive panel collapse but are
+not saved in the electronics document. A configured in-app agent instead enables
+Send/Stop and streamed conversation; see [its separate setup and limits](assistant.md).
+Connection permissions and configuration live in the setup dialog, while raw tool
+activity is available through **… → Diagnostics…**.
 
 The bridge is off on normal startup. Each enabled window has a random loopback
 port and a 256-bit token in a private temporary directory. The connection file is
@@ -40,16 +55,24 @@ only queues bounded requests and sends replies.
 2. Prepare a batch with the current project/session/revision stamp. Supported
    operations place, edit, move, delete, connect, disconnect, name a net, add a
    note and arrange an explicit set of symbols in ordered rows/columns.
-3. Review its summary, operations, affected sheet occurrences, Before/Proposed
-   overview and limitations in **AI / MCP**. Preparation does not dirty the project.
+3. Review the proposed part/connection changes and Before/Proposed overview in
+   **Assistant**. **Change details** contains individual operations and validation
+   limits. Preparation does not dirty the project.
 4. **Apply** commits once and **Discard** changes nothing. One ordinary **Ctrl+Z**
    restores the entire batch. The camera stays where the user left it; use **F**
    to fit newly added content. Save uses the ordinary project save controls.
+   After applying, **Undo changes** is available while that edit is still the
+   current revision and no other proposals remain pending. Manual editing that
+   advances the revision removes that action.
 
 External apply is disabled by default. The panel has an explicit option allowing
 the connected client to call `apply_edit`. It resets on new/open/reopen or bridge
 disable. Turning it off still permits reading an existing receipt. Clients do not
 get filesystem, shell, provider credentials or automatic save tools.
+
+The in-app conversation uses a separate private bridge that always requires user
+Apply/Discard and is limited to the turn's original snapshot. Enabling external
+apply does not grant the in-app agent that permission.
 
 All manual and AI edits use the same `Session::edit_candidate`/commit authority.
 Proposals belong to the session, not the transport. Whole-project candidate
@@ -109,15 +132,41 @@ can calculate deterministic orthogonal routes around original-catalog symbol bod
 and unrelated pins. Failure asks for different placement or explicit reviewed bends.
 Explicit bends receive structural path validation, not automatic obstacle checking.
 
+`arrange_connected` adds a constrained profile for existing circuits: an ordered
+selection of up to 20 symbols, an explicit `locked` subset and a rectangular
+`region` with `min`/`max` points. Other fields match `arrange`. Origin and spacing
+must use the default grid. Fixed symbols keep position/orientation and reserve
+their ordinal slots; the remaining symbols use their specified grid slots. Selected
+symbol reserves and pins must fit inside the region. The operation replans internal
+drawn pin-to-pin paths while retaining wire IDs, endpoint identities, labels and
+terminal membership. Repeating the same successful profile produces no new edit.
+
+Outside geometry stays unchanged. Symbols connected to outside pins or junctions
+must remain fixed; otherwise preparation rejects with the affected wire ID.
+Preserved visible wires need authored paths. New paths avoid catalog bodies,
+unrelated pins, fixed junctions and collinear sharing with preserved or newly
+routed wires, while remaining inside the region. Perpendicular crossings may
+remain and never create connectivity. Named aliases remain aliases. Routing uses
+a bounded deterministic candidate search and can reject a feasible arrangement
+that needs a more complex route; it does not silently fall back to an obstructed path.
+
+This profile supports at most 128 symbols/256 wires on the sheet and 64 internal
+drawn connections. It rejects sheets containing notes, custom text styles, ports
+or subsheet blocks because their clearance is not qualified. Symbol reserves are
+conservative; exact reference/value/pin-text clearance remains unimplemented.
+Region and locks are proposal-local constraints, not a native format change or
+persisted lock setting. Version 2 of the bundled guide describes the operation;
+`inspect_project` advertises `connected_grid_arrangement` and its limits.
+
 This is **not** the full SA1 circuit arranger. Functional-group inference, exact
 text/label clearance, congestion/crossing optimization, persisted locks and
-rerouting existing networks as a whole remain ahead. The overview reuses the real
+rerouting branched networks as a whole remain ahead. The overview reuses the real
 symbol painter; legacy automatic links are simplified and labeled as such. It is
 not a pixel-identical full-sheet renderer, and text/ports/subsheets are available
 through inspection rather than fully drawn in this first review thumbnail.
 
 ERC, manufacturer pinouts/electrical types, external libraries, sheet creation
-through MCP, PCB/3D/manufacturing, an in-app model conversation and streaming jobs
+through MCP, PCB/3D/manufacturing, real in-app agent qualification and background jobs
 remain unavailable. Structural validation is never presented as electrical safety.
 The [AI spec](specs/ai-authoring.md) retains those broader acceptance gates.
 
@@ -130,8 +179,27 @@ bounded framing, paging and default write gating. Local socket tests cover reque
 delivery, invalid tokens and cleanup; GUI tests cover actual session edits/history
 and compact review presentation. Socket tests need permission to bind localhost.
 
+Connected-arrangement fixtures cover an original eight-part circuit, fixed and
+outside geometry, terminal membership and wire identity, one-step Undo/Redo,
+save/reopen and repeat no-op. Rejection cases cover impossible spacing/regions,
+invalid locks, branch/outside movement, obstructed preserved paths, bounded route
+failure and unqualified text clearance. A 20-part array exercises the selection
+limit; MCP dispatch checks discovery, strict decoding, apply and retry history.
+
 The Python SDK smoke test exercised real stdio initialization/tool discovery,
 validated advertised schemas, read the live desktop/catalog, prepared a connected
 sensor/controller pair, inspected its unchanged-live/candidate state, verified the
 write gate, and fetched the guide/prompt. Native review captures are local evidence
 under ignored `work/proof/mcp-review.png`; no provider/model was launched.
+
+The connected-grid follow-up used a local stdio client against the running app,
+validated its request against the advertised JSON Schema, checked guide version 2
+and confirmed preparation left the live revision unchanged. Native X11 captures
+`work/proof/connected-{before,after,after-compact,review,review-compact}.png` show
+the original fixture and review at 1600×1000/1000×700. Compact page fit remains an
+overview; it does not qualify text clearance or electrical behavior. No external
+model/provider was launched.
+
+Assistant's placement follow-up is recorded in the [UI audit](ui-audit.md#assistant-correction--november-4-2026),
+with native collapsed, expanded and proposal states at full/compact sizes. The
+bottom-right entry replaces the initial title-bar button and free-positioned window.

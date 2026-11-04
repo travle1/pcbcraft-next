@@ -5,7 +5,7 @@ agents working on the same project, from schematic intent to a checked board and
 manufacturing package. It follows the SolidCraft family's visual language and
 reuses qualified libraries without depending on the SolidCraft application.
 
-This is the short product roadmap, reviewed **November 3, 2026**. It describes this
+This is the short product roadmap, reviewed **November 4, 2026**. It describes this
 development checkout, including work not yet merged or published. Implemented does
 not mean released or manufacturing-qualified. Priorities can change; these are
 acceptance milestones, not delivery dates or completion percentages.
@@ -25,7 +25,8 @@ Twelve original generic symbols work offline; the fan-controller example is an
 editing illustration, not an electrically validated design.
 
 Live MCP now supports inspection, atomic proposals, a review panel and shared Undo.
-This is a foundation, not completed schematic capture. In-app model chat, ERC/DRC,
+This is a foundation, not completed schematic capture. An initial ACP v1 conversation
+adapter now has scripted-peer qualification; real agent/provider qualification, ERC/DRC,
 board editing, 3D, simulation, KiCad interchange and manufacturing remain ahead. Cross-probe identity hooks exist; layout highlighting
 does not. See [current limits](docs/implementation-status.md#deliberate-limits).
 
@@ -39,10 +40,16 @@ does not. See [current limits](docs/implementation-status.md#deliberate-limits).
 | Capture reliability and polish | Better manual wiring, selection, hierarchy/text interaction, keyboard access and persistent workspace settings; autosave/recovery | Reproduction tests for edits and recovery; reviewed full/compact/scaled UI; no loss of connections, IDs or user work |
 
 Manual paths, ordered grid placement and bounded orthogonal connection routing
-are implemented. The full SA1 arranger and prepared layout constraints remain ahead.
+are implemented. A connected-grid profile adds proposal-local locks/region limits
+and replans internal direct connections. Exact text clearance, saved locks,
+functional groups and branched-network arrangement remain ahead of full SA1 acceptance.
 See [MCP implementation and limits](docs/mcp.md). The [AI authoring contract](docs/specs/ai-authoring.md) owns
 those task definitions. AI work starts here, not after the board toolset is complete.
 Readable manual design must remain useful without an account or agent.
+
+The [Assistant conversation slice](docs/assistant.md) adds Send, streaming, Stop,
+bounded history and snapshot-bound review-only tools. A named real agent/version
+must still complete the full acceptance workflow before AI3 is considered qualified.
 
 ## Following milestones
 
