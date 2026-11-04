@@ -14,6 +14,13 @@ struct Envelope {
     format: String,
     document: Document,
 }
+fn has_text_boxes(doc: &serde_json::Value) -> bool {
+    doc["text_overrides"].as_array().is_some_and(|items| {
+        items
+            .iter()
+            .any(|item| item["appearance"].get("box_size").is_some())
+    })
+}
 pub fn encode(doc: &Document) -> Result<Vec<u8>> {
     if !doc.ports.is_empty() || !doc.sheet_symbols.is_empty() {
         return Err("Hierarchy requires a complete project save.".into());
@@ -84,8 +91,10 @@ pub fn decode(bytes: &[u8]) -> Result<Document> {
             }
         }
     }
-    if format != FORMAT && raw["document"].get("page").is_some() {
-        return Err("Page settings require schematic draft version 6.".into());
+    if format != FORMAT
+        && (raw["document"].get("page").is_some() || has_text_boxes(&raw["document"]))
+    {
+        return Err("Pages and text boxes require schematic draft version 6.".into());
     }
     let value: Envelope = serde_json::from_value(raw).map_err(|e| format!("Invalid draft: {e}"))?;
     if ![
@@ -214,11 +223,14 @@ pub fn decode_project(bytes: &[u8]) -> Result<crate::project::Project> {
     if raw["format"] == "pcbcraft-project-draft/6" {
         let project = &raw["project"];
         if project["main"].get("page").is_some()
-            || project["sheets"]
-                .as_array()
-                .is_some_and(|sheets| sheets.iter().any(|s| s.get("page").is_some()))
+            || has_text_boxes(&project["main"])
+            || project["sheets"].as_array().is_some_and(|sheets| {
+                sheets
+                    .iter()
+                    .any(|s| s.get("page").is_some() || has_text_boxes(s))
+            })
         {
-            return Err("Page settings require project version 7.".into());
+            return Err("Pages and text boxes require project version 7.".into());
         }
     }
     let envelope: ProjectEnvelope =

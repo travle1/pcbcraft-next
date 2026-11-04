@@ -501,6 +501,11 @@ impl Document {
                 return Err("Invalid or duplicate text target.".into());
             }
             item.appearance.validate()?;
+            if item.appearance.box_size.is_some()
+                && !matches!(item.target, crate::text::TextTarget::Note(_))
+            {
+                return Err("Text boxes apply to sheet notes only.".into());
+            }
         }
         if self.annotations.len() > 256
             || self.annotations.iter().any(|a| {

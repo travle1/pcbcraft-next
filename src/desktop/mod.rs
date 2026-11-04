@@ -55,6 +55,8 @@ pub struct Options {
     pub capture_wire_menu: bool,
     pub capture_text: bool,
     pub capture_selection: bool,
+    pub capture_view: bool,
+    pub capture_text_placement: bool,
     pub open: Option<PathBuf>,
 }
 enum FileResult {
@@ -181,6 +183,12 @@ impl App {
         {
             app.open_text(pcbcraft_foundation::text::TextTarget::Note(note.id));
         }
+        if app.options.capture_view {
+            app.ribbon_tab = ribbon::Tab::View;
+        }
+        if app.options.capture_text_placement {
+            app.tool = Tool::Text;
+        }
         if app.options.capture_properties {
             app.open_properties();
         }
@@ -273,6 +281,7 @@ impl App {
         self.canvas.wire_drag = None;
         self.canvas.wire_start = None;
         self.canvas.gesture = None;
+        self.canvas.text_box_start = None;
         self.nets.selected = None;
         self.nets.wire = None;
         self.text_ui = Default::default();
@@ -442,6 +451,7 @@ impl App {
             self.canvas.drag = None;
             self.canvas.wire_drag = None;
             self.canvas.gesture = None;
+            self.canvas.text_box_start = None;
             self.canvas.wire_start = None;
             self.palette = false;
             self.library_ui.cancel_drag();
@@ -675,17 +685,6 @@ impl App {
                             .small()
                             .color(t.ui.muted),
                     );
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.label(
-                            RichText::new(format!(
-                                "Grid 1.27 mm    Snap {}    {:.0}%",
-                                if self.canvas.snap { "on" } else { "off" },
-                                self.canvas.zoom * 100.0
-                            ))
-                            .small()
-                            .color(t.ui.muted),
-                        );
-                    });
                 });
             });
     }
@@ -722,8 +721,14 @@ impl App {
 }
 impl eframe::App for App {
     fn raw_input_hook(&mut self, _ctx: &egui::Context, raw: &mut egui::RawInput) {
-        // Selection proof holds a real right-button drag until the screenshot arrives.
-        if self.options.capture_selection
+        // Capture-only input holds a pointer gesture in an inactive proof window.
+        if (self.options.capture_selection || self.options.capture_text_placement)
+            && self.options.capture.is_some()
+        {
+            raw.focused = true;
+        }
+        // Selection uses secondary drag; text-box sizing uses primary drag.
+        if (self.options.capture_selection || self.options.capture_text_placement)
             && self.options.capture.is_some()
             && !self.busy()
             && self.frames >= 6
@@ -740,7 +745,11 @@ impl eframe::App for App {
             if self.capture_input_step == 0 {
                 raw.events.push(egui::Event::PointerButton {
                     pos,
-                    button: egui::PointerButton::Secondary,
+                    button: if self.options.capture_text_placement {
+                        egui::PointerButton::Primary
+                    } else {
+                        egui::PointerButton::Secondary
+                    },
                     pressed: true,
                     modifiers: egui::Modifiers::NONE,
                 });

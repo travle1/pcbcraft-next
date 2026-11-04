@@ -3,6 +3,11 @@ use crate::document::*;
 
 #[derive(Clone, Debug)]
 pub enum Command {
+    AddTextBox {
+        at: Point,
+        text: String,
+        size: Point,
+    },
     AddNote {
         at: Point,
         text: String,
@@ -180,6 +185,15 @@ impl Session {
         let mut next = before.clone();
         let mut created = None;
         match command {
+            Command::AddTextBox { at, text, size } => {
+                let id = AnnotationId::fresh()?;
+                let target = crate::text::TextTarget::Note(id);
+                let mut appearance = target.defaults();
+                appearance.box_size = Some(size);
+                next.annotations.push(Annotation { id, at, text });
+                next.text_overrides
+                    .push(crate::text::Override { target, appearance });
+            }
             Command::AddNote { at, text } => next.annotations.push(Annotation {
                 id: AnnotationId::fresh()?,
                 at,

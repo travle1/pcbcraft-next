@@ -12,6 +12,8 @@ pub enum Icon {
     Folder,
     Sheet,
     Subsheet,
+    Grid,
+    Text,
     Zoom,
     Close,
     Pan,
@@ -51,6 +53,8 @@ impl Icon {
             };
         }
         match self {
+            Self::Grid => svg!("grid"),
+            Self::Text => ("text", include_str!("../../assets/original/text.svg")),
             Self::Save => svg!("save"),
             Self::Undo => svg!("undo"),
             Self::Redo => svg!("redo"),

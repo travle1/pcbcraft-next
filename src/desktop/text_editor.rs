@@ -47,18 +47,112 @@ impl App {
         self.properties = true;
         self.panel_ui.properties_collapsed = false;
     }
-    pub(super) fn add_note(&mut self, at: Point) {
+    pub(super) fn text_placement(
+        &mut self,
+        ui: &egui::Ui,
+        response: &egui::Response,
+        canvas: egui::Rect,
+        pointer: Option<Pos2>,
+        enabled: bool,
+    ) -> bool {
+        if self.tool != super::Tool::Text {
+            self.canvas.text_box_start = None;
+            return false;
+        }
+        if response.drag_started_by(egui::PointerButton::Primary)
+            && enabled
+            && let Some(start) = ui.input(|i| i.pointer.press_origin())
+        {
+            self.canvas.text_box_start = Some((
+                self.canvas.world(start, canvas),
+                self.session.incarnation,
+                self.session.revision(),
+                self.active_sheet(),
+            ));
+        }
+        if self
+            .canvas
+            .text_box_start
+            .is_some_and(|(_, incarnation, revision, sheet)| {
+                incarnation != self.session.incarnation
+                    || revision != self.session.revision()
+                    || sheet != self.active_sheet()
+            })
+        {
+            self.canvas.text_box_start = None;
+            self.tool = super::Tool::Select;
+            return true;
+        }
+        if !enabled || pointer.is_none() {
+            if ui.input(|i| i.pointer.any_released()) {
+                self.canvas.text_box_start = None;
+            }
+            return true;
+        }
+        ui.ctx().set_cursor_icon(egui::CursorIcon::Text);
+        let end = self.canvas.last_world;
+        let (at, size) = if let Some((start, ..)) = self.canvas.text_box_start {
+            (
+                Point {
+                    x: start.x.min(end.x),
+                    y: start.y.min(end.y),
+                },
+                Point {
+                    x: (start.x - end.x).abs().clamp(500_000, 500_000_000),
+                    y: (start.y - end.y).abs().clamp(500_000, 500_000_000),
+                },
+            )
+        } else {
+            (
+                end,
+                Point {
+                    x: 48_000_000,
+                    y: 18_000_000,
+                },
+            )
+        };
+        let rect = egui::Rect::from_min_max(
+            self.canvas.screen(at, canvas),
+            self.canvas.screen(
+                Point {
+                    x: at.x + size.x,
+                    y: at.y + size.y,
+                },
+                canvas,
+            ),
+        );
+        let ink = theme::current(ui.ctx()).canvas.selection;
+        let outline = [
+            rect.left_top(),
+            rect.right_top(),
+            rect.right_bottom(),
+            rect.left_bottom(),
+            rect.left_top(),
+        ];
+        ui.painter().extend(egui::Shape::dashed_line(
+            &outline,
+            Stroke::new(1.0, ink),
+            4.0,
+            4.0,
+        ));
+        if response.clicked() || response.drag_stopped_by(egui::PointerButton::Primary) {
+            self.canvas.text_box_start = None;
+            self.add_text_box(at, size);
+        }
+        true
+    }
+    pub(super) fn add_text_box(&mut self, at: Point, size: Point) {
         if self.busy() {
             return;
         }
-        let result = self.apply(
+        match self.apply(
             self.session.revision(),
-            Command::AddNote {
+            Command::AddTextBox {
                 at,
+                size,
                 text: "New text".into(),
             },
-        );
-        match result {
+        ) {
             Ok(_) => {
                 if let Some(note) = self.document().annotations.last() {
                     self.open_text(TextTarget::Note(note.id));
@@ -145,6 +239,31 @@ impl App {
                         d.appearance.height_nm = (mm * 1e6).round() as i64;
                     }
                 });
+                if let Some(bounds) = &mut d.appearance.box_size {
+                    for (label, value) in
+                        [("Box width", &mut bounds.x), ("Min. height", &mut bounds.y)]
+                    {
+                        controls::field_row(ui, label, |ui| {
+                            let mut mm = *value as f64 / 1e6;
+                            if ui
+                                .add(
+                                    egui::DragValue::new(&mut mm)
+                                        .range(0.5..=500.0)
+                                        .speed(0.5)
+                                        .suffix(" mm"),
+                                )
+                                .changed()
+                            {
+                                *value = (mm * 1e6).round() as i64;
+                            }
+                        });
+                    }
+                    ui.label(
+                        RichText::new("Wraps to width; grows vertically to keep all text visible.")
+                            .small()
+                            .color(t.ui.muted),
+                    );
+                }
                 ui.horizontal(|ui| {
                     controls::checkbox(ui, &mut d.appearance.italic, "Italic");
                     controls::checkbox(ui, &mut d.appearance.underline, "Underline");
@@ -285,10 +404,25 @@ pub(super) fn paint(app: &mut App, doc: &Document, painter: &egui::Painter, run:
             ..Default::default()
         },
     );
+    let scale = 8.0 * app.canvas.zoom / 1e6;
+    if let Some(bounds) = appearance.box_size {
+        job.wrap.max_width = bounds.x as f32 * scale;
+        job.break_on_newline = true;
+    }
     let galley = painter.layout_job(job);
     let offset =
         vec2(appearance.offset.x as f32, appearance.offset.y as f32) / 1e6 * 8.0 * app.canvas.zoom;
-    let rect = run.align.anchor_size(run.at + offset, galley.size());
+    let rect = if let Some(bounds) = appearance.box_size {
+        egui::Rect::from_min_size(
+            run.at + offset,
+            vec2(
+                bounds.x as f32 * scale,
+                (bounds.y as f32 * scale).max(galley.size().y),
+            ),
+        )
+    } else {
+        run.align.anchor_size(run.at + offset, galley.size())
+    };
     painter.galley(rect.min, galley, color);
     app.canvas.text_hits.push((run.target, rect));
     if app

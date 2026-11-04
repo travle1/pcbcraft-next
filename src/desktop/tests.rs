@@ -192,6 +192,8 @@ pub(super) fn library_fixture() -> Result<(App, egui::Context)> {
         capture_wire_menu: false,
         capture_text: false,
         capture_selection: false,
+        capture_view: false,
+        capture_text_placement: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -432,6 +434,8 @@ fn ribbon_rows_remain_aligned_and_unclipped_at_supported_sizes() -> Result<()> {
             capture_wire_menu: false,
             capture_text: false,
             capture_selection: false,
+            capture_view: false,
+            capture_text_placement: false,
             open: None,
         })?;
         let ctx = egui::Context::default();
@@ -509,6 +513,7 @@ fn ribbon_rows_remain_aligned_and_unclipped_at_supported_sizes() -> Result<()> {
             "Symbol",
             "Power",
             "Port",
+            "Text",
             "New sheet",
             "Subsheet",
             "Wire",
@@ -523,7 +528,7 @@ fn ribbon_rows_remain_aligned_and_unclipped_at_supported_sizes() -> Result<()> {
             "BOM",
             "Sync",
         ] {
-            if width == 1000.0 && ["Power", "Bus", "Rules", "BOM"].contains(&label) {
+            if width == 1000.0 && ["Power", "Bus", "Label", "Rules", "BOM"].contains(&label) {
                 assert!(ribbon_text(&output, label).is_err());
                 continue;
             }
@@ -555,6 +560,8 @@ fn capture_group_menu_shares_commands_and_disables_planned_edits() -> Result<()>
         capture_wire_menu: false,
         capture_text: false,
         capture_selection: false,
+        capture_view: false,
+        capture_text_placement: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -645,6 +652,8 @@ fn schematic_grid_and_fit_are_presentation_only() -> Result<()> {
         capture_wire_menu: false,
         capture_text: false,
         capture_selection: false,
+        capture_view: false,
+        capture_text_placement: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -691,6 +700,8 @@ fn ribbon_pointer_targets_dispatch_the_existing_actions() -> Result<()> {
         capture_wire_menu: false,
         capture_text: false,
         capture_selection: false,
+        capture_view: false,
+        capture_text_placement: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -811,6 +822,8 @@ fn workspace_picker_dismissal_and_planned_rows_preserve_editor_state() -> Result
         capture_wire_menu: false,
         capture_text: false,
         capture_selection: false,
+        capture_view: false,
+        capture_text_placement: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -882,6 +895,8 @@ fn expanded_workspace_cards_keep_reference_geometry_and_readable_type() -> Resul
             capture_wire_menu: false,
             capture_text: false,
             capture_selection: false,
+            capture_view: false,
+            capture_text_placement: false,
             open: None,
         })?;
         let ctx = egui::Context::default();
@@ -963,6 +978,8 @@ fn theme_publication_is_local_and_does_not_change_the_electronics_document() -> 
         capture_wire_menu: false,
         capture_text: false,
         capture_selection: false,
+        capture_view: false,
+        capture_text_placement: false,
         open: None,
     })?;
     let before = app.document().clone();
@@ -1026,6 +1043,8 @@ fn empty_workspace_display_controls_are_visible() -> Result<()> {
         capture_wire_menu: false,
         capture_text: false,
         capture_selection: false,
+        capture_view: false,
+        capture_text_placement: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -1071,6 +1090,8 @@ fn desktop_save_reopen_and_failed_open_keep_session_contract() -> Result<()> {
         capture_wire_menu: false,
         capture_text: false,
         capture_selection: false,
+        capture_view: false,
+        capture_text_placement: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -1118,6 +1139,8 @@ fn file_dialog_blocks_edits_and_pending_capture_survives_frames() -> Result<()> 
         capture_wire_menu: false,
         capture_text: false,
         capture_selection: false,
+        capture_view: false,
+        capture_text_placement: false,
         open: None,
     })?;
     let ctx = egui::Context::default();
@@ -1168,6 +1191,8 @@ fn dirty_project_requires_resolution_before_new_document() -> Result<()> {
         capture_wire_menu: false,
         capture_text: false,
         capture_selection: false,
+        capture_view: false,
+        capture_text_placement: false,
         open: None,
     })?;
     app.command(Command::Place {
@@ -1974,5 +1999,102 @@ fn symbol_placement_repeats_and_secondary_click_only_cancels() -> Result<()> {
     assert!(!egui::Popup::is_any_open(&ctx));
     app.history(false);
     assert_eq!(app.document().symbols.len(), n + 1);
+    Ok(())
+}
+
+#[test]
+fn text_tool_previews_dragged_box_commits_on_release_and_remains_active() -> Result<()> {
+    use pcbcraft_foundation::text::{self, TextTarget};
+    let (mut app, ctx) = library_fixture()?;
+    app.library = false;
+    workspace_frame(&mut app, &ctx, vec![]).drop_without_applying_deltas();
+    let before = app.session.project().clone();
+    let start = app.layout.bounds.center() - egui::vec2(55.0, 45.0);
+    let end = start + egui::vec2(90.0, 60.0);
+    workspace_key(&mut app, &ctx, egui::Key::T);
+    assert_eq!(app.tool, Tool::Text);
+    let output = workspace_frame(&mut app, &ctx, vec![egui::Event::PointerMoved(start)]);
+    assert_eq!(output.platform_output.cursor_icon, egui::CursorIcon::Text);
+    output.drop_without_applying_deltas();
+    assert_eq!(app.session.project(), &before);
+    workspace_frame(
+        &mut app,
+        &ctx,
+        vec![egui::Event::PointerButton {
+            pos: start,
+            button: egui::PointerButton::Primary,
+            pressed: true,
+            modifiers: egui::Modifiers::NONE,
+        }],
+    )
+    .drop_without_applying_deltas();
+    workspace_frame(&mut app, &ctx, vec![egui::Event::PointerMoved(end)])
+        .drop_without_applying_deltas();
+    assert_eq!(app.session.project(), &before);
+    assert!(app.canvas.text_box_start.is_some());
+    workspace_frame(
+        &mut app,
+        &ctx,
+        vec![egui::Event::PointerButton {
+            pos: end,
+            button: egui::PointerButton::Primary,
+            pressed: false,
+            modifiers: egui::Modifiers::NONE,
+        }],
+    )
+    .drop_without_applying_deltas();
+    let note = app.document().annotations.last().ok_or("Missing note")?;
+    let bounds = text::appearance(app.document(), TextTarget::Note(note.id))
+        .box_size
+        .ok_or("Missing box")?;
+    assert!(bounds.x > bounds.y && bounds.y > 1_000_000);
+    assert_eq!(
+        app.document().annotations.len(),
+        before.main.annotations.len() + 1
+    );
+    assert_eq!(app.tool, Tool::Text);
+    app.history(false);
+    assert_eq!(app.session.project(), &before);
+    workspace_key(&mut app, &ctx, egui::Key::Escape);
+    assert_eq!(app.tool, Tool::Select);
+    assert!(app.canvas.text_box_start.is_none());
+    Ok(())
+}
+
+#[test]
+fn view_grid_controls_change_spacing_without_editing_and_snap_to_that_spacing() -> Result<()> {
+    let (mut app, ctx) = library_fixture()?;
+    app.library = false;
+    let before = app.session.project().clone();
+    let click_label = |app: &mut App, label: &str| -> Result<()> {
+        for _ in 0..3 {
+            workspace_frame(app, &ctx, vec![]).drop_without_applying_deltas();
+        }
+        let frame = workspace_frame(app, &ctx, vec![]);
+        let at = ribbon_text(&frame, label)?.0.center();
+        frame.drop_without_applying_deltas();
+        workspace_click(app, &ctx, at);
+        Ok(())
+    };
+    click_label(&mut app, "View")?;
+    click_label(&mut app, "1.27 mm")?;
+    click_label(&mut app, "0.5 mm")?;
+    assert_eq!(app.canvas.grid_nm, 500_000);
+    assert_eq!(app.session.project(), &before);
+    let point = Point {
+        x: 740_000,
+        y: -760_000,
+    };
+    assert_eq!(
+        app.canvas.snap_point(point),
+        Point {
+            x: 500_000,
+            y: -1_000_000
+        }
+    );
+    click_label(&mut app, "Snap")?;
+    assert!(!app.canvas.snap);
+    assert_eq!(app.canvas.snap_point(point), point);
+    assert_eq!(app.session.project(), &before);
     Ok(())
 }

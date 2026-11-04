@@ -15,8 +15,10 @@ pub struct Canvas {
     pub offset: Vec2,
     pub fit: bool,
     pub fit_page: bool,
+    pub(super) text_box_start: Option<(Point, ProjectId, u64, SheetOccurrenceId)>,
     pub(super) page_guide: super::page::Guide,
     pub grid: bool,
+    pub grid_nm: i64,
     pub snap: bool,
     pub symbols_selectable: bool,
     pub pins_selectable: bool,
@@ -70,8 +72,10 @@ impl Default for Canvas {
             offset: Vec2::ZERO,
             fit: true,
             fit_page: true,
+            text_box_start: None,
             page_guide: Default::default(),
             grid: true,
+            grid_nm: GRID_NM,
             snap: true,
             symbols_selectable: true,
             pins_selectable: true,
@@ -113,7 +117,21 @@ impl Canvas {
                 .round()
                 .clamp(-LIMIT_NM as f64, LIMIT_NM as f64) as i64,
         };
-        if self.snap { at.snapped() } else { at }
+        self.snap_point(at)
+    }
+    pub(super) fn snap_point(&self, at: Point) -> Point {
+        if !self.snap {
+            return at;
+        }
+        let step = self.grid_nm.clamp(100_000, 10_000_000);
+        let snap = |v: i64| {
+            ((v as f64 / step as f64).round() as i64).clamp(-LIMIT_NM / step, LIMIT_NM / step)
+                * step
+        };
+        Point {
+            x: snap(at.x),
+            y: snap(at.y),
+        }
     }
     fn shown_symbol(&self, s: &Symbol) -> Symbol {
         let mut s = s.clone();
@@ -173,7 +191,15 @@ impl Canvas {
             bounds.extend_with(Pos2::new(p.x as f32 / 1e6, p.y as f32 / 1e6));
         }
         for a in &doc.annotations {
-            bounds.extend_with(Pos2::new(a.at.x as f32 / 1e6, a.at.y as f32 / 1e6));
+            let appearance = pcbcraft_foundation::text::appearance(doc, TextTarget::Note(a.id));
+            let at = Pos2::new(
+                (a.at.x + appearance.offset.x) as f32 / 1e6,
+                (a.at.y + appearance.offset.y) as f32 / 1e6,
+            );
+            bounds.extend_with(at);
+            if let Some(size) = appearance.box_size {
+                bounds.extend_with(at + egui::vec2(size.x as f32 / 1e6, size.y as f32 / 1e6));
+            }
         }
         for p in doc.ports.iter().map(|p| p.at).chain(
             doc.sheet_symbols
@@ -186,7 +212,7 @@ impl Canvas {
             bounds = bounds.expand(18.0);
             self.zoom = (rect.width() / (bounds.width() * 8.0))
                 .min(rect.height() / (bounds.height() * 8.0))
-                .clamp(0.1, 0.75);
+                .clamp(0.025, 0.75);
             self.offset = -bounds.center().to_vec2() * 8.0 * self.zoom;
         } else {
             self.offset = Vec2::ZERO;
@@ -264,7 +290,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
     let painter = ui.painter().with_clip_rect(full);
     painter.rect_filled(full, 0.0, t.canvas.background);
     if app.canvas.grid {
-        let mut step = GRID_NM as f32 / 1e6 * 8.0 * app.canvas.zoom;
+        let mut step = app.canvas.grid_nm as f32 / 1e6 * 8.0 * app.canvas.zoom;
         while step < t.schematic.grid_min_spacing {
             step *= 5.0;
         }
@@ -863,16 +889,6 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
             );
             ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
         }
-        if app.tool == Tool::Text {
-            painter.text(
-                app.canvas.screen(app.canvas.last_world, canvas),
-                Align2::LEFT_BOTTOM,
-                "New text",
-                FontId::proportional((24.0 * app.canvas.zoom).max(9.0)),
-                t.canvas.selection,
-            );
-            ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
-        }
         if app.tool == Tool::Wire {
             ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
             let target = wire_target(app, &doc, canvas, pos, pin_hit.as_ref(), hit_wire.as_ref());
@@ -956,10 +972,14 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
         app.tool = Tool::Select;
         app.sheets.cancel_drag();
         app.canvas.wire_start = None;
+        app.canvas.text_box_start = None;
         app.canvas.clear_context();
         return;
     }
     if app.sheet_objects(ui, &response, &doc, canvas, input_enabled) {
+        return;
+    }
+    if app.text_placement(ui, &response, canvas, pointer, input_enabled) {
         return;
     }
     if super::interaction::update(app, ui, &response, &doc, canvas, &projected, input_enabled) {
@@ -1134,7 +1154,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                         app.library = true;
                         ui.close();
                     }
-                    if MenuItem::new("Place text", Icon::Annotate)
+                    if MenuItem::new("Place text", Icon::Text)
                         .shortcut("T")
                         .show(ui)
                         .clicked()
@@ -1208,7 +1228,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
                     at: app.canvas.last_world,
                 });
             }
-            Tool::Text => app.add_note(app.canvas.last_world),
+            Tool::Text => {} // Handled by the box-placement gesture above.
             Tool::SheetPlacement => app.commit_sheet_placement(app.canvas.last_world),
             Tool::Wire => {
                 if let Some(pos) = pointer {
@@ -1324,7 +1344,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
     {
         app.command(Command::Move {
             symbol,
-            at: if app.canvas.snap { at.snapped() } else { at },
+            at: app.canvas.snap_point(at),
         });
     }
 }
@@ -1908,6 +1928,8 @@ mod tests {
             capture_wire_menu: false,
             capture_text: false,
             capture_selection: false,
+            capture_view: false,
+            capture_text_placement: false,
             open: None,
         })?;
         let ctx = egui::Context::default();

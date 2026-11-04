@@ -319,7 +319,7 @@ pub(super) fn update(
                         y: world.y - origin.y,
                     };
                     if app.canvas.snap {
-                        *delta = delta.snapped();
+                        *delta = app.canvas.snap_point(*delta);
                     }
                 }
                 Gesture::Text {

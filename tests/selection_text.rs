@@ -351,3 +351,66 @@ fn v4_notes_gain_identity_once_and_v5_data_cannot_masquerade_as_legacy() -> Resu
     assert!(persistence::decode(&serde_json::to_vec(&raw).map_err(|e| e.to_string())?).is_err());
     Ok(())
 }
+
+#[test]
+fn text_box_creation_formatting_save_and_undo_are_atomic() -> Result<()> {
+    let mut s = Session::new(Document::empty("Text boxes")?)?;
+    let before = s.document().clone();
+    let size = Point {
+        x: 48_000_000,
+        y: 18_000_000,
+    };
+    s.apply(
+        0,
+        Command::AddTextBox {
+            at: p(3, 4),
+            size,
+            text: "Wrapped note".into(),
+        },
+    )?;
+    let target = TextTarget::Note(s.document().annotations[0].id);
+    assert_eq!(text::appearance(s.document(), target).box_size, Some(size));
+    let created = s.document().clone();
+    s.undo()?;
+    assert_eq!(s.document(), &before);
+    s.redo()?;
+    assert_eq!(s.document(), &created);
+    assert_eq!(
+        persistence::decode(&persistence::encode(s.document())?)?,
+        created
+    );
+    let revision = s.revision();
+    assert!(
+        s.apply(
+            revision,
+            Command::AddTextBox {
+                at: p(0, 0),
+                size: Point { x: -1, y: 1 },
+                text: "Invalid".into()
+            }
+        )
+        .is_err()
+    );
+    assert_eq!(s.revision(), revision);
+    assert_eq!(s.document(), &created);
+    let mut appearance = text::appearance(s.document(), target);
+    appearance.box_size = Some(Point {
+        x: 20_000_000,
+        y: 30_000_000,
+    });
+    s.apply(
+        revision,
+        Command::SetText {
+            target,
+            content: "A longer wrapped note".into(),
+            appearance,
+        },
+    )?;
+    s.undo()?;
+    assert_eq!(s.document(), &created);
+    let mut raw: serde_json::Value =
+        serde_json::from_slice(&persistence::encode(&created)?).map_err(|e| e.to_string())?;
+    raw["format"] = "pcbcraft-schematic-draft/5".into();
+    assert!(persistence::decode(&serde_json::to_vec(&raw).map_err(|e| e.to_string())?).is_err());
+    Ok(())
+}

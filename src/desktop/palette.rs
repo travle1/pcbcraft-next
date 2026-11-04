@@ -65,7 +65,7 @@ const ENTRIES: [Entry; 16] = [
         id: "text",
         name: "Add text",
         path: "CAPTURE › PLACE",
-        icon: Icon::Annotate,
+        icon: Icon::Text,
         key: "T",
     },
     Entry {

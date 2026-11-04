@@ -205,6 +205,7 @@ impl App {
             RibbonAction::Properties => self.properties = !self.properties,
             RibbonAction::Filters => self.filters = !self.filters,
             RibbonAction::Grid => self.canvas.grid = !self.canvas.grid,
+            RibbonAction::GridPreset(nm) => self.canvas.grid_nm = nm,
             RibbonAction::Snap => self.canvas.snap = !self.canvas.snap,
             RibbonAction::Pins => self.canvas.pins_visible = !self.canvas.pins_visible,
             RibbonAction::Wires => self.canvas.wires_visible = !self.canvas.wires_visible,
@@ -254,6 +255,8 @@ enum RibbonAction {
     Properties,
     Filters,
     Grid,
+    GridSpacing,
+    GridPreset(i64),
     Snap,
     Pins,
     Wires,
@@ -296,6 +299,7 @@ impl RibbonAction {
             Self::Browser => app.browser,
             Self::Properties => app.properties,
             Self::Filters => app.filters,
+            Self::GridPreset(nm) => app.canvas.grid_nm == nm,
             Self::Grid => app.canvas.grid,
             Self::Snap => app.canvas.snap,
             Self::Pins => app.canvas.pins_visible,
@@ -316,6 +320,8 @@ impl RibbonAction {
             | Self::Properties
             | Self::Filters
             | Self::Grid
+            | Self::GridSpacing
+            | Self::GridPreset(_)
             | Self::Snap
             | Self::Pins
             | Self::Wires
@@ -394,13 +400,14 @@ const CAPTURE_GROUPS: &[RibbonGroup] = &[
                 Icon::Port,
                 "Add an explicit hierarchical interface port",
             ),
+            tool(
+                RibbonAction::Text,
+                "Text",
+                Icon::Text,
+                "Draw a text box · T",
+            ),
         ],
-        extras: &[RibbonTool {
-            action: RibbonAction::Text,
-            label: "Text",
-            icon: Icon::Annotate,
-            hint: "Add sheet text · T",
-        }],
+        extras: &[],
     },
     RibbonGroup {
         label: "Sheets",
@@ -632,20 +639,27 @@ const VIEW_GROUPS: &[RibbonGroup] = &[
         extras: &[],
     },
     RibbonGroup {
-        label: "Display",
+        label: "Grid",
         tools: &[
-            tool(
-                RibbonAction::Grid,
-                "Grid",
-                Icon::Layout,
-                "Show or hide grid",
-            ),
+            tool(RibbonAction::Grid, "Grid", Icon::Grid, "Show or hide grid"),
             tool(
                 RibbonAction::Snap,
                 "Snap",
                 Icon::Move,
-                "Snap to 1.27 mm grid",
+                "Snap placement and movement to the chosen grid",
             ),
+            tool(
+                RibbonAction::GridSpacing,
+                "Spacing",
+                Icon::Grid,
+                "Set grid and snap spacing",
+            ),
+        ],
+        extras: &[],
+    },
+    RibbonGroup {
+        label: "Display",
+        tools: &[
             tool(
                 RibbonAction::Pins,
                 "Pins",
@@ -724,6 +738,23 @@ fn group_separator(ui: &mut egui::Ui, compact: bool) {
         egui::Stroke::new(1.0, t.ui.border),
     );
 }
+fn grid_spacing_menu(ui: &mut egui::Ui, app: &App) -> Option<RibbonAction> {
+    controls::section(ui, "GRID AND SNAP SPACING");
+    let mut picked = None;
+    for nm in [
+        254_000, 500_000, 635_000, 1_000_000, 1_270_000, 2_540_000, 5_080_000,
+    ] {
+        if controls::MenuItem::new(&format!("{} mm", nm as f64 / 1e6), Icon::Grid)
+            .checked(app.canvas.grid_nm == nm)
+            .show(ui)
+            .clicked()
+        {
+            picked = Some(RibbonAction::GridPreset(nm));
+            ui.close();
+        }
+    }
+    picked
+}
 fn tool_group(
     ui: &mut egui::Ui,
     app: &App,
@@ -739,7 +770,11 @@ fn tool_group(
         !compact
             || !matches!(
                 tool.action,
-                RibbonAction::Power | RibbonAction::Bus | RibbonAction::Rules | RibbonAction::Bom
+                RibbonAction::Power
+                    | RibbonAction::Bus
+                    | RibbonAction::Label
+                    | RibbonAction::Rules
+                    | RibbonAction::Bom
             )
     };
     let count = group.tools.iter().filter(visible).count();
@@ -760,16 +795,30 @@ fn tool_group(
     let mut picked = None;
     for tool in group.tools.iter().filter(visible) {
         let reason = tool.action.disabled_reason(app);
-        if tool_button(
+        let spacing = format!("{} mm", app.canvas.grid_nm as f64 / 1e6);
+        let label = if matches!(tool.action, RibbonAction::GridSpacing) {
+            &spacing
+        } else {
+            tool.label
+        };
+        let response = tool_button(
             &mut child,
             tool.icon,
-            tool.label,
+            label,
             reason.unwrap_or(tool.hint),
             reason.is_none(),
             tool.action.selected(app),
-        )
-        .clicked()
-        {
+        );
+        if matches!(tool.action, RibbonAction::GridSpacing) {
+            egui::Popup::menu(&response)
+                .frame(controls::menu_frame(ui.ctx()))
+                .show(|ui| {
+                    controls::menu_content(ui);
+                    if let Some(action) = grid_spacing_menu(ui, app) {
+                        picked = Some(action);
+                    }
+                });
+        } else if response.clicked() {
             picked = Some(tool.action);
         }
     }
@@ -811,6 +860,13 @@ fn tool_group(
             for (index, tool) in group.tools.iter().chain(group.extras).enumerate() {
                 if index == group.tools.len() {
                     controls::menu_separator(ui);
+                }
+                if matches!(tool.action, RibbonAction::GridSpacing) {
+                    controls::menu_separator(ui);
+                    if let Some(action) = grid_spacing_menu(ui, app) {
+                        picked = Some(action);
+                    }
+                    continue;
                 }
                 let reason = tool.action.disabled_reason(app);
                 let mut item = controls::MenuItem::new(tool.label, tool.icon)

@@ -98,6 +98,7 @@ impl App {
         self.canvas.wire_drag = None;
         self.canvas.wire_start = None;
         self.canvas.gesture = None;
+        self.canvas.text_box_start = None;
         self.canvas.clear_context();
         self.sheets.drag = None;
         self.sheets.placement = None;
@@ -623,11 +624,10 @@ impl App {
         if let Some(drag) = &mut self.sheets.drag {
             if let Some(pos) = response.interact_pointer_pos() {
                 let world = self.canvas.world(pos, canvas);
-                drag.at = Point {
+                drag.at = self.canvas.snap_point(Point {
                     x: drag.origin.x + world.x - drag.start.x,
                     y: drag.origin.y + world.y - drag.start.y,
-                }
-                .snapped();
+                });
             }
             if response.drag_stopped_by(egui::PointerButton::Primary)
                 && let Some(d) = self.sheets.drag.take()

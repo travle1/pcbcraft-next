@@ -27,6 +27,9 @@ pub enum Font {
 #[serde(deny_unknown_fields)]
 pub struct Appearance {
     pub height_nm: i64,
+    /// Notes only: wrap width and minimum box height, in document units.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub box_size: Option<Point>,
     pub font: Font,
     pub italic: bool,
     pub underline: bool,
@@ -59,6 +62,7 @@ impl TextTarget {
     }
     pub fn defaults(self) -> Appearance {
         Appearance {
+            box_size: None,
             height_nm: match self {
                 Self::Note(_) => 2_750_000,
                 Self::Reference(_) => 1_375_000,
@@ -75,6 +79,11 @@ impl TextTarget {
 }
 impl Appearance {
     pub fn validate(&self) -> Result<()> {
+        if self.box_size.is_some_and(|s| {
+            !(500_000..=500_000_000).contains(&s.x) || !(500_000..=500_000_000).contains(&s.y)
+        }) {
+            return Err("Text box dimensions must be 0.5–500 mm.".into());
+        }
         if !(250_000..=12_000_000).contains(&self.height_nm) || !self.offset.valid() {
             return Err("Text height must be 0.25–12 mm with a bounded offset.".into());
         }

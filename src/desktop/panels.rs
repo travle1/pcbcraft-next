@@ -948,6 +948,11 @@ impl App {
                             {
                                 self.canvas.zoom = (self.canvas.zoom * 1.2).min(8.0);
                             }
+                            ui.label(
+                                RichText::new(format!("{:.0}%", self.canvas.zoom * 100.0))
+                                    .small()
+                                    .color(t.ui.muted),
+                            );
                             ui.separator();
                             if ui
                                 .add(
@@ -1000,7 +1005,7 @@ impl App {
                                     }
                                     Tool::Wire => "Wire · click anywhere to start · click a wire to branch".into(),
                                     Tool::SheetPlacement => "Place sheet object · click to repeat · right-click/Esc to finish".into(),
-                                    Tool::Text => "Place text · click to repeat · right-click/Esc to finish".into(),
+                                    Tool::Text => "Text · drag a box or click to place · right-click/Esc to finish".into(),
                                     Tool::Pan => "Pan · drag the sheet".into(),
                                     Tool::Select => String::new(),
                                 };
