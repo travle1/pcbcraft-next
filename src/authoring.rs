@@ -63,6 +63,14 @@ pub struct Terminal {
     pub terminal: String,
 }
 
+/// Proposal-local limits, not persisted document locks or page settings.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ArrangementRegion {
+    pub min: Point,
+    pub max: Point,
+}
+
 /// Coordinates are integer nanometres in the schematic, never screen pixels.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
@@ -108,6 +116,15 @@ pub enum Operation {
     /// Ordered rows/columns. It never invents connectivity or moves unlisted parts.
     Arrange {
         symbols: Vec<SymbolRef>,
+        origin: Point,
+        columns: usize,
+        spacing: Point,
+    },
+    /// Replan direct connections inside a bounded, explicitly ordered selection.
+    ArrangeConnected {
+        symbols: Vec<SymbolRef>,
+        locked: Vec<SymbolRef>,
+        region: ArrangementRegion,
         origin: Point,
         columns: usize,
         spacing: Point,
@@ -226,12 +243,30 @@ impl Session {
         }
         candidate.validate()?;
         check_budget(&candidate)?;
+        let mut findings = vec!["Structural validation passed. ERC, voltage/current checks and manufacturing validation are not implemented.".into()];
+        if request
+            .operations
+            .iter()
+            .any(|op| matches!(op, Operation::ArrangeConnected { .. }))
+        {
+            findings.push("Each connected-grid step preserves terminal membership, fixed symbols and outside geometry. Internal drawn pin-to-pin paths are replanned inside the region, avoiding catalog bodies, unrelated pins, junctions and shared wire segments. Crossings can remain; exact text clearance and functional-group inference are not implemented.".into());
+        } else {
+            findings.push("Arrangement uses ordered grid spacing and conservative symbol bounds. Full text clearance, net-crossing optimization and external libraries are not implemented; visually review before applying.".into());
+        }
         let info = Proposal {
-            handle: ProjectId::fresh()?, base: self.snapshot(), sheet: request.sheet,
-            summary: request.summary, operations: request.operations, created,
-            affected_occurrences: candidate.occurrences.iter().filter(|o| o.definition == definition).map(|o| o.id).collect(),
-            findings: vec!["Structural validation passed. ERC, voltage/current checks and manufacturing validation are not implemented.".into(),
-                "Arrangement uses ordered grid spacing and conservative symbol bounds. Full text clearance, net-crossing optimization and external libraries are not implemented; visually review before applying.".into()],
+            handle: ProjectId::fresh()?,
+            base: self.snapshot(),
+            sheet: request.sheet,
+            summary: request.summary,
+            operations: request.operations,
+            created,
+            affected_occurrences: candidate
+                .occurrences
+                .iter()
+                .filter(|o| o.definition == definition)
+                .map(|o| o.id)
+                .collect(),
+            findings,
         };
         self.authoring.plans.push(Plan {
             info: info.clone(),
@@ -394,11 +429,37 @@ fn apply_operation(
             layout::arrange(project, sheet, &ids, *origin, *columns, *spacing)?;
             return Ok(());
         }
+        Operation::ArrangeConnected {
+            symbols,
+            locked,
+            region,
+            origin,
+            columns,
+            spacing,
+        } => {
+            let resolve = |refs: &[SymbolRef]| {
+                refs.iter()
+                    .map(|r| symbol(r, created))
+                    .collect::<Result<Vec<_>>>()
+            };
+            connected::arrange(
+                project,
+                sheet,
+                &resolve(symbols)?,
+                &resolve(locked)?,
+                *region,
+                *origin,
+                *columns,
+                *spacing,
+            )?;
+            return Ok(());
+        }
     };
     Session::edit_candidate(project, sheet, command)?;
     Ok(())
 }
 
+mod connected;
 mod layout;
 #[cfg(test)]
 mod tests;

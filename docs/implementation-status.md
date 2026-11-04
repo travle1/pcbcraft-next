@@ -8,11 +8,36 @@ November 3, 2026. This records implemented behavior, distinct from the complete
 Implemented directly in PCBcraft: atomic candidate prepare/apply/discard, bounded
 idempotent receipts, live app-session bridge and a standalone stdio MCP executable.
 Ten tools expose catalog/pin data, selection, sheets and nets plus schematic edit
-proposals. The AI / MCP panel reviews Before/Proposed, operations and checks;
+proposals. Assistant reviews Before/Proposed, operations and checks;
 user Apply shares normal GUI Undo. External apply is an explicit session setting.
 Ordered grid placement and bounded orthogonal connections are initial helpers,
 not a full automatic arranger. [Setup, verification and exact limits](mcp.md).
-In-app model chat, ERC and broader provider/large-project qualification remain ahead.
+An initial [ACP v1 conversation adapter](assistant.md) now supports Send, streaming,
+Stop, bounded history and review-only tools. It is tested with a scripted protocol
+peer; real agent/provider qualification, ERC and large-project work remain ahead.
+
+Assistant now opens from a bottom-right launcher to the full workspace height,
+with a collapse chevron and bounded horizontal resize. It uses the existing shared
+card overlaying the right rail. Properties/filters/right-docked library keep their
+positions beneath it and return unchanged on collapse; they are not pushed into
+the sheet. The panel shows actual part/connection changes, Before/Proposed and
+pinned Apply/Discard, with operations/checks in Change details. Its current-sheet
+and selection context accompanies a bounded three-line input labeled Your request
+and suggested requests. The input stays visible during proposal review.
+Copy request copies a brief to paste into an external AI app; it does not send a message.
+Connection setup and diagnostics are secondary dialogs. The camera, project and
+pending review stay unchanged when the panel opens or collapses. A configured ACP
+agent enables Send; Conversation/Changes switches between replies and proposals.
+No process starts until Send. The in-app bridge always denies agent Apply/Discard,
+even if external apply is enabled. New/open clears the transcript and cancels the
+turn; manual edits invalidate active work. There is no title-bar launcher.
+
+The connected-grid follow-up adds proposal-local fixed symbols and region limits,
+with deterministic replanning of internal direct pin connections. It preserves
+terminal membership, wire IDs and outside geometry, and supports repeat no-op.
+Branch/outside endpoint movement and unqualified text/hierarchy clearance reject
+explicitly. This is a bounded 20-symbol catalog-only profile; the full SA1 arranger,
+persisted locks and exact text clearance remain open. [Profile limits](mcp.md#placement-routes-and-remaining-work).
 
 ## What works
 
@@ -109,7 +134,7 @@ ECO/cross-probing, variants, manufacturing and KiCad adapters remain planned.
 No checks are reported as passed. No SolidCore API is needed by this 2D slice;
 the future geometry boundary remains SolidCore-first, with no Truck fallback.
 MCP transport, atomic multi-command proposals and retry idempotency now work.
-In-app model conversation and general schematic arrangement remain unimplemented. Bounded manual wire
+Real agent/provider qualification and general schematic arrangement remain open. Bounded manual wire
 authoring and repositioning are now available. The demo
 has curated coordinates/routes and supply aliases. Catalog version 3 adds four
 original symbol types while preserving all version 1/2 geometry. First-class AI authoring is now
@@ -158,7 +183,7 @@ advanced hierarchy and background jobs. The bounded MCP profile uses current
 sheet/identity contracts and the new session-owned transaction path.
 
 Next bounded slices: expand AI arrangement and schematic tools, qualify an
-in-app provider conversation, and add background preparation for large projects.
+real in-app agent/provider workflow, and add background preparation for large projects.
 Atomic proposals, request guards, live MCP and the first review UI now work.
 Authored paths/junctions have a bounded manual editing slice;
 a deterministic arranger remains accompanying capture work; these support manual
@@ -191,3 +216,46 @@ readouts were removed from the status corner; zoom is beside navigation. Navigat
 uses immediate raw wheel deltas anchored at the pointer. Authored wire paths skip
 unneeded obstacle collection. These are targeted improvements, not a benchmark or
 a general schematic arranger. The original demo now uses more space within A3.
+
+
+## Browser target
+
+The same repository now has a `web` feature and WASM entry point using the shared
+eframe editor, Electronics session and project codecs. Browser file selection
+and `.pc` download replace native filesystem IO; native process/socket transports
+and window controls are excluded. The default native build remains available.
+The browser Assistant copies actual sheet data without claiming a live bridge.
+The [browser guide](../web/README.md) describes build commands, bounds and the
+explicit Pages workflow. The first hosted deployment is recorded below.
+
+Downloads retain dirty state because the application cannot confirm a durable
+save. Import errors/cancellation keep the existing session; files larger than
+4 MiB reject before content loading. There is no browser autosave, persistent
+storage, direct ACP agent connection or mobile qualification. WebGL/Chromium on
+Linux is the initial browser target; this does not qualify future 3D geometry.
+
+
+Browser acceptance on Linux/Chromium 148.0.7778.96 passed against the optimized
+static bundle mounted at `/pcbcraft-next/`: component-value editing, undo/redo,
+complete-project download/re-import, cancelled/invalid/oversized imports, actual
+clipboard request data, tab-leaving protection and full/compact rendering. No
+JavaScript page errors were recorded. Native regression checks passed all 131
+tests, with 66 passing without default features; native and wasm-target Clippy
+passed with warnings denied. Local Rust was 1.98.1. The subsequent hosted build
+also passed with Rust 1.95.0: [Pages run 41908735674](https://github.com/travle1/pcbcraft-next/actions/runs/41908735674)
+published commit `def3a977777743d063a2d5d8720999bbb506418d`. A fresh Chromium
+browser loaded the [public example](https://travle1.github.io/pcbcraft-next/?demo=1)
+over HTTPS, rendered its 31 symbols and downloaded a valid complete `.pc` project
+with no page errors or failed asset requests. Earlier hosted setup failed because
+a platform-only fetch omitted archives required by offline Cargo metadata; fetching
+all locked archives fixed that setup without changing the selected browser graph.
+
+
+## Library-management planning
+
+A [product-spec draft](specs/library-management.md) now covers the default starter,
+project-owned definitions, source/profile flexibility, reviewable changes and
+proposed L0–L4 gates. This is documentation, not implemented external libraries,
+qualified manufacturer parts, footprint support or a new native file version.
+Its [research record](library-management-research.md) includes evidence limits
+and an excluded-search-result exposure with affected implementation still paused.

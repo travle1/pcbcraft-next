@@ -1,0 +1,16 @@
+[build]
+target = "web/index.html"
+dist = "target/web-dist"
+public_url = "./"
+no_default_features = true
+features = ["web"]
+locked = true
+
+[serve]
+addresses = ["127.0.0.1"]
+port = 8080
+
+[[hooks]]
+stage = "pre_build"
+command = "python3"
+command_arguments = ["scripts/web-notices.py"]

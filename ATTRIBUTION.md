@@ -6,6 +6,14 @@ Original PCBcraft contributions use [MIT](LICENSE-MIT) OR [Apache-2.0](LICENSE-A
 Reused materials retain their own licenses and notices. This project does not
 relicense inherited code or certify historical clean-room provenance.
 
+PCBcraft is restarting with an independent implementation, not relicensing or
+porting the preserved GPL fork. Its history, source and license stay separate.
+The required [source policy](docs/source-policy.md) applies before source inspection,
+implementation or imports, including AI-assisted work. Rewriting excluded code or
+adding an MIT/Apache header is not an approved way to reuse it. Record the actual
+source and license of reused libraries, data and assets; do not present them as
+original PCBcraft contributions.
+
 | Material | Provenance and notices |
 | --- | --- |
 | SolidCraft-family SVGs, palette data and IBM Plex Sans | [Resource register](assets/family/provenance.json), [licenses and notices](assets/family/README.md); family resources MIT OR Apache-2.0, font SIL OFL 1.1 |

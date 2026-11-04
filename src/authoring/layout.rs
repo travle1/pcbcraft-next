@@ -8,18 +8,18 @@ use crate::{
 use std::collections::BTreeSet;
 
 #[derive(Clone, Copy)]
-struct Bounds {
-    min: Point,
-    max: Point,
+pub(super) struct Bounds {
+    pub min: Point,
+    pub max: Point,
 }
 impl Bounds {
-    fn overlaps(self, other: Self) -> bool {
+    pub fn overlaps(self, other: Self) -> bool {
         self.min.x < other.max.x
             && self.max.x > other.min.x
             && self.min.y < other.max.y
             && self.max.y > other.min.y
     }
-    fn crosses(self, a: Point, b: Point) -> bool {
+    pub fn crosses(self, a: Point, b: Point) -> bool {
         if a.y == b.y {
             a.y > self.min.y
                 && a.y < self.max.y
@@ -33,7 +33,7 @@ impl Bounds {
         }
     }
 }
-fn bounds(doc: &Document, id: SymbolId, margin: i64) -> Result<Bounds> {
+pub(super) fn bounds(doc: &Document, id: SymbolId, margin: i64) -> Result<Bounds> {
     let s = doc
         .symbols
         .iter()
@@ -110,6 +110,15 @@ pub(super) fn arrange(
     Ok(())
 }
 pub(super) fn route(doc: &Document, from: &PinRef, to: &PinRef) -> Result<Vec<Point>> {
+    route_filtered(doc, from, to, |_| true)
+}
+/// Additional hard constraints are used by the connected selection profile.
+pub(super) fn route_filtered(
+    doc: &Document,
+    from: &PinRef,
+    to: &PinRef,
+    accept: impl Fn(&[Point]) -> bool,
+) -> Result<Vec<Point>> {
     let a = doc
         .pin(from)
         .ok_or("Unknown source terminal; inspect the catalog's pin IDs.")?;
@@ -166,7 +175,7 @@ pub(super) fn route(doc: &Document, from: &PinRef, to: &PinRef) -> Result<Vec<Po
         paths.push(vec![a, Point { x: a.x, y }, Point { x: b.x, y }, b]);
     }
     let path = paths.into_iter().map(|mut p| { wiring::simplify(&mut p); p })
-        .filter(|p| wiring::validate_path(p).is_ok() && p.windows(2).all(|s| !obstacles.iter().any(|r| r.crosses(s[0],s[1]))))
+        .filter(|p| wiring::validate_path(p).is_ok() && p.windows(2).all(|s| !obstacles.iter().any(|r| r.crosses(s[0],s[1]))) && accept(p))
         .min_by_key(|p| p.windows(2).map(|s| (s[0].x-s[1].x).abs()+(s[0].y-s[1].y).abs()).sum::<i64>() + p.len() as i64 * 2 * GRID_NM)
         .ok_or("No bounded orthogonal path avoids symbol bodies and unrelated pins. Move parts or supply reviewed bends.")?;
     Ok(path[1..path.len() - 1].to_vec())

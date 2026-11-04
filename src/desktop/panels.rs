@@ -26,6 +26,8 @@ pub(super) struct State {
 #[derive(Clone, Copy)]
 pub(super) struct Layout {
     pub bounds: Rect,
+    pub assistant: Rect,
+    pub assistant_entry: Rect,
     pub browser: Rect,
     pub properties: Rect,
     pub filters: Rect,
@@ -39,6 +41,8 @@ impl Default for Layout {
     fn default() -> Self {
         Self {
             bounds: Rect::NOTHING,
+            assistant: Rect::NOTHING,
+            assistant_entry: Rect::NOTHING,
             browser: Rect::NOTHING,
             properties: Rect::NOTHING,
             filters: Rect::NOTHING,
@@ -55,9 +59,38 @@ impl Layout {
         Self::for_library_dock(app, workspace, app.library_ui.dock)
     }
     pub fn for_library_dock(app: &App, workspace: Rect, dock: Dock) -> Self {
-        let bounds = workspace.shrink(12.0);
+        let workspace_bounds = workspace.shrink(12.0);
         let width = 260.0;
         let gap = 12.0;
+        let assistant = if app.ai.open {
+            Rect::from_min_max(
+                pos2(
+                    workspace_bounds.right() - app.ai.panel_width(workspace_bounds.width()),
+                    workspace_bounds.top(),
+                ),
+                workspace_bounds.max,
+            )
+        } else {
+            Rect::NOTHING
+        };
+        let assistant_entry = if app.ai.open {
+            Rect::NOTHING
+        } else {
+            Rect::from_min_size(
+                pos2(
+                    workspace_bounds.right() - width,
+                    workspace_bounds.bottom() - 40.0,
+                ),
+                vec2(width, 40.0),
+            )
+        };
+        // Assistant overlays the right rail; opening it never relocates tool panels.
+        let bounds = workspace_bounds;
+        let control_right = if assistant.is_finite() {
+            assistant.left() - gap
+        } else {
+            bounds.right()
+        };
         let left_library = app.library && dock == Dock::Left;
         let left_properties = app.properties && app.inspector.dock == Dock::Left;
         let right_library = app.library && dock == Dock::Right;
@@ -72,7 +105,10 @@ impl Layout {
                             .unwrap_or((bounds.height() * 0.34).clamp(236.0, 268.0))
                             .clamp(160.0, (bounds.height() - 90.0).max(160.0)),
                 ),
-                pos2(bounds.right() - width - gap, bounds.bottom()),
+                pos2(
+                    (bounds.right() - width - gap).min(control_right),
+                    bounds.bottom(),
+                ),
             )
         } else {
             Rect::NOTHING
@@ -175,20 +211,30 @@ impl Layout {
                 },
             ),
         );
+        let control_bounds = Rect::from_min_max(bounds.min, pos2(control_right, bounds.bottom()));
+        let compact_navigation =
+            assistant.is_finite() && control_bounds.width() < 2.0 * (292.0 + gap) + 316.0;
+        let navigation_width = if compact_navigation { 292.0 } else { 316.0 };
         let navigation = Rect::from_center_size(
             pos2(
-                bounds.center().x,
+                if compact_navigation && !drawer.is_finite() {
+                    control_right - navigation_width / 2.0
+                } else {
+                    control_bounds.center().x
+                },
                 if drawer.is_finite() {
                     drawer.top() - 32.0
                 } else {
                     bounds.bottom() - 20.0
                 },
             ),
-            vec2(316.0, 40.0),
+            vec2(navigation_width, 40.0),
         );
         let floating = Rect::from_min_max(bounds.min, pos2(bounds.right(), free_bottom));
         Self {
-            bounds,
+            bounds: workspace_bounds,
+            assistant,
+            assistant_entry,
             browser,
             properties,
             filters,
@@ -206,6 +252,8 @@ impl Layout {
             self.filters,
             self.drawer,
             self.navigation,
+            self.assistant,
+            self.assistant_entry,
         ]
         .iter()
         .any(|r| r.contains(p))
@@ -251,7 +299,7 @@ pub(super) fn header(ui: &mut egui::Ui, title: &str, collapsed: bool) -> egui::R
     })
 }
 
-fn collapse_button(ui: &mut egui::Ui, tooltip: &str) -> egui::Response {
+pub(super) fn collapse_button(ui: &mut egui::Ui, tooltip: &str) -> egui::Response {
     let t = theme::current(ui.ctx());
     let (rect, response) = ui.allocate_exact_size(vec2(26.0, 24.0), Sense::click());
     if response.hovered() || response.has_focus() {
@@ -329,10 +377,10 @@ impl App {
                 }
             });
         }
-        if self.properties {
+        if self.properties && (!self.ai.open || self.inspector.dock != Dock::Right) {
             self.property_panel(ctx);
         }
-        if self.filters {
+        if self.filters && !self.ai.open {
             card(ctx, "display_controls", layout.filters, |ui| {
                 let collapsed = layout.filters.height() < 60.0;
                 if header(ui, "Selection filters", collapsed).clicked() {
@@ -902,6 +950,7 @@ impl App {
     fn navigation(&mut self, ctx: &egui::Context) {
         let t = theme::current(ctx);
         let rect = self.layout.navigation;
+        let compact = rect.width() < 300.0;
         egui::Area::new("navigation".into())
             .fixed_pos(rect.min)
             .movable(false)
@@ -934,7 +983,10 @@ impl App {
                                 self.canvas.zoom = (self.canvas.zoom / 1.2).max(0.025);
                             }
                             if ui
-                                .add_sized([88.0, 30.0], egui::Button::new("Fit page"))
+                                .add_sized(
+                                    [if compact { 64.0 } else { 88.0 }, 30.0],
+                                    egui::Button::new("Fit page"),
+                                )
                                 .on_hover_text("Fit page · Shift+F. Fit circuit content with F.")
                                 .clicked()
                             {
@@ -965,22 +1017,24 @@ impl App {
                             {
                                 self.tool = Tool::Pan;
                             }
-                            let response = ui
-                                .add(
-                                    egui::Button::image(Icon::Zoom.image(20.0, ui.ctx()))
-                                        .min_size(egui::vec2(30.0, 32.0)),
-                                )
-                                .on_hover_text("Zoom level");
-                            egui::Popup::menu(&response).show(|ui| {
-                                ui.label("Zoom");
-                                ui.add(
-                                    egui::Slider::new(&mut self.canvas.zoom, 0.025..=8.0)
-                                        .logarithmic(true)
-                                        .custom_formatter(|zoom, _| {
-                                            format!("{:.0}%", zoom * 100.0)
-                                        }),
-                                );
-                            });
+                            if !compact {
+                                let response = ui
+                                    .add(
+                                        egui::Button::image(Icon::Zoom.image(20.0, ui.ctx()))
+                                            .min_size(egui::vec2(30.0, 32.0)),
+                                    )
+                                    .on_hover_text("Zoom level");
+                                egui::Popup::menu(&response).show(|ui| {
+                                    ui.label("Zoom");
+                                    ui.add(
+                                        egui::Slider::new(&mut self.canvas.zoom, 0.025..=8.0)
+                                            .logarithmic(true)
+                                            .custom_formatter(|zoom, _| {
+                                                format!("{:.0}%", zoom * 100.0)
+                                            }),
+                                    );
+                                });
+                            }
                         });
                     });
             });

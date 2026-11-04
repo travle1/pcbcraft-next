@@ -60,6 +60,13 @@ simulated success are not evidence that a feature runs.
 
 ## Sources, licensing and AI assistance
 
+PCBcraft is starting over with independently written code; it is not a relicensing
+or port of the preserved GPL fork. Read the required
+[independent implementation and source policy](docs/source-policy.md) before work.
+Product/name continuity does not authorize importing the fork's implementation,
+history, notes or fixtures, including by translation or AI rewriting. The policy
+also covers accidental exposure and agent handoffs.
+
 Original contributions use MIT OR Apache-2.0. Keep source/asset license notices and
 record exact upstream revision, scope and provenance for reuse. Do not import the
 preserved GPL fork, its source-derived notes/fixtures, or another GPL EDA

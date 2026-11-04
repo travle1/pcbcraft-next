@@ -1,10 +1,14 @@
 //! Stdio MCP adapter to an explicitly chosen running PCBcraft window.
+#[cfg(target_arch = "wasm32")]
+fn main() {}
+#[cfg(not(target_arch = "wasm32"))]
 fn main() {
     if let Err(e) = run() {
         eprintln!("PCBcraft MCP: {e}");
         std::process::exit(1);
     }
 }
+#[cfg(not(target_arch = "wasm32"))]
 fn run() -> std::io::Result<()> {
     let args: Vec<_> = std::env::args().skip(1).collect();
     if args.len() != 2 || args[0] != "--connect" {

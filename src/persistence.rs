@@ -1,6 +1,7 @@
 //! Experimental bounded draft format; not KiCad or the final full PCB project format.
 use crate::document::{Document, Error, Result};
 use serde::{Deserialize, Serialize};
+#[cfg(not(target_arch = "wasm32"))]
 use std::{
     io::{Read, Write},
     path::Path,
@@ -142,10 +143,12 @@ pub fn decode(bytes: &[u8]) -> Result<Document> {
     value.document.validate()?;
     Ok(value.document)
 }
+#[cfg(not(target_arch = "wasm32"))]
 pub fn read(path: &Path) -> Result<(Document, Vec<u8>)> {
     let bytes = read_bytes(path)?;
     Ok((decode(&bytes)?, bytes))
 }
+#[cfg(not(target_arch = "wasm32"))]
 fn read_bytes(path: &Path) -> Result<Vec<u8>> {
     let file = std::fs::File::open(path).map_err(|e| Error::Io(e.to_string()))?;
     if !file
@@ -161,9 +164,11 @@ fn read_bytes(path: &Path) -> Result<Vec<u8>> {
         .map_err(|e| Error::Io(e.to_string()))?;
     Ok(bytes)
 }
+#[cfg(not(target_arch = "wasm32"))]
 pub fn write(path: &Path, doc: &Document, expected: Option<&[u8]>) -> Result<Vec<u8>> {
     save_bytes(path, encode(doc)?, expected)
 }
+#[cfg(not(target_arch = "wasm32"))]
 fn save_bytes(path: &Path, bytes: Vec<u8>, expected: Option<&[u8]>) -> Result<Vec<u8>> {
     if path
         .symlink_metadata()
@@ -238,10 +243,12 @@ pub fn decode_project(bytes: &[u8]) -> Result<crate::project::Project> {
     envelope.project.validate()?;
     Ok(envelope.project)
 }
+#[cfg(not(target_arch = "wasm32"))]
 pub fn read_project(path: &Path) -> Result<(crate::project::Project, Vec<u8>)> {
     let bytes = read_bytes(path)?;
     Ok((decode_project(&bytes)?, bytes))
 }
+#[cfg(not(target_arch = "wasm32"))]
 pub fn write_project(
     path: &Path,
     project: &crate::project::Project,

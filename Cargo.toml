@@ -11,21 +11,33 @@ default-run = "pcbcraft"
 [[bin]]
 name = "pcbcraft"
 path = "src/main.rs"
-required-features = ["desktop"]
+required-features = ["ui"]
 
 [features]
 default = ["desktop"]
-desktop = ["dep:eframe", "dep:egui_extras", "dep:rfd", "dep:image"]
+ui = ["dep:eframe", "dep:egui_extras"]
+desktop = ["ui", "dep:rfd", "dep:image", "eframe/wgpu", "eframe/wayland", "eframe/x11", "eframe/accesskit"]
+web = ["ui", "eframe/glow", "dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:js-sys", "dep:web-sys", "dep:web-time"]
 
 [dependencies]
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
 getrandom = "=0.3.4"
-tempfile = "=3.27.0"
-eframe = { version = "=0.36.2", default-features = false, features = ["default_fonts", "wgpu", "wayland", "x11", "accesskit"], optional = true }
+eframe = { version = "=0.36.2", default-features = false, features = ["default_fonts"], optional = true }
 egui_extras = { version = "=0.36.2", default-features = false, features = ["svg"], optional = true }
-rfd = { version = "=0.17.2", optional = true }
 image = { version = "=0.25.10", default-features = false, features = ["png"], optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tempfile = "=3.27.0"
+rfd = { version = "=0.17.2", optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "=0.3.4", features = ["wasm_js"] }
+wasm-bindgen = { version = "=0.2.130", optional = true }
+wasm-bindgen-futures = { version = "=0.4.80", optional = true }
+js-sys = { version = "=0.3.107", optional = true }
+web-sys = { version = "=0.3.107", features = ["Window", "Document", "HtmlCanvasElement", "Location"], optional = true }
+web-time = { version = "=1.1.0", optional = true }
 
 [profile.dev]
 debug = 1

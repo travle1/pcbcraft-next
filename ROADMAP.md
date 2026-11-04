@@ -5,7 +5,7 @@ agents working on the same project, from schematic intent to a checked board and
 manufacturing package. It follows the SolidCraft family's visual language and
 reuses qualified libraries without depending on the SolidCraft application.
 
-This is the short product roadmap, reviewed **November 3, 2026**. It describes this
+This is the short product roadmap, reviewed **November 4, 2026**. It describes this
 development checkout, including work not yet merged or published. Implemented does
 not mean released or manufacturing-qualified. Priorities can change; these are
 acceptance milestones, not delivery dates or completion percentages.
@@ -25,7 +25,8 @@ Twelve original generic symbols work offline; the fan-controller example is an
 editing illustration, not an electrically validated design.
 
 Live MCP now supports inspection, atomic proposals, a review panel and shared Undo.
-This is a foundation, not completed schematic capture. In-app model chat, ERC/DRC,
+This is a foundation, not completed schematic capture. An initial ACP v1 conversation
+adapter now has scripted-peer qualification; real agent/provider qualification, ERC/DRC,
 board editing, 3D, simulation, KiCad interchange and manufacturing remain ahead. Cross-probe identity hooks exist; layout highlighting
 does not. See [current limits](docs/implementation-status.md#deliberate-limits).
 
@@ -39,21 +40,29 @@ does not. See [current limits](docs/implementation-status.md#deliberate-limits).
 | Capture reliability and polish | Better manual wiring, selection, hierarchy/text interaction, keyboard access and persistent workspace settings; autosave/recovery | Reproduction tests for edits and recovery; reviewed full/compact/scaled UI; no loss of connections, IDs or user work |
 
 Manual paths, ordered grid placement and bounded orthogonal connection routing
-are implemented. The full SA1 arranger and prepared layout constraints remain ahead.
+are implemented. A connected-grid profile adds proposal-local locks/region limits
+and replans internal direct connections. Exact text clearance, saved locks,
+functional groups and branched-network arrangement remain ahead of full SA1 acceptance.
 See [MCP implementation and limits](docs/mcp.md). The [AI authoring contract](docs/specs/ai-authoring.md) owns
 those task definitions. AI work starts here, not after the board toolset is complete.
 Readable manual design must remain useful without an account or agent.
+
+The [Assistant conversation slice](docs/assistant.md) adds Send, streaming, Stop,
+bounded history and snapshot-bound review-only tools. A named real agent/version
+must still complete the full acceptance workflow before AI3 is considered qualified.
 
 ## Following milestones
 
 These are dependency-related workstreams, not a requirement to finish every item
 in one row before investigating the next. Library/identity contracts and check
-coverage precede features that depend on them. Narrow geometry and interchange
-qualification can proceed independently when their interfaces are settled.
+coverage precede features that depend on them. The library-management draft now
+sets out a useful starter, portable exact used definitions and configurable
+local/team/public workflows; it remains a proposal for review. Narrow geometry
+and interchange qualification can proceed independently when their interfaces are settled.
 
 | Area | Planned capability | First useful acceptance gate |
 | --- | --- | --- |
-| Libraries and component selection | Durable component/symbol/footprint identities, explicit terminal-to-pad mappings, pinned project snapshots, offline assets, local/team/public sources and reviewable upgrades | Reopen a project with its used definitions offline; preview a library update, diagnose pin/pad incompatibility and undo it; retain provenance and local overrides |
+| [Libraries and component selection](docs/specs/library-management.md) | Durable component/symbol/footprint identities, explicit terminal-to-pad mappings, pinned project snapshots, offline assets, local/team/public sources and reviewable upgrades | Reopen a project with its used definitions offline; preview a library update, diagnose pin/pad incompatibility and undo it; retain provenance and local overrides |
 | Electrical checking | Pin electrical types, power/drive intent, intentional NC, hierarchical connectivity, then buses and multiunit breadth | Original fixtures explain known ERC violations and unknown coverage; derived results are revision-bound; structural validation is never presented as a passed electrical check |
 | First board workflow | Stackup/layers/outline, footprint placement, tracks/vias, ratsnest, basic rules/DRC and reviewed schematic-to-board changes | A small original two-layer board can be edited, checked, saved/reopened and reconciled without losing associations; schematic/layout selections cross-probe through stable occurrence identities |
 | 3D and mechanical review | SolidCore-backed board/layer geometry, component models and aligned selection across schematic/layout/3D | Asymmetric top/bottom fixtures verify origins, rotation, mirroring and layer heights; absent optional models are reported; geometry never owns electrical identity |
@@ -91,3 +100,9 @@ There is no release cadence, hosted CI gate or automatic agent queue configured 
 this roadmap. The [development flow](docs/development-flow.md) explains bounded
 work and review; [issues](https://github.com/travle1/pcbcraft-next/issues) track
 reported work. Update this page and implementation status when capabilities land.
+
+
+The initial [browser target](web/README.md) shares schematic editing and `.pc`
+codecs, with upload/download and a manual GitHub Pages workflow. Browser storage,
+Assistant transport and broader browser/mobile qualification remain open. This
+adds a distribution target without changing Electronics session ownership.

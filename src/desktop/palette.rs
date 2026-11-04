@@ -91,7 +91,11 @@ const ENTRIES: [Entry; 16] = [
     },
     Entry {
         id: "save",
-        name: "Save draft",
+        name: if cfg!(target_arch = "wasm32") {
+            "Download draft"
+        } else {
+            "Save draft"
+        },
         path: "FILE",
         icon: Icon::Save,
         key: "Ctrl S",

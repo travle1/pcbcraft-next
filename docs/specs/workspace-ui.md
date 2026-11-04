@@ -205,7 +205,10 @@ The user's final schematic overview has its bottom-right entry; the earlier
 [AI review rendering](../../../designs/ai-review.png) supplies selected-context,
 proposal summary and Preview/Apply/Discard behavior. Apply current SolidCraft dark
 tokens to that interaction hierarchy, not the older rendering's light palette.
-The panel floats/docks, closes/reopens and keeps Browser available; opening it
+The bottom-right launcher expands Assistant along the workspace's full height at
+the right edge. Collapse restores that launcher; horizontal resize remains bounded.
+Assistant overlays Properties and selection filters without moving them; collapse
+restores the same tool positions/states. Browser stays available. Opening it
 does not move the camera. Show actual connection state, scope/context chips,
 optional view attachment, prompt composer, tool activity and Stop.
 
@@ -213,6 +216,14 @@ Present electrical changes separately from presentation-only arrangement, with
 highlighted before/after geometry, unresolved assumptions, check coverage and the
 proposal's base revision. Apply creates one undo entry; Discard changes nothing;
 stale previews require regeneration. No fake connection or green electrical check.
+The current slice has a request draft and current sheet/selection context. A
+configured ACP v1 agent enables Send, streamed replies, Stop and bounded history;
+without one, Copy request provides a brief to paste into an external app. The
+adapter has scripted-peer qualification; real agent/provider qualification remains
+open. Conversation/Changes preserves both the transcript and review. Suggested
+requests populate the draft. Part/connection
+counts come from candidate differences; Apply/Discard remain outside the scrolled
+review. Connection setup and diagnostics are secondary surfaces.
 Manual Arrange uses the same deterministic service without an agent. An AI/cloud
 account is optional for basic design. These are planned controls, not current UI;
 the [AI authoring spec](ai-authoring.md) defines the implementation sequence.

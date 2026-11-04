@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 mod desktop;
 
+#[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
     let mut options = desktop::Options {
         demo: false,
@@ -22,6 +23,7 @@ fn main() -> eframe::Result {
     let mut compact = false;
     let mut mcp = false;
     let mut capture_mcp = false;
+    let mut capture_conversation: Option<std::path::PathBuf> = None;
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -32,6 +34,7 @@ fn main() -> eframe::Result {
                 capture_mcp = true;
             }
             "--capture" => options.capture = args.next().map(Into::into),
+            "--capture-conversation" => capture_conversation = args.next().map(Into::into),
             "--exit-after-capture" => options.exit_after_capture = true,
             "--capture-workspace" => options.capture_workspace = true,
             "--capture-library" => options.capture_library = true,
@@ -47,7 +50,7 @@ fn main() -> eframe::Result {
             "--capture-compact" => compact = true,
             "--help" | "-h" => {
                 println!(
-                    "PCBcraft — standalone schematic draft\nUsage: pcbcraft [project.pc] [--demo] [--mcp] [--capture image.png] [--capture-workspace | --capture-library | --capture-panels | --capture-search | --capture-properties | --capture-nets | --capture-wire-menu | --capture-text | --capture-selection | --capture-view | --capture-text-placement] [--capture-compact] [--exit-after-capture]"
+                    "PCBcraft — standalone schematic draft\nUsage: pcbcraft [project.pc] [--demo] [--mcp] [--capture image.png] [--capture-workspace | --capture-library | --capture-panels | --capture-search | --capture-properties | --capture-nets | --capture-wire-menu | --capture-text | --capture-selection | --capture-view | --capture-text-placement] [--capture-compact] [--capture-conversation config.json] [--exit-after-capture]"
                 );
                 return Ok(());
             }
@@ -84,16 +87,24 @@ fn main() -> eframe::Result {
         native,
         Box::new(move |cc| {
             desktop::App::new(cc, options)
-                .map(|mut app| {
+                .and_then(|mut app| {
                     if mcp {
                         app.enable_mcp(&cc.egui_ctx);
                     }
                     if capture_mcp {
                         app.open_ai();
                     }
-                    Box::new(app) as Box<dyn eframe::App>
+                    if let Some(path) = capture_conversation {
+                        app.capture_conversation(&path)?;
+                    }
+                    Ok(Box::new(app) as Box<dyn eframe::App>)
                 })
                 .map_err(Into::into)
         }),
     )
+}
+
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    desktop::launch_web();
 }

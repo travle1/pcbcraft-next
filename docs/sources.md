@@ -1,5 +1,85 @@
 # Source register
 
+## Required source boundary
+
+Read the [independent implementation and source policy](source-policy.md) before
+implementation or source research. PCBcraft is starting over with independently
+written code, not relicensing or porting the preserved GPL fork. KiCad implementation
+and the fork's code, source-derived notes/fixtures, translations and AI rewrites
+are excluded, including when supplied through searches, tools or other agents.
+Historical entries below record provenance and prior exposure; they do not authorize
+new use of excluded material. Record qualified reuse with its exact source,
+revision/version, license option, scope, modifications and retained notices.
+
+## Library-management product-spec research (November 4, 2026)
+
+The [draft specification](specs/library-management.md) elaborates PCBcraft's existing
+requirements/domain/persistence contracts, publisher user manuals and scoped
+historical user-report excerpts. [Research evidence and limits](library-management-research.md)
+record the actual URLs, failed full-page retrievals and the distinction between
+reported friction and established behavior. No external library data, fixtures,
+application dependencies or implementation code were imported for this task.
+
+A broad initial search returned excluded KiCad implementation excerpts from a
+GitLab result for `eeschema/project_rescue.cpp` and a Fossies result for
+`eeschema/dialogs/dialog_symbol_remap.cpp`. No implementation page was opened.
+The assistant disclosed the exposure, stopped that search path and set its
+results aside. The research record describes the scope without copying code.
+Affected KiCad resolution/rescue/remapping/import or source-derived implementation
+remains paused pending source-boundary review; this product spec does not resolve
+or waive that boundary. Do not send the excluded results to another agent or use
+this documentation as a substitute implementation reference.
+
+## Assistant conversation and ACP (November 4, 2026)
+
+The bounded conversation state, worker seam, snapshot-bound review-only dispatch,
+ACP stdio adapter and scripted peer are original PCBcraft implementation/test code.
+They use existing std, serde/serde_json and tempfile facilities; no dependency,
+provider SDK or new asset was imported. Read the official ACP v1
+[initialization](https://agentclientprotocol.com/protocol/v1/initialization),
+[session setup](https://agentclientprotocol.com/protocol/v1/session-setup) and
+[prompt-turn](https://agentclientprotocol.com/protocol/v1/prompt-turn) contracts.
+The latest published v1 is the selected bounded protocol; v2 draft and
+provider-specific extensions are not claimed as supported.
+
+Read SolidCraft's `agent_chat/backend.rs` and selected ACP connection/bridge
+functions at c553365 as architectural references for caller-owned context,
+private live tools and a provider boundary. No whole backend/chat/UI implementation
+was copied. Existing licensed card/action/theme adapters remain in use, with the
+same replacement boundary; the upstream extraction is deferred. Normal launches
+start no agent. Qualification uses an original scripted process, not a real model
+or account; [behavior and remaining limits](assistant.md) distinguish these.
+No KiCad/old-fork implementation, derived notes or fixtures were consulted.
+
+## Assistant placement correction (November 4, 2026)
+
+Inspected the user's actual schematic-overview and AI-review images plus the
+read-only `assistant_drawer_behavior.py` recipe. FigCraft specifies the bottom-right
+launcher and vertical expansion. Read pinned SolidCraft `ui_kit/assistant_entry.rs`
+and `agent_chat/panel.rs` at c553365 for right-edge full-height bounds, adjacent
+tool space, card clipping and resize behavior. The narrow adaptation uses the
+existing shared card/controls; [provenance and replacement boundary](panel-controls-provenance.md)
+cover the imported unchanged Assistant SVG and retained licenses. User designs,
+reference checkout and the preserved fork are unchanged; no app/engine dependency
+or provider backend was introduced.
+
+The user's subsequent review supersedes tool-space reservation: Assistant overlays
+the right rail and leaves Properties/filters in place. Re-read the actual FigCraft
+images and `assistant_drawer_behavior.py` for current-sheet/selection context,
+draft/suggested-request behavior and review hierarchy. The new contextual clipboard
+brief, candidate summary and secondary configuration/diagnostics are original
+PCBcraft work; direct in-app model conversation is still unavailable.
+
+## Connected-grid arrangement (November 4, 2026)
+
+Original PCBcraft operation, constraints, route filtering and synthetic fixtures,
+extending the existing candidate/session and catalog routing code. No external
+implementation, asset or dependency was imported. The native file schema is
+unchanged; locks and region limits belong to a proposal. Existing licensed UI
+controls and symbol painting provide review, with the current theme roles.
+The preserved fork, KiCad implementation, user designs and reference checkout
+were not used as implementation sources or modified. [Behavior and limits](mcp.md#placement-routes-and-remaining-work).
+
 ## Direct MCP implementation (November 4, 2026)
 
 Original PCBcraft session/proposal, protocol, local bridge and review code. No
@@ -230,8 +310,9 @@ should start fresh with approved sources and the target repository's rules.
 | [SolidCraft PR #8206](https://github.com/tangency-labs/solidcraft/pull/8206) | Parts-library reuse; last checked open/unmerged at head `401f89c3b011d678473e5eb379f34cfc85b140e3`; recheck availability |
 | [KiCad format specifications](https://dev-docs.kicad.org/en/file-formats/) and [manuals](https://docs.kicad.org/) | Independent compatibility behavior; do not follow implementation-source links |
 
-No dependencies or external fixtures are bundled. When adding one, record exact
-source/revision/license/use and preserve notices. The older fork's historical
+At the initial guidance-only stage, no dependencies or external fixtures were
+bundled. Later qualified imports are recorded above and in the asset register.
+When adding one, record exact source/revision/license/use and preserve notices. The older fork's historical
 attribution is not copied into this project. Dependencies' public licenses do
 not supersede their contribution policies.
 
@@ -326,3 +407,52 @@ are original code using existing egui APIs; no SolidCraft application dependency
 or new crate was added. Grid uses the already registered/licensed `grid.svg` master;
 text and subsheet glyphs are original. Existing font/control notices still apply.
 The preserved fork and KiCad implementation were not consulted.
+
+
+## Browser target (November 4, 2026)
+
+The browser entry point and file/download adapter are original PCBcraft code.
+They reuse the same editor, Electronics session, codecs and licensed artwork.
+No KiCad, preserved-fork implementation or new EDA fixtures are used.
+
+The browser target promotes existing locked transitive dependencies to explicit,
+wasm-only dependencies: wasm-bindgen 0.2.130, wasm-bindgen-futures 0.4.80,
+js-sys/web-sys 0.3.107 and web-time 1.1.0. Each is MIT OR Apache-2.0; select MIT
+for this use and retain upstream notices in the browser distribution. Cached
+Cargo manifests, LICENSE-MIT files and pinned eframe 0.36.2 WebRunner source were
+inspected. No upstream implementation files are copied. getrandom 0.3.4 enables
+its documented wasm_js backend (browser Crypto.getRandomValues); eframe's existing
+glow/WebGL renderer replaces the native wgpu backend for the web target.
+Native tempfile/rfd/process/socket support remains outside the browser build.
+Cargo.lock records the complete selected closure; qualify that graph/build before
+claiming browser support. These versions are not claims about the latest releases.
+
+Primary references: [wasm-bindgen JS modules](https://wasm-bindgen.github.io/wasm-bindgen/reference/js-snippets.html),
+[getrandom 0.3.4 browser support](https://docs.rs/getrandom/0.3.4/getrandom/),
+[Trunk 0.21.14 build assets](https://github.com/trunk-rs/trunk/blob/v0.21.14/guide/src/assets/index.md)
+and [GitHub Pages workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+Trunk is build tooling (MIT OR Apache-2.0), not an application dependency;
+the existing installed version is 0.21.14. Browser files use original HTML/CSS/JS.
+
+Several already-used crates omit workspace-level licenses from their registry
+archives. Browser notices supplement them with license-only files at the archive's
+recorded Git revision: AccessKit a55d3e1a18bb9ef0e4bccc9083fb13c3e0ad8969
+(Apache-2.0 plus retained Chromium BSD notice), egui
+49682f8baa058bf49e011035cfbd6e825f88a5ef (Apache-2.0), profiling
+8271551172eb6fa4cba47369aedd93790c623df9 (Apache-2.0), and enum-map
+c788a9c4bd0431308d889942719f7a38761d9884 / derive
+2026968c30ad14d268f3d70c618a704e22a3b980 (Apache-2.0). Original URLs
+and hashes accompany the license-only supplements in web/notices/; the actual
+font notices (OFL, Ubuntu and Hack/emoji licenses) are retained from the registry.
+
+
+The authorized Pages deployment uses official prebuilt build tools, not application
+code imports: Trunk 0.21.14 x86_64-unknown-linux-gnu (SHA-256
+f2b4680cd239693a646a2795e4633c625328d7b2a044fbe749fa3a2fe9e7036b from its
+published .sha256 release asset), and wasm-bindgen 0.2.130
+x86_64-unknown-linux-musl (SHA-256
+9687f3bb551b9f66f37ed32a40d7913a00f7962db653054e56857bc306c3227f,
+matching GitHub's release-asset digest and the locally tested archive).
+The workflow pins the checkout/upload-pages-artifact/deploy-pages official actions
+to exact commits. Their source repositories and tags were checked through GitHub's
+API before configuration; this does not claim that a hosted run has passed.

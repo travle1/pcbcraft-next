@@ -1,5 +1,24 @@
 # Panel and control adaptation
 
+## Assistant workspace correction — November 4, 2026
+
+Read SolidCraft `ui_kit/assistant_entry.rs` and `agent_chat/panel.rs` at
+`c553365a2197a689e749389a6fbf707a38df9b61`. The bounded adaptation uses the existing
+shared card to anchor Assistant to the workspace's right edge and full height,
+and resize from its left edge. The user's subsequent correction replaces adjacent
+tool-space reservation with an overlay: Properties/filters keep their bounds and
+return unchanged on collapse. The launcher follows
+the user's bottom-right FigCraft rendering and `assistant_drawer_behavior.py`.
+Its label, icon and upward chevron use contextual theme roles. The shared
+`flat/assistant.svg` master is imported unchanged under MIT OR Apache-2.0, with
+its exact source/hash in the asset register and existing SolidCraft notices.
+No app/engine types, chat backend or automatic agent detection are imported.
+The request draft, contextual clipboard brief, candidate difference summary and
+review/setup/diagnostics composition are original PCBcraft code. Suggested requests
+follow the FigCraft recipe's draft-population behavior; no reply/send simulation
+or new provider/dependency was added.
+The standalone UI-package replacement boundary described below still applies.
+
 The November 3 polish pass inspected SolidCraft at
 `c553365a2197a689e749389a6fbf707a38df9b61`, including these actual components:
 

@@ -101,6 +101,11 @@ Unsupported electrical types or unresolved labels make coverage incomplete.
 
 ## Component selection, libraries and assemblies
 
+The [library management draft](library-management.md) develops the user workflows,
+source resolution, starter-content expectations and L0–L4 acceptance sequence
+under these ownership/identity contracts. It is proposed work, not an implemented
+external library or approval to import data.
+
 A component selection resolves logical definition, symbol representation,
 package/footprint and terminal-to-pin-to-pad mapping as separate facts. Physical
 package and footprint are related but not interchangeable: package characteristics

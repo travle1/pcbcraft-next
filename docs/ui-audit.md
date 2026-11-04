@@ -1,5 +1,55 @@
 # UI consistency audit — November 3, 2026
 
+## Assistant conversation — November 4, 2026
+
+The configured ACP path now enables Send, streamed user/Assistant messages, Stop
+and bounded history. Conversation/Changes tabs and Review changes retain the
+existing candidate preview and pinned Apply/Discard. User Apply waits for the
+response to finish or stop. Connection setup stays secondary and separates the
+in-app command from the external MCP configuration. Configuring a command does
+not start it, and the UI does not label an untested configuration connected.
+The empty-canvas copy no longer promises all activity stays local: a deliberately
+configured agent can use a remote provider.
+
+The same card, action, input and semantic theme adapters provide these controls.
+No new artwork, palette or widget library was introduced. Native full/compact
+`work/proof/conversation-*.png` captures were inspected for completed and streaming
+replies, errors, proposal conversation/review and settings. They run an original
+scripted ACP peer; they are not evidence of a real provider's behavior. Interaction
+tests cover Send/Stop/configuration, manual-edit invalidation, project switching,
+live-bridge preparation, review-only Apply, save/reopen and Undo. Remaining protocol,
+authentication and provider limits are in [Assistant qualification](assistant.md).
+
+## Assistant correction — November 4, 2026
+
+The initial title-bar entry and movable review window did not follow the user's
+FigCraft Assistant layout. Assistant now has a bottom-right labeled launcher and
+a full-height right-side workspace card. Its chevron collapses it back to the
+launcher, and its width resizes from the left edge within workspace limits.
+The user's subsequent review supersedes adjacent tool-space reservation. Assistant
+now overlays the right rail; Properties/filters keep their positions and return
+with the same states on collapse. Covered right-docked controls are not rendered
+or keyboard-focused beneath it. At compact widths the navigation control
+omits its duplicate zoom popup and uses a narrower Fit button to stay clear of the
+launcher and Assistant. Opening/collapsing preserves camera, project and proposals.
+The shared card/header/actions and original semantic theme remain in use.
+
+Native captures in `work/proof/assistant-{collapsed,collapsed-compact,empty,
+empty-compact,review,review-compact}.png` were reviewed at 1600×1000 and 1000×700.
+Review exposed an entry-background margin extending past its hit target; the
+paint bounds were corrected and covered by a rendered-geometry assertion.
+Pointer/keyboard tests cover expand/collapse, full-height bounds, resizing,
+camera/document/proposal preservation and no canvas placement through the panel.
+Compact review checks place Apply/Discard inside the Assistant card. The main view
+now shows candidate-derived part/connection changes, current sheet/selection and a
+bounded request draft. Suggested requests fill the draft; Copy request transfers
+the brief and current context to the external AI app. It does not send a message.
+Apply/Discard stay outside the scrolling details, and a current applied revision
+offers Undo changes. Connection setup/permissions and raw tool activity have moved
+to secondary dialogs. This is a working external-app request/review flow; direct
+in-app model conversation was still unimplemented at this earlier UI pass. The
+subsequent ACP slice is recorded above.
+
 This pass corrects the user's rejected plain context menu and audits the other
 implemented surfaces for the same default-widget shortcuts. It is a local
 implementation and visual review, not a claim of final visual approval.

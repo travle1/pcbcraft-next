@@ -1,4 +1,4 @@
-# PCBcraft schematic authoring guide — version 1
+# PCBcraft schematic authoring guide — version 2
 
 Use the live document, not screen coordinates or edits to files on disk. Start
 with `inspect_project`, `inspect_sheet`, `inspect_nets` and `list_parts`.
@@ -31,6 +31,25 @@ fixed. Overlapping reserved symbol areas reject the entire proposal. Place and
 arrange first, then connect. It is a bounded grid helper, not a complete circuit
 arranger, label optimizer or PCB autorouter.
 
+For an existing connected selection, `arrange_connected` uses the same ordered
+`symbols`, `origin`, `columns` and `spacing`, plus an explicit `locked` list and
+`region: {"min":{"x":…, "y":…}, "max":{"x":…, "y":…}}`. Supply both lists;
+locks must be distinct members of the selection. Locked symbols keep their actual
+position/orientation and reserve their place in the order. Other symbols move to
+their grid slots; their reserved areas and pins must fit inside the region.
+Origin and spacing must align to the default grid.
+
+This profile replans internal drawn pin-to-pin connections, keeping IDs, terminal
+membership and labels. Outside geometry stays fixed; a selected symbol wired to
+an outside pin or junction must stay fixed too. Routes remain inside the region
+and reject body/pin obstruction, passage through fixed junctions and shared wire
+segments. Perpendicular crossings may remain. Limits are 20 selected symbols,
+128 sheet symbols, 256 sheet wires and 64 internal drawn connections. Sheets with
+notes, custom text styles, ports or subsheet blocks are unsupported; outside
+visible wires need authored paths. Locks/region belong to this operation, not
+saved document settings. This is still a bounded grid profile, with conservative
+symbol reserves rather than exact text clearance or functional-group inference.
+
 `connect` takes explicit terminal pairs and optional intermediate `bends`.
 Omit bends for deterministic orthogonal routing that avoids catalog symbol bodies
 and unrelated pins. Failed routing rejects the proposal; move parts or supply
@@ -48,7 +67,8 @@ never connects equal names. Delete/disconnect operations must be intentional.
 2. Read `inspect_proposal`: check created IDs, candidate wiring, findings and every
    affected occurrence. Editing a reused sheet definition affects all occurrences.
    Review the first-200-item limit; do not claim a truncated preview is complete.
-3. The default is user review in **AI / MCP**. Ask the user to Apply or Discard.
+3. The default is user review in **Assistant** at the workspace's bottom right.
+   Ask the user to Apply or Discard.
    `apply_edit` is allowed only when the user enables external apply in that panel.
    Use its exact server handle/base and a unique `request_id`; do not reconstruct
    or submit arbitrary candidate documents.

@@ -865,7 +865,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, input_enabled: bool) {
         painter.text(
             center + egui::vec2(0.0, 2.0),
             Align2::CENTER_CENTER,
-            "Place a symbol to begin. Everything stays local.",
+            "Place a symbol to begin.",
             FontId::proportional(14.0),
             t.ui.muted,
         );

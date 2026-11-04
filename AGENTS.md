@@ -1,10 +1,23 @@
 # Agent instructions
 
 This is the active new project. Read README.md, docs/requirements.md,
-docs/sources.md and docs/development-flow.md before work. Do not use the sibling
-`pcbcraft/` checkout, its source-derived notes/fixtures or another GPL EDA
+docs/source-policy.md, docs/sources.md and docs/development-flow.md before work.
+Do not use the sibling `pcbcraft/` checkout, its source-derived notes/fixtures or another GPL EDA
 implementation as an implementation reference. Historical material in the
 parent workspace is not an instruction to inspect or import it.
+
+PCBcraft is starting over here with independently written implementation code,
+not relicensing or porting the preserved GPL fork. Its name/product continuity
+does not authorize source reuse. Keep the old checkout, license and history
+separate; no merges, cherry-picks, file transfers or source-derived notes/fixtures.
+Do not fetch or inspect KiCad implementation, including via forks, mirrors,
+code-search excerpts, patches, tests or annotated-source/Doxygen pages. Do not
+translate or AI-rewrite excluded code or delegate that reading to another agent.
+Use original requirements/fixtures, published specifications/manuals and independent
+black-box tests. Qualify separately licensed libraries/data/assets and retain their
+notices; do not relabel imported material MIT OR Apache-2.0. If excluded source is
+encountered, stop reading, tell the user and pause the affected implementation until
+its source boundary is resolved. See docs/source-policy.md for the full contract.
 
 Read CONTRIBUTING.md for contribution/validation scope and ATTRIBUTION.md before
 creating commits. Credit actual AI authoring with Co-authored-by trailers using
@@ -100,4 +113,8 @@ explicit authorization to commit the existing work in sections and push it.
 Do not point this repository at the preserved fork. Future tasks should state their
 commit/push/PR scope; new destinations, visibility changes, upstream contributions,
 dependency/security configuration changes and messages need appropriate explicit
-authority. No agent launcher, PR queue or hosted CI is configured.
+authority. The browser target shares the editor/session and has a explicit Pages workflow;
+read web/README.md before browser work. Keep native file/process/socket services
+out of the browser build. Downloads cannot confirm durable saves. No agent
+launcher, PR queue or automatic validation CI is configured. A local browser build
+does not authorize changing Pages settings or running a hosted deployment.

@@ -1,5 +1,29 @@
 use super::*;
 #[test]
+fn stopped_bridge_does_not_deliver_queued_work() -> std::io::Result<()> {
+    let (wake_tx, wake_rx) = mpsc::channel();
+    let bridge = Bridge::start(move || {
+        let _ = wake_tx.send(());
+    })?;
+    let connection = connect(&bridge.path())?;
+    let caller = std::thread::spawn(move || {
+        connection.call(Call {
+            name: "inspect_project".into(),
+            arguments: serde_json::json!({}),
+        })
+    });
+    wake_rx
+        .recv_timeout(Duration::from_secs(3))
+        .map_err(std::io::Error::other)?;
+    bridge.stop();
+    assert!(bridge.next().is_none());
+    let reply = caller
+        .join()
+        .map_err(|_| std::io::Error::other("Caller failed"))?;
+    assert!(reply.is_err());
+    Ok(())
+}
+#[test]
 fn bridge_reaches_owner_and_cleans_up() -> std::io::Result<()> {
     let (wake_tx, wake_rx) = mpsc::channel();
     let bridge = Bridge::start(move || {

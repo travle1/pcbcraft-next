@@ -15,6 +15,9 @@ The authoritative per-file source, revision, license, author and SHA-256 are in
 - IBM Plex Sans variable font comes from SolidCraft
   `c553365a2197a689e749389a6fbf707a38df9b61`, source
   `assets/fonts/ibm-plex-sans/IBMPlexSans-Variable.ttf`; IBM Corp., SIL OFL 1.1.
+- The Assistant master comes unchanged from `assets/icons/ui/design/svg/flat/assistant.svg`
+  at `c553365a2197a689e749389a6fbf707a38df9b61`, under MIT OR Apache-2.0. Its SVG mask
+  is retained; the consumer resolves `currentColor` without rewriting mask paints.
 
 Retain [MIT](SOLIDCRAFT-LICENSE-MIT), [Apache](SOLIDCRAFT-LICENSE-APACHE),
 [upstream NOTICE](SOLIDCRAFT-NOTICE) and [font OFL](IBM-PLEX-OFL.txt) with distribution.

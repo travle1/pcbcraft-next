@@ -3,8 +3,9 @@
 The standalone repository is [travle1/pcbcraft-next](https://github.com/travle1/pcbcraft-next),
 created private on November 3, 2026; a read-only GitHub check later that day reports
 it public, with `main` as the default branch and Issues enabled. `origin` targets
-that repository; local feature-branch work is not automatically published. No hosted CI, agent launcher or automatic
-PR queue is configured. Use a local ledger or existing Codex tasks; do not assume
+that repository; local feature-branch work is not automatically published. An explicit Pages publication workflow is present for the browser target, but no
+automatic validation CI, agent launcher or PR queue is configured. Local builds
+do not authorize running that workflow or changing hosted settings. Use a local ledger or existing Codex tasks; do not assume
 upstream bots operate here. Do not reuse the preserved fork's remote. Start fresh
 task contexts from this project's approved sources.
 
@@ -46,6 +47,14 @@ before building the next slice.
 
 ## Dispatch and review
 
+Every implementation brief and handoff must carry the
+[source policy](source-policy.md). This is an independent restart, not a relicensing
+or port of the preserved GPL fork. Do not pass excluded KiCad/fork implementation,
+derived notes/fixtures or rewritten excerpts to an agent as context. Review source
+provenance and notices as well as behavior; pause affected implementation and tell
+the user if excluded material is encountered. Existing access, shared branding or
+an AI attribution trailer does not authorize reuse.
+
 Each task needs one outcome, owner, allowed files, contract and acceptance fixture.
 Settle shared interfaces before dependent workers modify callers. Use one isolated
 branch/worktree or clone per implementing agent, recording prerequisite SHAs.
@@ -70,7 +79,7 @@ Task ID and outcome:
 Repository: travle1/pcbcraft-next (origin)
 Base SHA, branch and isolated checkout:
 Prerequisite IDs/merged SHAs:
-Read: AGENTS.md, framework.md, task-linked specs, sources.md and target rules.
+Read: AGENTS.md, source-policy.md, framework.md, task-linked specs, sources.md and target rules.
 Allowed files / shared-interface owner:
 Contract, compatibility and acceptance fixture:
 Non-goals and unavailable APIs:
@@ -84,8 +93,10 @@ sibling reference-checkout path dependency, Truck or invented SDK. Private
 components need narrow licensed extraction/adapters with provenance and a
 replacement plan. Preserve the user's FigCraft design and maximize real reuse.
 Only selected library/capability gates apply, not whole-host migration or tests.
-No initial cross-document ECAD/MCAD transactions. Do not use the preserved GPL
-fork or source-derived notes/fixtures. KiCad support uses published specs/manuals
+No initial cross-document ECAD/MCAD transactions. This is an independent restart,
+not relicensing or porting the GPL fork. Do not inspect or reuse the preserved GPL
+fork or source-derived notes/fixtures, including translations/AI rewrites or
+delegated source inspection. KiCad support uses published specs/manuals
 and black-box tests only; no implementation source, headers, patches or annotated
 source/Doxygen pages. Record licenses and notices for reusable code/data.
 

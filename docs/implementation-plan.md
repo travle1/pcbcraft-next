@@ -139,6 +139,19 @@ crate per concept or edit shared manifests/schema/registries concurrently.
 | O0 | Proposed output adapters/manifest and original fixtures | OUT-1 pinned output set, qualified tool/profile reproducibility and atomic publication/cancel behavior |
 | K0 later | Independent compatibility fixtures/coverage and selected adapter task | Named KiCad profile no-op/edit/unsafe-loss refusal; approved public sources only, not a base-workspace gate |
 
+## Library management planning
+
+The [library management draft](specs/library-management.md) expands F0/LIB-1 into
+proposed L0–L4 slices: contracts/migration, portable project-owned symbols,
+physical selections and curated starter content, source/update workflows, then
+team/sourcing profiles. L1 can deliver useful symbol customization and native/web
+portability before the complete board or company-database workflow exists.
+Physical mappings coordinate with D0/E0 and the board contracts; the resolver
+never becomes a second project transaction authority. Read the draft's acceptance
+matrix and [research/source-boundary record](library-management-research.md)
+before defining an implementation brief. These are planning gates, not an agent
+queue or authority to resume affected KiCad/source-derived implementation.
+
 ## Ownership lanes and future review
 
 After contract agreement, four lanes can work in disjoint areas: standalone desktop/shared-UI
