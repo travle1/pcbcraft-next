@@ -1,14 +1,20 @@
 //! Live MCP, conversation and human proposal review through the same Electronics session.
+#[cfg(not(target_arch = "wasm32"))]
 mod conversation;
+#[cfg(target_arch = "wasm32")]
+mod conversation_web;
 use super::{App, Tool, controls, theme};
 use eframe::egui::{self, RichText};
-use pcbcraft_foundation::{assistant, authoring::Apply, bridge::Bridge, document::*, mcp};
+use pcbcraft_foundation::{assistant, authoring::Apply, document::*};
+#[cfg(not(target_arch = "wasm32"))]
+use pcbcraft_foundation::{bridge::Bridge, mcp};
 use serde_json::json;
 
 #[derive(Default)]
 pub(super) struct State {
     pub open: bool,
     width: Option<f32>,
+    #[cfg(not(target_arch = "wasm32"))]
     bridge: Option<Bridge>,
     allow_apply: bool,
     before: bool,
@@ -20,21 +26,32 @@ pub(super) struct State {
     active: Option<ProjectId>,
     applied: Option<pcbcraft_foundation::authoring::Snapshot>,
     chat: assistant::Conversation,
+    #[cfg(not(target_arch = "wasm32"))]
     worker: Option<assistant::Worker>,
+    #[cfg(not(target_arch = "wasm32"))]
     retiring: Vec<assistant::Worker>,
+    #[cfg(not(target_arch = "wasm32"))]
     chat_bridge: Option<Bridge>,
+    #[cfg(not(target_arch = "wasm32"))]
     chat_tools: usize,
     conversation_view: bool,
+    #[cfg(not(target_arch = "wasm32"))]
     agent: Option<assistant::acp::Config>,
+    #[cfg(not(target_arch = "wasm32"))]
     agent_path: String,
+    #[cfg(not(target_arch = "wasm32"))]
     agent_arguments: String,
+    #[cfg(not(target_arch = "wasm32"))]
     setup_error: Option<String>,
+    #[cfg(not(target_arch = "wasm32"))]
     capture_request: bool,
     capture_wait: bool,
+    #[cfg(not(target_arch = "wasm32"))]
     capture_review: bool,
     #[cfg(test)]
     test_backend: Option<Box<dyn assistant::Backend>>,
 }
+#[cfg(not(target_arch = "wasm32"))]
 impl Drop for State {
     fn drop(&mut self) {
         if let Some(bridge) = &self.chat_bridge {
@@ -63,6 +80,7 @@ impl App {
     pub(crate) fn open_ai(&mut self) {
         self.ai.open = true;
     }
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn enable_mcp(&mut self, ctx: &egui::Context) {
         if self.ai.bridge.is_some() {
             return;
@@ -77,6 +95,7 @@ impl App {
             Err(e) => self.notice(e),
         }
     }
+    #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn poll_mcp(&mut self) {
         // One bounded request per frame. GUI gestures/file transitions win over remote work.
         let Some(pending) = self.ai.bridge.as_ref().and_then(Bridge::next) else {
@@ -196,9 +215,16 @@ impl App {
                         }
                         controls::menu_button(ui, "…", |ui| {
                             use super::icons::Icon;
-                            if controls::MenuItem::new("Connect an AI app…", Icon::Assistant)
-                                .show(ui)
-                                .clicked()
+                            if controls::MenuItem::new(
+                                if cfg!(target_arch = "wasm32") {
+                                    "Assistant connection…"
+                                } else {
+                                    "Connect an AI app…"
+                                },
+                                Icon::Assistant,
+                            )
+                            .show(ui)
+                            .clicked()
                             {
                                 self.ai.setup = true;
                                 ui.close();
@@ -307,9 +333,9 @@ impl App {
                         ui.label(RichText::new("Work on this sheet").strong());
                         ui.label(if self.has_chat_backend() {
                             "Ask about this sheet or describe a change. Proposed edits appear here for review."
-                        } else {"Connect a local agent to send requests here, or copy a request to an external AI app."});
+                        } else if cfg!(target_arch = "wasm32") {"Copy a request with this sheet’s data to use in an external AI app. Local agent connections are available in the desktop app."} else {"Connect a local agent to send requests here, or copy a request to an external AI app."});
                         ui.add_space(12.0);
-                        if !self.has_chat_backend() && controls::action(ui,"Connect an AI app",controls::ActionTone::Secondary,true).clicked() {
+                        if !cfg!(target_arch = "wasm32") && !self.has_chat_backend() && controls::action(ui,"Connect an AI app",controls::ActionTone::Secondary,true).clicked() {
                             self.ai.setup=true;
                         }
                     }
@@ -477,6 +503,7 @@ impl App {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn assistant_request(&self) -> String {
         let context = json!({"snapshot":self.session.snapshot(),"project":self.session.project().name,"proposal":self.ai.active,
             "sheet":self.active_sheet(),"selection":{"symbols":self.selection.symbols,"wires":self.selection.wires,"notes":self.selection.notes}});
@@ -490,10 +517,12 @@ impl App {
     fn assistant_settings(&mut self, ctx: &egui::Context) {
         if self.ai.setup {
             egui::Modal::new("assistant_connection".into()).show(ctx,|ui| {
+                #[cfg(not(target_arch = "wasm32"))]
                 let t=theme::current(ctx);
                 ui.set_width(380.0);
                 ui.heading("Assistant connections");
                 self.assistant_agent_settings(ui);
+                #[cfg(not(target_arch = "wasm32"))]
                 ui.collapsing("External MCP app",|ui| {
                 ui.label("Use an AI app that supports MCP. Enable the local connection, copy its configuration into that app, then paste your request there. Proposed edits return here for review.");
                 ui.add_space(12.0);

@@ -1,4 +1,8 @@
 mod ai;
+#[cfg(target_arch = "wasm32")]
+mod browser;
+#[cfg(target_arch = "wasm32")]
+pub use browser::launch_web;
 mod canvas;
 mod controls;
 mod icons;
@@ -25,7 +29,11 @@ use pcbcraft_foundation::{
     persistence,
     session::{Command, Session},
 };
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
 use std::{path::PathBuf, sync::mpsc, time::Duration};
+#[cfg(target_arch = "wasm32")]
+use web_time::Instant;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Tool {
@@ -43,9 +51,11 @@ enum Action {
     Example,
     Quit,
 }
+#[derive(Default)]
 pub struct Options {
     pub demo: bool,
     pub capture: Option<PathBuf>,
+    #[cfg(not(target_arch = "wasm32"))]
     pub exit_after_capture: bool,
     pub capture_workspace: bool,
     pub capture_library: bool,
@@ -61,8 +71,11 @@ pub struct Options {
     pub open: Option<PathBuf>,
 }
 enum FileResult {
-    Opened(PathBuf, pcbcraft_foundation::project::Project, Vec<u8>),
-    Saved(PathBuf, pcbcraft_foundation::project::Project, Vec<u8>),
+    Opened(PathBuf, Box<pcbcraft_foundation::project::Project>, Vec<u8>),
+    #[cfg(not(target_arch = "wasm32"))]
+    Saved(PathBuf, Box<pcbcraft_foundation::project::Project>, Vec<u8>),
+    #[cfg(target_arch = "wasm32")]
+    Downloaded(PathBuf),
     Cancelled,
     Error(Error),
 }
@@ -99,7 +112,7 @@ pub struct App {
     close_allowed: bool,
     options: Options,
     frames: u32,
-    started: std::time::Instant,
+    started: Instant,
     capture_sent: bool,
     capture_pointer: Option<egui::Pos2>,
     capture_input_step: u8,
@@ -151,7 +164,7 @@ impl App {
             close_allowed: false,
             options,
             frames: 0,
-            started: std::time::Instant::now(),
+            started: Instant::now(),
             capture_sent: false,
             capture_pointer: None,
             capture_input_step: 0,
@@ -326,6 +339,7 @@ impl App {
             Action::Quit => self.close_allowed = true,
         }
     }
+    #[cfg(not(target_arch = "wasm32"))]
     fn load(&mut self, path: Option<PathBuf>) {
         let (tx, rx) = mpsc::channel();
         self.job = Some(rx);
@@ -339,13 +353,14 @@ impl App {
             let result = match path {
                 None => FileResult::Cancelled,
                 Some(path) => match persistence::read_project(&path) {
-                    Ok((doc, bytes)) => FileResult::Opened(path, doc, bytes),
+                    Ok((doc, bytes)) => FileResult::Opened(path, Box::new(doc), bytes),
                     Err(e) => FileResult::Error(e),
                 },
             };
             let _ = tx.send(result);
         });
     }
+    #[cfg(not(target_arch = "wasm32"))]
     fn save(&mut self, save_as: bool) {
         if self.busy() {
             return;
@@ -374,7 +389,7 @@ impl App {
                         path.set_extension("pc");
                     }
                     match persistence::write_project(&path, &doc, expected.as_deref()) {
-                        Ok(bytes) => FileResult::Saved(path, doc, bytes),
+                        Ok(bytes) => FileResult::Saved(path, Box::new(doc), bytes),
                         Err(e) => FileResult::Error(e),
                     }
                 }
@@ -388,7 +403,7 @@ impl App {
             Some(Ok(result)) => {
                 self.job = None;
                 match result {
-                    FileResult::Opened(path, doc, bytes) => match Session::from_project(doc) {
+                    FileResult::Opened(path, doc, bytes) => match Session::from_project(*doc) {
                         Ok(s) => {
                             self.session = s;
                             self.reset_ai_permissions();
@@ -411,14 +426,21 @@ impl App {
                         }
                         Err(e) => self.notice(e),
                     },
+                    #[cfg(not(target_arch = "wasm32"))]
                     FileResult::Saved(path, doc, bytes) => {
-                        self.session.mark_project_saved(doc);
+                        self.session.mark_project_saved(*doc);
                         self.path = Some(path);
                         self.disk_bytes = Some(bytes);
                         self.notice("Schematic draft saved.");
                         if let Some(action) = self.after_save.take() {
                             self.act(action);
                         }
+                    }
+                    #[cfg(target_arch = "wasm32")]
+                    FileResult::Downloaded(path) => {
+                        self.path = Some(path);
+                        self.notice("Download requested. Check that the file was saved before leaving this tab.");
+                        self.pending = self.after_save.take();
                     }
                     FileResult::Cancelled => self.after_save = None,
                     FileResult::Error(e) => {
@@ -582,15 +604,23 @@ impl App {
                             }
                         }
                         controls::menu_separator(ui);
-                        if MenuItem::new("Save draft", Icon::Save)
-                            .shortcut("Ctrl+S")
-                            .enabled(!self.busy())
-                            .show(ui)
-                            .clicked()
+                        if MenuItem::new(
+                            if cfg!(target_arch = "wasm32") {
+                                "Download draft"
+                            } else {
+                                "Save draft"
+                            },
+                            Icon::Save,
+                        )
+                        .shortcut("Ctrl+S")
+                        .enabled(!self.busy())
+                        .show(ui)
+                        .clicked()
                         {
                             ui.close();
                             self.save(false);
                         }
+                        #[cfg(not(target_arch = "wasm32"))]
                         if MenuItem::new("Save draft as…", Icon::Save)
                             .enabled(!self.busy())
                             .show(ui)
@@ -600,12 +630,25 @@ impl App {
                             self.save(true);
                         }
                         controls::menu_separator(ui);
+                        #[cfg(target_arch = "wasm32")]
+                        ui.hyperlink_to("Licenses and notices", "./licenses/README.txt");
+                        #[cfg(not(target_arch = "wasm32"))]
                         if MenuItem::new("Quit", Icon::Close).show(ui).clicked() {
                             ui.close();
                             self.request(Action::Quit);
                         }
                     });
-                    if icons::button(ui, Icon::Save, "Save draft · Ctrl+S", !self.busy()).clicked()
+                    if icons::button(
+                        ui,
+                        Icon::Save,
+                        if cfg!(target_arch = "wasm32") {
+                            "Download draft · Ctrl+S"
+                        } else {
+                            "Save draft · Ctrl+S"
+                        },
+                        !self.busy(),
+                    )
+                    .clicked()
                     {
                         self.save(false);
                     }
@@ -638,17 +681,22 @@ impl App {
                     ui.add_sized([200.0, 28.0], egui::Button::new(title).fill(t.ui.raised))
                         .on_hover_text("One project · all sheets share history and connectivity");
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if icons::button(ui, Icon::Close, "Close PCBcraft", true).clicked() {
-                            self.request(Action::Quit);
-                        }
-                        if ui.button("□").on_hover_text("Maximize / restore").clicked() {
-                            let maximized = ui.input(|i| i.viewport().maximized.unwrap_or(false));
-                            ui.ctx()
-                                .send_viewport_cmd(egui::ViewportCommand::Maximized(!maximized));
-                        }
-                        if ui.button("−").on_hover_text("Minimize").clicked() {
-                            ui.ctx()
-                                .send_viewport_cmd(egui::ViewportCommand::Minimized(true));
+                        #[cfg(not(target_arch = "wasm32"))]
+                        {
+                            if icons::button(ui, Icon::Close, "Close PCBcraft", true).clicked() {
+                                self.request(Action::Quit);
+                            }
+                            if ui.button("□").on_hover_text("Maximize / restore").clicked() {
+                                let maximized =
+                                    ui.input(|i| i.viewport().maximized.unwrap_or(false));
+                                ui.ctx().send_viewport_cmd(egui::ViewportCommand::Maximized(
+                                    !maximized,
+                                ));
+                            }
+                            if ui.button("−").on_hover_text("Minimize").clicked() {
+                                ui.ctx()
+                                    .send_viewport_cmd(egui::ViewportCommand::Minimized(true));
+                            }
                         }
                         ui.label(RichText::new("SCHEMATIC DRAFT").small().color(t.ui.muted));
                         let r = ui.allocate_response(ui.available_size(), egui::Sense::drag());
@@ -673,7 +721,13 @@ impl App {
                     let text = if self.busy() {
                         "File operation…"
                     } else if self.session.dirty() {
-                        "●  Unsaved changes"
+                        if cfg!(target_arch = "wasm32") {
+                            "●  Download to keep changes"
+                        } else {
+                            "●  Unsaved changes"
+                        }
+                    } else if cfg!(target_arch = "wasm32") {
+                        "○  Browser session"
                     } else if self.path.is_some() {
                         "●  Saved locally"
                     } else {
@@ -702,7 +756,9 @@ impl App {
                 ui.label("This schematic has unsaved changes.");
                 ui.add_space(14.0);
                 ui.horizontal(|ui| {
-                    if controls::action(ui, "Save draft", controls::ActionTone::Primary, true)
+                    #[cfg(target_arch = "wasm32")]
+                    ui.label("Download a copy before continuing. The browser cannot confirm that it was saved.");
+                    if controls::action(ui, if cfg!(target_arch = "wasm32") {"Download draft"} else {"Save draft"}, controls::ActionTone::Primary, true)
                         .clicked()
                     {
                         self.pending = None;
@@ -833,6 +889,8 @@ impl App {
         self.more_properties(&ctx);
         self.net_dialogs(&ctx);
         self.sheet_dialog(&ctx);
+        #[cfg(target_arch = "wasm32")]
+        browser::set_dirty(self.session.dirty());
         if self.close_allowed {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
@@ -852,12 +910,14 @@ impl App {
         if self.options.capture.is_some() {
             ctx.request_repaint_after(Duration::from_millis(50));
         }
+        #[cfg(not(target_arch = "wasm32"))]
         let screenshot = ctx.input(|i| {
             i.events.iter().find_map(|e| match e {
                 egui::Event::Screenshot { image, .. } => Some(image.clone()),
                 _ => None,
             })
         });
+        #[cfg(not(target_arch = "wasm32"))]
         if let Some(image) = screenshot
             && let Some(path) = self.options.capture.take()
         {

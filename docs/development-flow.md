@@ -3,8 +3,9 @@
 The standalone repository is [travle1/pcbcraft-next](https://github.com/travle1/pcbcraft-next),
 created private on November 3, 2026; a read-only GitHub check later that day reports
 it public, with `main` as the default branch and Issues enabled. `origin` targets
-that repository; local feature-branch work is not automatically published. No hosted CI, agent launcher or automatic
-PR queue is configured. Use a local ledger or existing Codex tasks; do not assume
+that repository; local feature-branch work is not automatically published. An explicit Pages publication workflow is present for the browser target, but no
+automatic validation CI, agent launcher or PR queue is configured. Local builds
+do not authorize running that workflow or changing hosted settings. Use a local ledger or existing Codex tasks; do not assume
 upstream bots operate here. Do not reuse the preserved fork's remote. Start fresh
 task contexts from this project's approved sources.
 

@@ -22,5 +22,6 @@ pub mod text;
 
 pub mod assistant;
 pub mod authoring;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod bridge;
 pub mod mcp;

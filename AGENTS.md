@@ -113,4 +113,8 @@ explicit authorization to commit the existing work in sections and push it.
 Do not point this repository at the preserved fork. Future tasks should state their
 commit/push/PR scope; new destinations, visibility changes, upstream contributions,
 dependency/security configuration changes and messages need appropriate explicit
-authority. No agent launcher, PR queue or hosted CI is configured.
+authority. The browser target shares the editor/session and has a explicit Pages workflow;
+read web/README.md before browser work. Keep native file/process/socket services
+out of the browser build. Downloads cannot confirm durable saves. No agent
+launcher, PR queue or automatic validation CI is configured. A local browser build
+does not authorize changing Pages settings or running a hosted deployment.

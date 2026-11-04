@@ -2,13 +2,16 @@
 use crate::{authoring::Snapshot, document::*, mcp};
 use serde::Serialize;
 use serde_json::Value;
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},
     mpsc::{self, Receiver, SyncSender, TrySendError},
 };
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::{Duration, Instant};
 
+#[cfg(not(target_arch = "wasm32"))]
 pub mod acp;
 
 pub const MAX_PROMPT: usize = 16 * 1024;
@@ -177,14 +180,17 @@ pub enum Event {
 }
 
 /// Implementations run on a worker thread and never own the Electronics session.
+#[cfg(not(target_arch = "wasm32"))]
 pub trait Backend: Send + 'static {
     fn run(self: Box<Self>, request: Request, stream: &Stream) -> Result<()>;
 }
+#[cfg(not(target_arch = "wasm32"))]
 pub struct Stream {
     events: SyncSender<Event>,
     cancelled: Arc<AtomicBool>,
     wake: Arc<dyn Fn() + Send + Sync>,
 }
+#[cfg(not(target_arch = "wasm32"))]
 impl Stream {
     pub fn cancelled(&self) -> bool {
         self.cancelled.load(Ordering::Acquire)
@@ -218,12 +224,14 @@ impl Stream {
         }
     }
 }
+#[cfg(not(target_arch = "wasm32"))]
 pub struct Worker {
     pub turn: u64,
     events: Receiver<Event>,
     cancelled: Arc<AtomicBool>,
     thread: Option<std::thread::JoinHandle<()>>,
 }
+#[cfg(not(target_arch = "wasm32"))]
 impl Worker {
     pub fn start(
         backend: Box<dyn Backend>,
@@ -287,6 +295,7 @@ impl Worker {
         }
     }
 }
+#[cfg(not(target_arch = "wasm32"))]
 impl Drop for Worker {
     fn drop(&mut self) {
         self.cancel();

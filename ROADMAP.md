@@ -98,3 +98,9 @@ There is no release cadence, hosted CI gate or automatic agent queue configured 
 this roadmap. The [development flow](docs/development-flow.md) explains bounded
 work and review; [issues](https://github.com/travle1/pcbcraft-next/issues) track
 reported work. Update this page and implementation status when capabilities land.
+
+
+The initial [browser target](web/README.md) shares schematic editing and `.pc`
+codecs, with upload/download and a manual GitHub Pages workflow. Browser storage,
+Assistant transport and broader browser/mobile qualification remain open. This
+adds a distribution target without changing Electronics session ownership.

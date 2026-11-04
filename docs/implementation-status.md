@@ -216,3 +216,30 @@ readouts were removed from the status corner; zoom is beside navigation. Navigat
 uses immediate raw wheel deltas anchored at the pointer. Authored wire paths skip
 unneeded obstacle collection. These are targeted improvements, not a benchmark or
 a general schematic arranger. The original demo now uses more space within A3.
+
+
+## Browser target
+
+The same repository now has a `web` feature and WASM entry point using the shared
+eframe editor, Electronics session and project codecs. Browser file selection
+and `.pc` download replace native filesystem IO; native process/socket transports
+and window controls are excluded. The default native build remains available.
+The browser Assistant copies actual sheet data without claiming a live bridge.
+The [browser guide](../web/README.md) describes build commands, bounds and the
+manual Pages workflow. No hosted deployment has been performed for this slice.
+
+Downloads retain dirty state because the application cannot confirm a durable
+save. Import errors/cancellation keep the existing session; files larger than
+4 MiB reject before content loading. There is no browser autosave, persistent
+storage, direct ACP agent connection or mobile qualification. WebGL/Chromium on
+Linux is the initial browser target; this does not qualify future 3D geometry.
+
+
+Browser acceptance on Linux/Chromium 148.0.7778.96 passed against the optimized
+static bundle mounted at `/pcbcraft-next/`: component-value editing, undo/redo,
+complete-project download/re-import, cancelled/invalid/oversized imports, actual
+clipboard request data, tab-leaving protection and full/compact rendering. No
+JavaScript page errors were recorded. Native regression checks passed all 131
+tests, with 66 passing without default features; native and wasm-target Clippy
+passed with warnings denied. Local Rust was 1.98.1. The manual hosted workflow's
+Rust 1.95.0 environment has not been run, and no live Pages site was qualified.

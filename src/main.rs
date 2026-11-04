@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 mod desktop;
 
+#[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
     let mut options = desktop::Options {
         demo: false,
@@ -101,4 +102,9 @@ fn main() -> eframe::Result {
                 .map_err(Into::into)
         }),
     )
+}
+
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    desktop::launch_web();
 }

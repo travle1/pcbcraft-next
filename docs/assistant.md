@@ -107,3 +107,13 @@ Protocol sources: official ACP v1
 [prompt turns](https://agentclientprotocol.com/protocol/v1/prompt-turn) and
 [cancellation](https://agentclientprotocol.com/protocol/v1/cancellation).
 The [source policy](source-policy.md) applies to implementation and agent context.
+
+
+## Browser edition
+
+The WebAssembly target shares the Assistant panel but does not include the native
+ACP/process or local MCP/socket transports. Copy request supplies the current
+sheet document and selection as data for an external AI app; there is no live
+connection or automatic proposal return to the tab. Native agent setup is omitted.
+See the [browser guide](../web/README.md) for supported workflows and persistence
+limits. A future browser connection can reuse the same Electronics operations.

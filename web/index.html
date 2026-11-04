@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PCBcraft browser schematic editor">
+  <title>PCBcraft</title>
+  <link data-trunk rel="rust" href="../Cargo.toml" data-bin="pcbcraft" data-wasm-opt="0">
+  <link data-trunk rel="copy-dir" href="../target/web-licenses" data-target-path="licenses">
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #1c1f26; color: #dee2e8; }
+    canvas { width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
+    #loading { position: absolute; inset: 45% 10% auto; text-align: center; font: 16px sans-serif; }
+  </style>
+</head>
+<body>
+  <canvas id="pcbcraft" aria-label="PCBcraft schematic editor" tabindex="0"></canvas>
+  <div id="loading" role="status">Loading PCBcraft…</div>
+  <noscript>PCBcraft requires JavaScript and WebAssembly.</noscript>
+</body>
+</html>

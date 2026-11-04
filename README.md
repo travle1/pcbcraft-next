@@ -16,6 +16,8 @@
 
 PCBcraft is a standalone Rust desktop application in the SolidCraft family,
 built around an editable electronics project and a shared command/undo core.
+An initial WebAssembly target shares the editor and can be hosted on GitHub Pages;
+see the [browser build guide](web/README.md) for local setup and its limits.
 The goal is to move naturally between schematic capture, board layout, 3D review
 and manufacturing, whether designing by hand or working with an AI agent.
 
@@ -158,7 +160,9 @@ Read [AGENTS.md](AGENTS.md), [requirements](docs/requirements.md),
 [approved sources](docs/sources.md) and [development flow](docs/development-flow.md)
 before contributing. The [implementation plan](docs/implementation-plan.md) and
 [AI authoring tasks](docs/specs/ai-authoring.md#next-bounded-implementation-sequence-and-acceptance)
-describe bounded next steps. No hosted CI or automatic agent/PR queue is configured.
+describe bounded next steps. An explicit [Pages workflow](.github/workflows/pages.yml)
+builds/publishes the browser target when explicitly run or a preview tag is pushed; there is no automatic
+validation CI or agent/PR queue.
 
 ```sh
 cargo fmt --all -- --check

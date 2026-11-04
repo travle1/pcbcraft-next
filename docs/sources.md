@@ -388,3 +388,52 @@ are original code using existing egui APIs; no SolidCraft application dependency
 or new crate was added. Grid uses the already registered/licensed `grid.svg` master;
 text and subsheet glyphs are original. Existing font/control notices still apply.
 The preserved fork and KiCad implementation were not consulted.
+
+
+## Browser target (November 4, 2026)
+
+The browser entry point and file/download adapter are original PCBcraft code.
+They reuse the same editor, Electronics session, codecs and licensed artwork.
+No KiCad, preserved-fork implementation or new EDA fixtures are used.
+
+The browser target promotes existing locked transitive dependencies to explicit,
+wasm-only dependencies: wasm-bindgen 0.2.130, wasm-bindgen-futures 0.4.80,
+js-sys/web-sys 0.3.107 and web-time 1.1.0. Each is MIT OR Apache-2.0; select MIT
+for this use and retain upstream notices in the browser distribution. Cached
+Cargo manifests, LICENSE-MIT files and pinned eframe 0.36.2 WebRunner source were
+inspected. No upstream implementation files are copied. getrandom 0.3.4 enables
+its documented wasm_js backend (browser Crypto.getRandomValues); eframe's existing
+glow/WebGL renderer replaces the native wgpu backend for the web target.
+Native tempfile/rfd/process/socket support remains outside the browser build.
+Cargo.lock records the complete selected closure; qualify that graph/build before
+claiming browser support. These versions are not claims about the latest releases.
+
+Primary references: [wasm-bindgen JS modules](https://wasm-bindgen.github.io/wasm-bindgen/reference/js-snippets.html),
+[getrandom 0.3.4 browser support](https://docs.rs/getrandom/0.3.4/getrandom/),
+[Trunk 0.21.14 build assets](https://github.com/trunk-rs/trunk/blob/v0.21.14/guide/src/assets/index.md)
+and [GitHub Pages workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+Trunk is build tooling (MIT OR Apache-2.0), not an application dependency;
+the existing installed version is 0.21.14. Browser files use original HTML/CSS/JS.
+
+Several already-used crates omit workspace-level licenses from their registry
+archives. Browser notices supplement them with license-only files at the archive's
+recorded Git revision: AccessKit a55d3e1a18bb9ef0e4bccc9083fb13c3e0ad8969
+(Apache-2.0 plus retained Chromium BSD notice), egui
+49682f8baa058bf49e011035cfbd6e825f88a5ef (Apache-2.0), profiling
+8271551172eb6fa4cba47369aedd93790c623df9 (Apache-2.0), and enum-map
+c788a9c4bd0431308d889942719f7a38761d9884 / derive
+2026968c30ad14d268f3d70c618a704e22a3b980 (Apache-2.0). Original URLs
+and hashes accompany the license-only supplements in web/notices/; the actual
+font notices (OFL, Ubuntu and Hack/emoji licenses) are retained from the registry.
+
+
+The authorized Pages deployment uses official prebuilt build tools, not application
+code imports: Trunk 0.21.14 x86_64-unknown-linux-gnu (SHA-256
+f2b4680cd239693a646a2795e4633c625328d7b2a044fbe749fa3a2fe9e7036b from its
+published .sha256 release asset), and wasm-bindgen 0.2.130
+x86_64-unknown-linux-musl (SHA-256
+9687f3bb551b9f66f37ed32a40d7913a00f7962db653054e56857bc306c3227f,
+matching GitHub's release-asset digest and the locally tested archive).
+The workflow pins the checkout/upload-pages-artifact/deploy-pages official actions
+to exact commits. Their source repositories and tags were checked through GitHub's
+API before configuration; this does not claim that a hosted run has passed.
