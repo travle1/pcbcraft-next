@@ -3,6 +3,16 @@
 These express Travis's direction for a new project, without inheriting the old
 fork's implementation model or contribution policy.
 
+## Independent restart and licensing
+
+This is an independently implemented restart, not a relicensing or port of the
+preserved GPL PCBcraft fork. Original implementation code uses MIT OR Apache-2.0;
+qualified reused materials retain their own licenses and notices. Follow the
+[source policy](source-policy.md) before implementation. KiCad and old-fork
+implementation code, source-derived notes/fixtures and translations or AI rewrites
+of those materials are excluded, including through delegated work. Use published
+specifications/manuals, original requirements and independent black-box tests.
+
 ## Standalone application and shared libraries
 
 PCBcraft is a standalone application with its own executable, window, settings,
