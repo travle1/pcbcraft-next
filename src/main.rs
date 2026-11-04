@@ -20,10 +20,17 @@ fn main() -> eframe::Result {
         open: None,
     };
     let mut compact = false;
+    let mut mcp = false;
+    let mut capture_mcp = false;
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--demo" => options.demo = true,
+            "--mcp" => mcp = true,
+            "--capture-mcp" => {
+                mcp = true;
+                capture_mcp = true;
+            }
             "--capture" => options.capture = args.next().map(Into::into),
             "--exit-after-capture" => options.exit_after_capture = true,
             "--capture-workspace" => options.capture_workspace = true,
@@ -40,7 +47,7 @@ fn main() -> eframe::Result {
             "--capture-compact" => compact = true,
             "--help" | "-h" => {
                 println!(
-                    "PCBcraft — standalone schematic draft\nUsage: pcbcraft [project.pc] [--demo] [--capture image.png] [--capture-workspace | --capture-library | --capture-panels | --capture-search | --capture-properties | --capture-nets | --capture-wire-menu | --capture-text | --capture-selection | --capture-view | --capture-text-placement] [--capture-compact] [--exit-after-capture]"
+                    "PCBcraft — standalone schematic draft\nUsage: pcbcraft [project.pc] [--demo] [--mcp] [--capture image.png] [--capture-workspace | --capture-library | --capture-panels | --capture-search | --capture-properties | --capture-nets | --capture-wire-menu | --capture-text | --capture-selection | --capture-view | --capture-text-placement] [--capture-compact] [--exit-after-capture]"
                 );
                 return Ok(());
             }
@@ -77,7 +84,15 @@ fn main() -> eframe::Result {
         native,
         Box::new(move |cc| {
             desktop::App::new(cc, options)
-                .map(|app| Box::new(app) as Box<dyn eframe::App>)
+                .map(|mut app| {
+                    if mcp {
+                        app.enable_mcp(&cc.egui_ctx);
+                    }
+                    if capture_mcp {
+                        app.open_ai();
+                    }
+                    Box::new(app) as Box<dyn eframe::App>
+                })
                 .map_err(Into::into)
         }),
     )

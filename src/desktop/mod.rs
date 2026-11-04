@@ -1,3 +1,4 @@
+mod ai;
 mod canvas;
 mod controls;
 mod icons;
@@ -67,6 +68,7 @@ enum FileResult {
 }
 pub struct App {
     session: Session,
+    ai: ai::State,
     sheets: sheets::State,
     selection: pcbcraft_foundation::selection::Selection,
     text_ui: text_editor::State,
@@ -118,6 +120,7 @@ impl App {
         };
         let mut app = Self {
             session,
+            ai: Default::default(),
             sheets: Default::default(),
             selection: Default::default(),
             text_ui: Default::default(),
@@ -307,6 +310,7 @@ impl App {
                 match next {
                     Ok(s) => {
                         self.session = s;
+                        self.reset_ai_permissions();
                         self.sheets = Default::default();
                         self.nets = Default::default();
                         self.path = None;
@@ -387,6 +391,7 @@ impl App {
                     FileResult::Opened(path, doc, bytes) => match Session::from_project(doc) {
                         Ok(s) => {
                             self.session = s;
+                            self.reset_ai_permissions();
                             self.sheets = Default::default();
                             self.sheets.folded = self
                                 .session
@@ -645,6 +650,11 @@ impl App {
                             ui.ctx()
                                 .send_viewport_cmd(egui::ViewportCommand::Minimized(true));
                         }
+                        if controls::action(ui, "AI / MCP", controls::ActionTone::Secondary, true)
+                            .clicked()
+                        {
+                            self.ai.open = !self.ai.open;
+                        }
                         ui.label(RichText::new("SCHEMATIC DRAFT").small().color(t.ui.muted));
                         let r = ui.allocate_response(ui.available_size(), egui::Sense::drag());
                         if r.drag_started() {
@@ -790,6 +800,7 @@ impl App {
             || self.nets.modal()
             || self.sheets.dialog.is_some();
         self.poll(&ctx);
+        self.poll_mcp();
         self.ensure_sheet();
         self.refresh_nets();
         self.shortcuts(&ctx);
@@ -822,6 +833,7 @@ impl App {
             });
         self.panels(&ctx);
         self.dialogs(&ctx);
+        self.ai_panel(&ctx);
         self.more_properties(&ctx);
         self.net_dialogs(&ctx);
         self.sheet_dialog(&ctx);

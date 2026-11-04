@@ -93,7 +93,7 @@ impl App {
             self.canvas.fit_page = true;
         }
     }
-    fn reset_sheet_transients(&mut self) {
+    pub(super) fn reset_sheet_transients(&mut self) {
         self.canvas.drag = None;
         self.canvas.wire_drag = None;
         self.canvas.wire_start = None;
