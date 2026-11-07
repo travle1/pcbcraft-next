@@ -1,9 +1,12 @@
-<h1 align="center">PCBcraft</h1>
+<h1 align="center">PCBcraft Next (deprecated)</h1>
 
 <p align="center">
-  <strong>A native workspace for electronics design.</strong><br>
-  Schematic capture and live MCP authoring. PCB layout and 3D on the roadmap.
+  <strong>The real PCBcraft is coming soon.</strong>
 </p>
+
+PCBcraft Next is deprecated and is no longer the active PCBcraft project.
+This repository remains available for reference; the documentation below describes
+the deprecated prototype.
 
 <p align="center">
   <a href="https://travle1.github.io/pcbcraft-next/?demo=1">Try in browser</a> ·
