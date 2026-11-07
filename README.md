@@ -1,12 +1,17 @@
-<h1 align="center">PCBcraft Next (deprecated)</h1>
+<h1 align="center">PCBcraft Next (archived)</h1>
 
 <p align="center">
-  <strong>The real PCBcraft is coming soon.</strong>
+  <strong>Active development has moved to <a href="https://github.com/tangency-labs/pcbcraft">the official PCBcraft project</a>.</strong>
 </p>
 
-PCBcraft Next is deprecated and is no longer the active PCBcraft project.
-This repository remains available for reference; the documentation below describes
-the deprecated prototype.
+This repository is archived and is no longer maintained. Visit
+[official PCBcraft at tangency-labs/pcbcraft](https://github.com/tangency-labs/pcbcraft)
+for current development, documentation and contributions.
+
+The documentation below is retained as a historical record of this independent
+prototype.
+
+## Archived prototype documentation
 
 <p align="center">
   <a href="https://travle1.github.io/pcbcraft-next/?demo=1">Try in browser</a> ·
